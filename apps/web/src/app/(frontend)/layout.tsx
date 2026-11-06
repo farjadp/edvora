@@ -7,6 +7,7 @@ import '@fontsource/space-grotesk/700.css'
 import './styles.css'
 
 import { NoticeBar } from '@edvora/ui'
+import { isHex, tenantPalette, tenantPaletteCss } from '@edvora/ui/color'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { Footer } from '../../components/Footer'
@@ -14,8 +15,6 @@ import { Header } from '../../components/Header'
 import { getCurrentTenant } from '../../lib/tenant'
 
 export const dynamic = 'force-dynamic'
-
-const HEX = /^#[0-9a-fA-F]{6}$/
 
 export async function generateMetadata(): Promise<Metadata> {
   const tenant = await getCurrentTenant()
@@ -27,8 +26,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function FrontendLayout({ children }: { children: ReactNode }) {
   const tenant = await getCurrentTenant()
-  const brand = HEX.test(tenant.primaryColor ?? '') ? tenant.primaryColor : '#1A56DB'
-  const accent = HEX.test(tenant.accentColor ?? '') ? tenant.accentColor : '#F59E0B'
+  const brand = isHex(tenant.primaryColor) ? tenant.primaryColor : '#1A56DB'
+  const accent = isHex(tenant.accentColor) ? tenant.accentColor : '#F59E0B'
+  // Derives brand-ink, accent-ink and focus colours that meet contrast for whatever colours the tenant picked.
+  const paletteCss = tenantPaletteCss(tenantPalette(brand, accent))
   const defaultTheme = tenant.defaultTheme === 'dark' ? 'dark' : 'light'
   // Runs before paint so the saved theme never flashes.
   const themeScript = `try{var t=localStorage.getItem('theme')||'${defaultTheme}';document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='${defaultTheme}'}`
@@ -36,7 +37,7 @@ export default async function FrontendLayout({ children }: { children: ReactNode
   return (
     <html lang="fa" dir="rtl" data-theme={defaultTheme} suppressHydrationWarning>
       <head>
-        <style>{`:root{--brand:${brand};--accent:${accent}}`}</style>
+        <style>{paletteCss}</style>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-dvh bg-bg text-ink">

@@ -1,5 +1,8 @@
 import { cx } from './cx'
 
+/** Keyboard focus outline for buttons, links and other non-text controls. */
+export const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus'
+
 /**
  * Class helpers for native <button>/<a> and <input> elements, so forms and links that live in the app
  * (they are bound to server actions) still share one look. Pass extra classes for one-off tweaks.
@@ -15,6 +18,7 @@ export type ButtonClassOptions = {
 export function buttonClass({ block = false, className }: ButtonClassOptions = {}): string {
   return cx(
     'h-12 rounded-xl bg-brand font-bold text-brand-ink transition-opacity hover:opacity-90 disabled:opacity-60',
+    focusRing,
     block && 'w-full',
     className,
   )
@@ -33,7 +37,8 @@ export type InputClassOptions = {
 export function inputClass({ tone = 'surface', size = 'md', block = false, className }: InputClassOptions = {}): string {
   return cx(
     size === 'sm' ? 'h-11 text-sm' : 'h-12',
-    'rounded-xl border border-line px-4 outline-none focus:border-brand',
+    // 1px border + 1px ring = a 2px focus edge in --focus, which is ≥3:1 on every surface.
+    'rounded-xl border border-line-strong px-4 outline-none focus:border-focus focus:ring-1 focus:ring-focus',
     tone === 'bg' ? 'bg-bg' : 'bg-surface',
     block && 'w-full',
     className,
