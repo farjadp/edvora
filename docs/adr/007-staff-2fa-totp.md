@@ -1,6 +1,6 @@
 # ADR 007 — Staff second factor: self-hosted TOTP, verified per session
 
-**Status:** proposed (2026-11-06, E-021) — needs Farjad's review
+**Status:** accepted (2026-11-06, Farjad) — proposed in E-021
 
 ## Context
 ADR 006 requires a second factor for staff. SMS OTP costs money per login, depends on the SMS provider being up and
@@ -16,6 +16,11 @@ override, so the code cannot be asked for in the same request as the password.
   no admin panel, no API access beyond their own user record. Verification is stored on the user (hidden field).
 - **Rollout flag** `STAFF_2FA_REQUIRED` (default `false`): when `true`, staff without 2FA also get no permissions
   until they enrol. Turn it on once E-022 ships the enrol/verify screens.
+
+## Decision (Farjad, 2026-11-06)
+- 2FA is **optional**. `STAFF_2FA_REQUIRED` stays `false` by default.
+- Any staff member can turn 2FA on for themselves (E-022 `/staff` screens).
+- An academy admin can require it later by switching the flag on.
 
 ## Consequences
 - Until E-022, 2FA is enrolled and verified through the API only; Payload `/admin` shows "unauthorized" for a
