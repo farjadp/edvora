@@ -14,7 +14,7 @@ import { Assignments } from './collections/Assignments'
 import { AuditLogs } from './collections/AuditLogs'
 import { Certificates } from './collections/Certificates'
 import { Cohorts } from './collections/Cohorts'
-import { OtpCodes, Posts, Testimonials } from './collections/Content'
+import { OtpCodes, Pages, Posts, Testimonials } from './collections/Content'
 import { Coupons } from './collections/Coupons'
 import { Courses } from './collections/Courses'
 import { Enrollments } from './collections/Enrollments'
@@ -77,6 +77,7 @@ export default buildConfig({
     Coupons,
     Testimonials,
     Posts,
+    Pages,
     Media,
     OtpCodes,
   ],
@@ -107,6 +108,7 @@ export default buildConfig({
         coupons: {},
         testimonials: {},
         posts: {},
+        pages: {},
         media: {},
         // E-021: access is per academy.
         roles: {},
