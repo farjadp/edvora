@@ -46,7 +46,7 @@ export function CompletionPanel({ courseSlug, state }: { courseSlug: string; sta
                   <span className="me-2 text-xs font-normal text-muted">{r.kind === 'quiz' ? 'آزمون' : 'تکلیف'}</span>
                   {r.title}
                 </Link>
-                <span className={cx('shrink-0 text-xs', r.state === 'done' ? 'text-ok' : r.state === 'failed' ? 'text-danger' : 'text-muted')}>{REQUIREMENT_STATE[r.state]}</span>
+                <span className={cx('shrink-0 text-xs', r.state === 'done' ? 'text-ok' : r.state === 'failed' ? 'font-bold' : 'text-muted')}>{REQUIREMENT_STATE[r.state]}</span>
               </li>
             ))}
           </ul>

@@ -117,7 +117,7 @@ export default async function QuizPage({ params }: Props) {
                         تلاش {fa(a.attemptNo)} · {a.submittedAt ? jalaliDateTime(a.submittedAt) : STATUS[a.status]}
                       </span>
                       <span className={a.passed ? 'font-bold text-ok' : 'text-muted'}>
-                        {a.passed ? 'قبول' : 'مردود'} {quiz.review !== 'none' ? `· ${faScore(a.score ?? 0)} از ${faScore(a.maxScore ?? 0)}` : ''}
+                        {a.passed ? 'قبول' : 'هنوز نه'} {quiz.review !== 'none' ? `· ${faScore(a.score ?? 0)} از ${faScore(a.maxScore ?? 0)}` : ''}
                       </span>
                     </Link>
                   </li>

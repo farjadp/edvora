@@ -68,7 +68,7 @@ export default async function AssignmentPage({ params, searchParams }: Props) {
         <div data-testid="submission-status" className="mt-3 text-sm leading-7">
           {graded ? (
             <>
-              <p className={assignmentPassed({ score: submission.score, passScore: assignment.passScore }) ? 'text-lg font-black text-ok' : 'text-lg font-black text-danger'}>
+              <p className={assignmentPassed({ score: submission.score, passScore: assignment.passScore }) ? 'text-lg font-black text-ok' : 'text-lg font-black'}>
                 نمره: {faScore(submission.score!)} از {fa(assignment.maxScore)} —{' '}
                 {assignmentPassed({ score: submission.score, passScore: assignment.passScore }) ? 'قبول' : 'قبول نشده'}
               </p>

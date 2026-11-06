@@ -196,3 +196,29 @@ export async function getFinanceInbox(s: StaffCtx, now = new Date()): Promise<Fi
     })),
   })
 }
+
+/**
+ * XP the signed-in student earned for passing this quiz, only when `attemptNo` is the attempt that paid it (the
+ * result page's footnote: feedback first, reward second). Null = XP off, nothing paid, or another attempt.
+ */
+export async function getQuizPassXp(courseSlug: string, quizId: number, attemptNo: number): Promise<number | null> {
+  const ctx = await studentCourse(courseSlug)
+  if (!ctx || !gamificationFor(ctx.tenant).xp) return null
+  const payload = await getPayloadClient()
+  const res = await payload.find({
+    collection: 'learning-events',
+    where: {
+      and: [
+        { tenant: { equals: ctx.tenant.id } },
+        { user: { equals: ctx.user.id } },
+        { type: { equals: 'quiz.passed' } },
+        { sourceId: { equals: String(quizId) } },
+      ],
+    },
+    depth: 0,
+    limit: 5,
+    overrideAccess: true,
+  })
+  const row = res.docs.find((e) => (e.meta as { attemptNo?: number } | null)?.attemptNo === attemptNo && (e.xp ?? 0) > 0)
+  return row ? (row.xp ?? 0) : null
+}
