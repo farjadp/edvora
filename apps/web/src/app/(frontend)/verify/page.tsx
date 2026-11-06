@@ -1,4 +1,5 @@
 import { formatJalali, normalizeCertificateCode } from '@edvora/core'
+import { inputClass } from '@edvora/ui/classes'
 import type { Metadata } from 'next'
 import { docOf } from '../../../lib/ids'
 import { getPayloadClient } from '../../../lib/payload'
@@ -29,7 +30,7 @@ export default async function VerifyPage({ searchParams }: Props) {
           dir="ltr"
           required
           placeholder={`${tenant.certificatePrefix}-MBA-181`}
-          className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 font-latin outline-none focus:border-brand"
+          className={inputClass({ className: 'min-w-0 flex-1 font-latin' })}
         />
         <button className="h-12 rounded-xl bg-brand px-6 font-bold text-brand-ink">استعلام</button>
       </form>

@@ -16,6 +16,7 @@
   "dependencies": {
     "@edvora/core": "workspace:*",
     "@edvora/integrations": "workspace:*",
+    "@edvora/ui": "workspace:*",
     "@fontsource/space-grotesk": "^5.2.10",
     "@fontsource/vazirmatn": "^5.2.8",
     "@payloadcms/db-postgres": "3.93.0",
