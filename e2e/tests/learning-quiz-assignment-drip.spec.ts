@@ -18,6 +18,13 @@ const repoRoot = path.resolve(__dirname, '..', '..')
 const lessonRow = (page: Page, title: string) => page.locator('li[data-lesson-state]').filter({ has: page.getByText(title, { exact: true }) })
 const question = (page: Page, text: string) => page.locator('fieldset', { hasText: text })
 
+/** Opt-in screenshots for PR review: `E2E_SHOTS=docs/agents/handoffs/E-026 pnpm e2e` (path relative to repo root). */
+async function shot(page: Page, name: string) {
+  const dir = process.env.E2E_SHOTS
+  if (!dir) return
+  await page.screenshot({ path: path.resolve(repoRoot, dir, `${name}.png`), fullPage: true })
+}
+
 /** Smallest well-formed PDF (header, one empty page, xref, trailer, %%EOF) — Payload checks the structure. */
 function minimalPdf(): Buffer {
   const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>', '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>']
@@ -71,6 +78,7 @@ test.describe('demo tenant: drip, quiz, assignment, grading, certificate gate', 
       await expect(cert).toContainText('گواهی هنوز آماده نیست')
       await expect(cert).toContainText('آزمون الزامی قبول نشده')
       await expect(cert).toContainText('تکلیف الزامی هنوز قبول نشده')
+      await shot(page, '01-outline-locked')
     })
 
     await test.step('a locked lesson URL shows the unlock date and no content', async () => {
@@ -79,6 +87,7 @@ test.describe('demo tenant: drip, quiz, assignment, grading, certificate gate', 
       await expect(page.getByTestId('lesson-locked')).toContainText('باز می‌شود')
       await expect(page.getByText('یادداشت نمونه جلسه.')).toHaveCount(0)
       await expect(page.locator('video')).toHaveCount(0)
+      await shot(page, '02-locked-lesson-url')
     })
 
     await test.step('lesson content is not readable through the public API', async () => {
@@ -118,6 +127,7 @@ test.describe('demo tenant: drip, quiz, assignment, grading, certificate gate', 
       await question(page, 'چند بخش دارد').getByLabel('پاسخ شما').fill('۴')
       await question(page, 'حرف S').getByLabel('پاسخ شما').fill('  strengths ')
       await expect(page.getByText('ذخیره شد')).toBeVisible()
+      await shot(page, '03-quiz-taking')
 
       await page.getByRole('button', { name: 'ارسال پاسخ‌ها' }).click()
       await page.waitForURL(/\/quiz\/\d+\/attempt\/1$/)
@@ -126,6 +136,7 @@ test.describe('demo tenant: drip, quiz, assignment, grading, certificate gate', 
       await expect(result).toContainText('نمره: ۸ از ۸')
       // Review "full after pass": correct answers are shown now.
       await expect(page.getByText('پاسخ درست').first()).toBeVisible()
+      await shot(page, '04-quiz-result')
     })
 
     await test.step('retake is not offered after passing', async () => {
@@ -143,6 +154,7 @@ test.describe('demo tenant: drip, quiz, assignment, grading, certificate gate', 
       await expect(lessonRow(page, 'طراحی پروژه')).toHaveAttribute('data-lesson-state', 'open')
       await expect(lessonRow(page, 'جمع‌بندی و پروژهٔ نهایی')).toHaveAttribute('data-lesson-state', 'locked')
       await expect(page.locator('[data-requirement="quiz"]')).toHaveAttribute('data-state', 'done')
+      await shot(page, '05-outline-unlocked')
     })
 
     let fileHref = ''
@@ -156,6 +168,7 @@ test.describe('demo tenant: drip, quiz, assignment, grading, certificate gate', 
       await page.getByRole('button', { name: 'تحویل تکلیف' }).click()
       await expect(page.locator('form [role="alert"]')).toContainText('نوع فایل')
       await expect(page.getByLabel('متن پاسخ')).toHaveValue(answer)
+      await shot(page, '06-assignment-file-refused')
 
       await page.locator('input[type="file"]').setInputFiles({ name: 'swot.pdf', mimeType: 'application/pdf', buffer: minimalPdf() })
       await page.getByRole('button', { name: 'تحویل تکلیف' }).click()
@@ -197,6 +210,7 @@ test.describe('demo tenant: drip, quiz, assignment, grading, certificate gate', 
       await expect(status).toContainText('قبول')
       await expect(page.getByTestId('submission-feedback')).toHaveText('تحلیل خوبی بود؛ تهدیدها را دقیق‌تر بنویسید.')
       await expect(page.getByRole('button', { name: /تحویل/ })).toHaveCount(0)
+      await shot(page, '07-assignment-graded')
 
       await page.goto(COURSE)
       const cert = page.getByTestId('certificate-status')
