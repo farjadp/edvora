@@ -6,7 +6,7 @@ SMS keys, no IBA client content (ADR 002). Client production moves to an Iranian
 | | |
 | --- | --- |
 | Project | `edvora-demo` (Railway workspace "Farjad Pourmohammad's Projects"), environment `production` |
-| Services | `web` (this repo, `Dockerfile`) · `Postgres` (Railway Postgres template, volume `postgres-volume`) |
+| Services | `web` (this repo, `Dockerfile`; volume `web-volume` at `/data` for private uploads) · `Postgres` (Railway Postgres template, **Postgres 18**, volume `postgres-volume`) |
 | URL | https://web-production-39ee1.up.railway.app (Railway-generated, no custom domain) |
 | Tenant | `demo` only — via `DEFAULT_TENANT_SLUG=demo` (any unknown host falls back to it) |
 | Admin | `/admin`, email `admin@edvora.demo`, password = Railway variable `SEED_ADMIN_PASSWORD` on `web` |
@@ -40,6 +40,9 @@ Read them in the dashboard: project `edvora-demo` → `web` → **Variables**, o
 | `PAYMENT_PROVIDER`, `SMS_PROVIDER` | `mock` (never change on Railway) |
 | `SEED_TENANTS` | `demo` (seed skips `iba`) |
 | `SEED_ADMIN_EMAIL` | `admin@edvora.demo` |
+| `PRIVATE_UPLOADS_DIR` | `/data/submission-files` — student assignment files on the `web-volume` volume (ADR 009) |
+| `RAILWAY_RUN_UID` | `0` — Railway volumes mount as root; the image's `nextjs` user can't write to them otherwise |
+| `STAFF_2FA_REQUIRED` | not set (= off). Keep off on the demo until Farjad says otherwise (ADR 007) |
 | `SEED_ADMIN_PASSWORD` | generated; read it from Railway |
 
 ## First-time setup (already done — repeat for a new project)
@@ -57,14 +60,29 @@ railway variables --service web --skip-deploys \
   --set SEED_ADMIN_EMAIL=admin@edvora.demo
 ```
 
+Private uploads volume (CLI 5.49 panics on `--service web`; pass the service and environment **IDs** from
+`railway status`):
+
+```bash
+railway volume --service <web-service-id> --environment <environment-id> add --mount-path /data
+railway variables --service web --set PRIVATE_UPLOADS_DIR=/data/submission-files --set RAILWAY_RUN_UID=0
+```
+
 Then **seed before the first deploy** (the healthcheck `/` needs a tenant), see below, then `railway up --service web`.
 
 ## Seed / migrate (from your machine)
 
-Postgres has no public port by default. Open a temporary TCP proxy, seed, close it:
+Do this **before every deploy that adds a migration** (new files in `apps/web/src/migrations`), not only the first
+time: the seed also re-syncs role templates per academy (e.g. E-022 added `users.2fa.reset` to academy admins; the
+migration alone doesn't touch role data) and adds new demo data (E-026 quiz, assignment, dripped lessons).
+
+Postgres has no public port by default. Open a temporary TCP proxy, back up, migrate + seed, close it:
 
 ```bash
-railway tcp-proxy create --service Postgres --port 5432      # note the endpoint host:port
+railway tcp-proxy create --service Postgres --port 5432      # note the endpoint host:port; wait until ACTIVE
+eval "$(railway variables --service Postgres --kv | grep -E '^(PGUSER|PGPASSWORD|PGDATABASE)=' | sed 's/^/export /')"
+export PGHOST=<endpoint-host> PGPORT=<endpoint-port>
+pg_dump --format=custom --no-owner --no-acl -f edvora-demo-$(date +%Y%m%d-%H%M).dump   # backup first (pg_dump ≥ 18)
 cd apps/web
 eval "$(railway variables --service Postgres --kv | grep -E '^(PGUSER|PGPASSWORD|PGDATABASE)=' | sed 's/^/export /')"
 railway run --service web -- env NODE_ENV=production \
@@ -76,6 +94,8 @@ railway tcp-proxy delete --service Postgres <id>
 
 `NODE_ENV=production` matters: it makes Payload apply the committed migrations instead of dev schema push. The seed
 is idempotent (upserts by natural key). It does **not** change an existing admin's password.
+
+Check: `psql -Atc "select name from payload_migrations order by id"` lists every migration file.
 
 ## Deploy / redeploy
 
@@ -97,6 +117,10 @@ railway run --service web -- env SMOKE_BASE_URL=https://web-production-39ee1.up.
 Checks: home + course page are the demo tenant (no IBA text), OTP login with the on-screen mock code, mock checkout
 (`TEST20`, 4 instalments → ۳٬۸۴۰٬۰۰۰ تومان → `partial`), `/verify?code=ED-MGT-001`, admin API login + `/admin`.
 
+Also check by hand: `/staff/login` loads (staff desk, E-022); the seeded demo student `09129990001` (mock OTP) sees
+`/learn/demo-program` and its quiz page; `/files/submissions/1` without login → 401;
+`railway ssh --service web -- touch /data/submission-files/.t` succeeds (volume writable).
+
 ## Rollback
 
 Dashboard → `web` → **Deployments** → pick the last good deployment → **Redeploy** (or `railway redeploy` for the
@@ -116,8 +140,9 @@ becomes misleading. Postgres password: regenerate in the Postgres service settin
 
 ## Move the DB out (to client production / a better host)
 
-Payload + Postgres only, so this is a plain dump/restore. Use the same major version (Postgres 16 locally; check the
-Railway one with `SELECT version();`).
+Payload + Postgres only, so this is a plain dump/restore. Railway runs **Postgres 18**: dump with `pg_dump` 18+ and
+restore into Postgres 18+ (a custom-format dump from 18 won't restore into 16; use `--format=plain` and check it if you
+must go down a version).
 
 ```bash
 railway tcp-proxy create --service Postgres --port 5432
@@ -129,17 +154,22 @@ pg_restore --no-owner --no-acl --dbname "postgresql://…new-host…/edvora" edv
 Then point the new app at it with the same `PAYLOAD_SECRET` (or rotate and accept logouts). The
 `payload_migrations` table comes along, so the new app only applies newer migrations. Uploaded media are on the
 container's disk (`apps/web/media`), not in Postgres — the demo has none; production needs object storage (MinIO / S3
-compatible, Iranian provider) before real uploads. Keep the dump file out of git and delete it when done.
+compatible, Iranian provider) before real uploads. Student submission files live on `web-volume` (`/data`), also not
+in Postgres: copy them too (`railway ssh --service web -- tar czf - -C /data submission-files > submissions.tgz`),
+or restored submissions point at missing files (ADR 009). Keep dumps and archives out of git and delete them when done.
 
 ## Cost
 
 Railway is usage-based (CPU, RAM, volume, egress) on Farjad's plan. One small Next.js service plus Postgres is a
-low-usage demo; check the project's **Usage** page monthly. Nothing paid beyond the project and Postgres was added:
-no custom domain, no replicas, no add-ons. Delete the project when the demo is no longer needed.
+low-usage demo; check the project's **Usage** page monthly. Added: the project, Postgres, and one small volume for
+private uploads (`web-volume`, billed by GB used; approved for the demo). No custom domain, no replicas, no add-ons. Delete the project when the demo is no longer needed.
 
 ## Known limits
 
-- Media uploads are lost on redeploy (container disk). Fine for the demo; don't upload real files.
+- Public media uploads (`media`) are lost on redeploy (container disk). Fine for the demo; don't upload real files.
+  Private submission files persist on `web-volume`.
+- The container runs as root (`RAILWAY_RUN_UID=0`) so it can write to the volume. Acceptable for the demo; on the
+  production host mount the uploads directory owned by uid 1001 instead.
 - Mock OTP codes appear on screen and in runtime logs — by design for the demo, never for production.
 - No email adapter: Payload writes emails (e.g. password reset) to the logs.
 - `railway.json` (config as code) is deprecated by Railway; existing files keep working until **2026-12-01**. Before
