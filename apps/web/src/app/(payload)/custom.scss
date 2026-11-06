@@ -1,3 +1,762 @@
+/*
+ * Edvora admin, "Seal" (مُهر) direction (E-031). Documented in docs/design/system.md.
+ *
+ * Paper background, ink text, hairline rules instead of grey boxes, restrained. The selected academy's brand colour is
+ * the accent (fills, current place, focus ring); it is injected by components/admin/TenantAccent as --brand-solid,
+ * --brand-solid-ink, --brand-text, --brand-wash and --focus, with the Edvora default as fallback here. Gold is reserved for
+ * milestones (certificates, levels) and has no job in the admin yet, so it is not defined.
+ *
+ * Payload ships its styles in `@layer payload-default`; everything here is unlayered, so it wins without !important.
+ * Tailwind is deliberately not loaded in the admin (its preflight reset fights Payload's), so our admin components
+ * use the small `ed-*` classes below. Only logical properties (inline/block): the admin is RTL for Persian.
+ */
+
+/* Self-hosted display face (licence confirmed by Farjad, 2026-11-06). Vazirmatn comes from @fontsource (layout.tsx). */
+@font-face {
+  font-family: 'Morabba';
+  src: url('/fonts/morabba/400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('/fonts/morabba/700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('/fonts/morabba/900.woff2') format('woff2');
+  font-weight: 900;
+  font-display: swap;
+}
+
+:root {
+  /* Same values as the site tokens in packages/ui/src/styles.css. */
+  --ed-paper: #f6f6f3;
+  --ed-surface: #ffffff;
+  --ed-sunken: #eeeee9;
+  --ed-ink: #111827;
+  --ed-muted: #5b6372;
+  --ed-line: #e3e3dc;
+  --ed-line-strong: #888884;
+  --ed-ok: #0f7b4b;
+  --ed-danger: #b42318;
+
+  /* Tenant accent (see TenantAccent). Fallbacks = Edvora default blue. */
+  --ed-brand: var(--brand-solid, #1a56db);
+  --ed-brand-ink: var(--brand-solid-ink, #ffffff);
+  --ed-brand-text: var(--brand-text, #1a56db);
+  --ed-brand-wash: var(--brand-wash, #e8eefc);
+  --ed-focus: var(--focus, #1a56db);
+
+  --ed-display: 'Morabba', 'Vazirmatn', ui-sans-serif, system-ui, sans-serif;
+
+  /* Warm neutral ramp: paper at 0, the site's ink at 900. Payload derives every light-theme grey from these. */
+  --color-base-0: #f6f6f3;
+  --color-base-50: #efefea;
+  --color-base-100: #e8e8e2;
+  --color-base-150: #e0e0d9;
+  --color-base-200: #d3d3cb;
+  --color-base-250: #c3c3bb;
+  --color-base-300: #b0b0a9;
+  --color-base-350: #9c9c96;
+  --color-base-400: #888884;
+  --color-base-450: #656a76;
+  --color-base-500: #5f6675;
+  --color-base-550: #5b6372;
+  --color-base-600: #4d5463;
+  --color-base-650: #404755;
+  --color-base-700: #343a47;
+  --color-base-750: #2a303b;
+  --color-base-800: #1f2430;
+  --color-base-850: #171c27;
+  --color-base-900: #111827;
+  --color-base-950: #0b101b;
+  --color-base-1000: #05080f;
+
+  /* Payload's "success" is blue by default; make it the site's green. */
+  --color-success-50: #eef8f2;
+  --color-success-100: #dcf1e5;
+  --color-success-150: #c2e7d2;
+  --color-success-200: #a3dbbc;
+  --color-success-250: #83cea5;
+  --color-success-300: #62bf8c;
+  --color-success-350: #43ae75;
+  --color-success-400: #2a9c62;
+  --color-success-450: #1a8c55;
+  --color-success-500: #0f7b4b;
+  --color-success-550: #0c6d42;
+  --color-success-600: #0a603a;
+  --color-success-650: #095433;
+  --color-success-700: #08482c;
+  --color-success-750: #073d26;
+  --color-success-800: #06331f;
+  --color-success-850: #052a1a;
+  --color-success-900: #042114;
+  --color-success-950: #03180f;
+
+  /* Error red tuned to the site's danger (#b42318 reads 6.0:1 on paper). */
+  --color-error-500: #b42318;
+  --color-error-550: #a11f15;
+  --color-error-600: #8f1c13;
+
+  --font-body: 'Vazirmatn', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-latin: 'Space Grotesk', 'Vazirmatn', ui-sans-serif, sans-serif;
+
+  /* Persian needs a larger body size than Payload's 13px; --base stays 20px because rem follows it. */
+  --base-body-size: 14;
+
+  /* Seal is restrained: small radii. */
+  --style-radius-s: 4px;
+  --style-radius-m: 6px;
+  --style-radius-l: 10px;
+
+  --accessibility-outline: 2px solid var(--ed-focus);
+  --accessibility-outline-offset: 2px;
+}
+
+/* Payload makes the nav full-width below its "m" breakpoint (1024px); only narrow it on desktop. */
+@media (min-width: 1025px) {
+  :root {
+    --nav-width: 264px;
+  }
+}
+
+html[data-theme='light'] {
+  --theme-bg: var(--ed-paper);
+  --theme-input-bg: var(--ed-surface);
+  --theme-text: var(--ed-ink);
+  --theme-border-color: var(--ed-line);
+  --theme-overlay: rgb(17 24 39 / 0.45);
+}
+
+html[data-theme='dark'] {
+  --ed-paper: #0c0e12;
+  --ed-surface: #151820;
+  --ed-sunken: #1c2029;
+  --ed-ink: #eef0f4;
+  --ed-muted: #9aa2b1;
+  --ed-line: #262b36;
+  --ed-line-strong: #676b72;
+  --ed-ok: #3ccf8e;
+  --ed-danger: #f97066;
+  --ed-brand-text: var(--brand-text, #7da2f5);
+  --ed-brand-wash: var(--brand-wash, #18213a);
+  --ed-focus: var(--focus, #6d93f0);
+
+  /* Payload's dark mode reads the base ramp backwards; give it the site's dark greys directly. */
+  --theme-elevation-0: #0c0e12;
+  --theme-elevation-50: #12151b;
+  --theme-elevation-100: #171a22;
+  --theme-elevation-150: #1f232c;
+  --theme-elevation-200: #262b36;
+  --theme-elevation-250: #2f3541;
+  --theme-elevation-300: #3a404c;
+  --theme-elevation-350: #474d59;
+  --theme-elevation-400: #8b919d;
+  --theme-elevation-450: #8b919d;
+  --theme-elevation-500: #9aa2b1;
+  --theme-elevation-550: #9aa2b1;
+  --theme-elevation-600: #aab1be;
+  --theme-elevation-650: #bac0cb;
+  --theme-elevation-700: #c9ced7;
+  --theme-elevation-750: #d8dce3;
+  --theme-elevation-800: #e3e6ec;
+  --theme-elevation-850: #eef0f4;
+  --theme-elevation-900: #f5f6f8;
+  --theme-elevation-950: #ffffff;
+  --theme-elevation-1000: #ffffff;
+
+  --theme-bg: var(--ed-paper);
+  --theme-input-bg: var(--ed-surface);
+  --theme-text: var(--ed-ink);
+  --theme-border-color: var(--ed-line);
+  --theme-overlay: rgb(0 0 0 / 0.6);
+
+  /* Error and success tints read on dark surfaces. */
+  --color-error-500: #f97066;
+  --color-error-550: #f97066;
+  --color-error-600: #fca5a0;
+}
+
+/* ---------- Browser surfaces ---------- */
+
+html {
+  font-feature-settings: 'ss01';
+  accent-color: var(--ed-brand);
+  caret-color: var(--ed-brand-text);
+  scrollbar-color: var(--ed-line-strong) transparent;
+}
+
+::selection {
+  background: #f59e0b;
+  color: #111827;
+}
+
+:focus-visible {
+  outline: var(--accessibility-outline);
+  outline-offset: var(--accessibility-outline-offset);
+}
+
+/* Codes, IDs and numbers in tables line up and read in Latin figures. */
+.cell-id,
+.cell-code,
+.cell-authority,
+.cell-refId,
+.cell-phone {
+  font-family: var(--font-latin);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type='number'],
+input[type='tel'] {
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+/* Display face only for page titles. */
+.doc-header__title,
+.collection-list__wrap h1,
+.list-header h1,
+.template-minimal h1,
+.ed-dash__title {
+  font-family: var(--ed-display);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+/* ---------- Brand marks ---------- */
+
+.ed-seal {
+  inline-size: 22px;
+  block-size: 22px;
+  color: var(--ed-ink);
+}
+
+.ed-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ed-ink);
+}
+
+.ed-logo__seal {
+  inline-size: 40px;
+  block-size: 40px;
+  color: var(--ed-brand-text);
+}
+
+.ed-logo__fa {
+  font-family: var(--ed-display);
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.ed-logo__en {
+  font-family: var(--font-latin);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--ed-muted);
+  direction: ltr;
+}
+
+/* Payload gives the breadcrumb icon a fixed 16px box. */
+.step-nav__home,
+.step-nav__home > span {
+  inline-size: auto;
+  block-size: auto;
+  overflow: visible;
+}
+
+.step-nav__home .ed-seal {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+/* ---------- Shell: nav ---------- */
+
+.nav {
+  background: var(--ed-surface);
+  border-inline-end: 1px solid var(--ed-line);
+}
+
+.nav .tenant-selector {
+  /* Payload's close button sits at the inline-start corner of the nav; keep the academy label clear of it. */
+  padding-inline-start: 36px;
+}
+
+.nav__scroll {
+  padding-block: 12px 24px;
+}
+
+.nav-group {
+  margin-block-end: 6px;
+}
+
+.nav-group__toggle {
+  padding-block: 10px 6px;
+}
+
+.nav-group__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ed-muted);
+}
+
+.nav__link {
+  position: relative;
+  border-radius: var(--style-radius-m);
+  padding-block: 7px;
+  padding-inline: 10px;
+  margin-inline: -10px;
+  color: var(--ed-ink);
+  transition: background-color 150ms ease-out;
+}
+
+.nav__link:hover {
+  background: var(--ed-sunken);
+  text-decoration: none;
+}
+
+.nav__link .nav__link-indicator {
+  display: none;
+}
+
+/* The current place: brand wash plus an inline-start bar, so it is not colour alone. */
+.nav__link.active,
+.nav__link[aria-current='page'],
+div.nav__link {
+  background: var(--ed-brand-wash);
+  color: var(--ed-brand-text);
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--ed-brand-text);
+}
+
+[dir='rtl'] .nav__link.active,
+[dir='rtl'] .nav__link[aria-current='page'],
+[dir='rtl'] div.nav__link {
+  box-shadow: inset -3px 0 0 var(--ed-brand-text);
+}
+
+.nav__link-label {
+  font-size: 14px;
+}
+
+.nav__controls {
+  border-block-start: 1px solid var(--ed-line);
+  padding-block-start: 12px;
+}
+
+/* ---------- Shell: header ---------- */
+
+.app-header__bg {
+  background: var(--ed-paper);
+  border-block-end: 1px solid var(--ed-line);
+  opacity: 1;
+}
+
+.step-nav {
+  font-size: 13px;
+  color: var(--ed-muted);
+}
+
+.step-nav__last {
+  color: var(--ed-ink);
+  font-weight: 700;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn--style-primary {
+  --bg-color: var(--ed-brand);
+  --color: var(--ed-brand-ink);
+  --hover-bg: color-mix(in oklab, var(--ed-brand) 86%, black);
+  --hover-color: var(--ed-brand-ink);
+  background-color: var(--ed-brand);
+  color: var(--ed-brand-ink);
+  font-weight: 700;
+}
+
+.btn--style-primary:not(:disabled):hover,
+.btn--style-primary:not(:disabled):focus-visible {
+  background-color: color-mix(in oklab, var(--ed-brand) 86%, black);
+}
+
+.list-create-new-doc__create-new-button.btn--style-pill {
+  background-color: var(--ed-brand);
+  color: var(--ed-brand-ink);
+  font-weight: 700;
+  padding-inline: 14px;
+}
+
+.list-create-new-doc__create-new-button.btn--style-pill:hover {
+  background-color: color-mix(in oklab, var(--ed-brand) 86%, black);
+  color: var(--ed-brand-ink);
+}
+
+.btn--style-secondary {
+  --bg-color: var(--ed-surface);
+  --color: var(--ed-ink);
+  --box-shadow: inset 0 0 0 1px var(--ed-line-strong);
+  --hover-bg: var(--ed-sunken);
+  --hover-color: var(--ed-ink);
+  background-color: var(--ed-surface);
+  color: var(--ed-ink);
+  box-shadow: inset 0 0 0 1px var(--ed-line-strong);
+}
+
+.btn--style-secondary:not(:disabled):hover {
+  background-color: var(--ed-sunken);
+}
+
+.btn:disabled,
+.btn--disabled {
+  opacity: 0.55;
+}
+
+/* ---------- Inputs ---------- */
+
+.field-type input:not([type='checkbox']):not([type='radio']),
+.field-type textarea,
+.react-select .rs__control,
+.search-filter__input,
+.field-type .rich-text-lexical .editor {
+  border-color: var(--ed-line-strong);
+  color: var(--ed-ink);
+}
+
+.field-type input:not([type='checkbox']):not([type='radio']):focus,
+.field-type textarea:focus,
+.react-select .rs__control--is-focused {
+  border-color: var(--ed-focus);
+  box-shadow: 0 0 0 1px var(--ed-focus);
+}
+
+.field-type input::placeholder,
+.field-type textarea::placeholder,
+.search-filter__input::placeholder {
+  color: var(--ed-muted);
+  opacity: 1;
+}
+
+.field-label {
+  font-weight: 700;
+  color: var(--ed-ink);
+}
+
+.field-description {
+  color: var(--ed-muted);
+}
+
+/* ---------- Dashboard: our landing block ---------- */
+
+.ed-dash {
+  padding-block: 8px 4px;
+}
+
+.ed-dash__head {
+  padding-block: 20px 22px;
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.ed-dash__eyebrow {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--ed-muted);
+}
+
+.ed-dash__title {
+  margin: 0;
+  font-size: 34px;
+}
+
+.ed-dash__block {
+  margin-block-start: 28px;
+}
+
+.ed-dash__label {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ed-muted);
+}
+
+.ed-dash__label--all {
+  margin-block-start: 36px;
+  padding-block-start: 22px;
+  border-block-start: 1px solid var(--ed-line);
+}
+
+/* Counts: numerals separated by hairlines, no card fills. */
+.ed-dash__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block: 1px solid var(--ed-line);
+}
+
+.ed-dash__stat {
+  min-inline-size: 0;
+  border-inline-start: 1px solid var(--ed-line);
+}
+
+.ed-dash__stat:first-child {
+  border-inline-start: 0;
+}
+
+.ed-dash__stat-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px;
+  color: var(--ed-ink);
+  text-decoration: none;
+  transition: background-color 150ms ease-out;
+}
+
+.ed-dash__stat-link:hover {
+  background: var(--ed-sunken);
+}
+
+.ed-dash__num {
+  font-family: var(--ed-display);
+  font-weight: 700;
+  font-size: 38px;
+  line-height: 1.2;
+  color: var(--ed-brand-text);
+}
+
+.ed-dash__stat-label {
+  font-size: 14px;
+  color: var(--ed-muted);
+}
+
+.ed-dash__links {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 4px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ed-dash__link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-inline-size: 0;
+  padding-block: 8px;
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.ed-dash__link {
+  font-weight: 700;
+  color: var(--ed-ink);
+  text-decoration: none;
+}
+
+.ed-dash__link:hover {
+  color: var(--ed-brand-text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.ed-dash__create {
+  flex: none;
+  font-size: 13px;
+  color: var(--ed-brand-text);
+  text-decoration: none;
+}
+
+.ed-dash__create:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ed-dash__empty {
+  margin: 0;
+  color: var(--ed-muted);
+}
+
+/* ---------- Dashboard: Payload's collection directory, as a hairline list ---------- */
+
+.dashboard {
+  padding-block-end: 48px;
+}
+
+.collections__group {
+  margin-block: 0 24px;
+}
+
+.collections__label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ed-muted);
+  margin-block-end: 8px;
+}
+
+.collections__card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 0 24px;
+  margin: 0;
+  padding: 0;
+}
+
+.collections__card-list > li {
+  margin: 0;
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-block-size: 0;
+  padding-block: 12px;
+  padding-inline: 8px;
+  transition: background-color 150ms ease-out;
+}
+
+.card--has-onclick:hover {
+  background: var(--ed-sunken);
+  box-shadow: none;
+}
+
+.card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ed-ink);
+  margin: 0;
+}
+
+.card__actions .btn--icon-style-with-border {
+  box-shadow: inset 0 0 0 1px var(--ed-line-strong);
+}
+
+/* ---------- Lists & tables ---------- */
+
+/* Payload's list table is wider than a 375px screen and pushed the page sideways (scrollWidth > clientWidth);
+   let it shrink and scroll inside its own box. */
+.table-wrap,
+.collection-list__tables {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.table {
+  inline-size: 100%;
+  min-inline-size: 0;
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-l);
+  overflow: auto;
+}
+
+.table table {
+  border-collapse: collapse;
+}
+
+.table thead th {
+  background: var(--ed-surface);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ed-muted);
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.table tbody tr,
+.table tbody tr:nth-child(odd) {
+  background: transparent;
+}
+
+.table tbody tr + tr td {
+  border-block-start: 1px solid var(--ed-line);
+}
+
+.table tbody tr:hover {
+  background: var(--ed-sunken);
+}
+
+.table td,
+.table th {
+  padding-block: 12px;
+}
+
+.pill {
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* ---------- Edit view ---------- */
+
+.doc-controls {
+  background: var(--ed-paper);
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.collapsible,
+.array-field__row,
+.blocks-field__row {
+  border-color: var(--ed-line);
+  border-radius: var(--style-radius-l);
+}
+
+.collapsible__toggle-wrap,
+.collapsible--style-default > .collapsible__toggle-wrap {
+  background: var(--ed-sunken);
+}
+
+.tabs-field__tabs {
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.tabs-field__tab-button--active {
+  color: var(--ed-brand-text);
+}
+
+/* ---------- Login ---------- */
+
+.template-minimal {
+  background: var(--ed-paper);
+}
+
+.template-minimal__wrap {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-l);
+  padding: 40px 36px;
+  max-inline-size: 420px;
+}
+
+.login__brand {
+  margin-block-end: 28px;
+}
+
+/* ---------- Motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .nav__link,
+  .card,
+  .btn,
+  .ed-dash__stat-link {
+    transition: none;
+  }
+}
 
 /* Users → «بازنشانی تأیید دومرحله‌ای» (E-022) */
 .tfa-reset {
