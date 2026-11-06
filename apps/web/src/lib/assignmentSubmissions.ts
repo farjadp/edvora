@@ -1,7 +1,7 @@
 import 'server-only'
 import { detectSubmissionFile, SUBMISSION_LIMITS, SUBMISSION_MIME, submissionWindow, toPersianDigits } from '@edvora/core'
 import { randomUUID } from 'node:crypto'
-import type { Payload } from 'payload'
+import { ValidationError, type Payload } from 'payload'
 import type { Submission } from '../payload-types'
 import { jalaliDateTime } from '../components/learn/labels'
 import { idOf } from './ids'
@@ -48,13 +48,13 @@ export async function saveSubmission(
   if (keep.length + input.files.length > SUBMISSION_LIMITS.maxFiles) {
     return { ok: false, message: `حداکثر ${toPersianDigits(SUBMISSION_LIMITS.maxFiles)} فایل می‌توانید بفرستید.` }
   }
-  const prepared: { data: Buffer; kind: keyof typeof SUBMISSION_MIME; size: number }[] = []
+  const prepared: { data: Buffer; kind: keyof typeof SUBMISSION_MIME; size: number; name: string }[] = []
   for (const f of input.files) {
     if (f.size > SUBMISSION_LIMITS.maxBytes) return { ok: false, message: `فایل «${f.name}» بزرگ‌تر از ${toPersianDigits(SUBMISSION_LIMITS.maxBytes / MB)} مگابایت است.` }
     const data = Buffer.from(await f.arrayBuffer())
     const kind = detectSubmissionFile(data, f.name)
     if (!kind) return { ok: false, message: `نوع فایل «${f.name}» پذیرفته نیست. فقط PDF، DOCX، JPG یا PNG.` }
-    prepared.push({ data, kind, size: data.length })
+    prepared.push({ data, kind, size: data.length, name: f.name })
   }
   const text = input.text.trim()
   if (!text && keep.length + prepared.length === 0) return { ok: false, message: 'متن پاسخ یا دست‌کم یک فایل لازم است.' }
@@ -64,13 +64,19 @@ export async function saveSubmission(
   const cohortId = idOf(ctx.state.enrollment.cohort)
   const created: number[] = []
   for (const p of prepared) {
-    const doc = await payload.create({
-      collection: 'submission-files',
-      overrideAccess: true,
-      data: { tenant: tenantId, owner: ctx.user.id, course: courseId, cohort: cohortId, kind: p.kind },
-      file: { data: p.data, mimetype: SUBMISSION_MIME[p.kind], name: `${randomUUID()}.${p.kind}`, size: p.size },
-    })
-    created.push(doc.id)
+    try {
+      const doc = await payload.create({
+        collection: 'submission-files',
+        overrideAccess: true,
+        data: { tenant: tenantId, owner: ctx.user.id, course: courseId, cohort: cohortId, kind: p.kind },
+        file: { data: p.data, mimetype: SUBMISSION_MIME[p.kind], name: `${randomUUID()}.${p.kind}`, size: p.size },
+      })
+      created.push(doc.id)
+    } catch (err) {
+      // Payload's own content check (e.g. a truncated PDF). Files saved so far stay detached; nothing is attached.
+      if (err instanceof ValidationError) return { ok: false, message: `فایل «${p.name}» خراب است یا قابل خواندن نیست.` }
+      throw err
+    }
   }
 
   const data = {
