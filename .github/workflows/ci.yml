@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: edvora
+          POSTGRES_PASSWORD: edvora
+          POSTGRES_DB: edvora
+        ports: ['5442:5432']
+        options: >-
+          --health-cmd "pg_isready -U edvora" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://edvora:edvora@localhost:5442/edvora
+      PAYLOAD_SECRET: ci-only-secret-not-used-anywhere-else
+      SESSION_SECRET: ci-only-session-secret
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      PAYMENT_PROVIDER: mock
+      SMS_PROVIDER: mock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
