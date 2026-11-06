@@ -14,6 +14,7 @@ Notion page 06 and are created only when their work starts.
 | `tech-lead` | Architecture, implementation, review (also backend, integrations, DevOps for now) | opus | 2026-11-06 | Core (#10) |
 | `qa` | Tests, bug reports, release GO/NO-GO | sonnet | 2026-11-06 | Core (#15) |
 | `devops` | Containers, deploys (Railway demo now, Iranian host later), DB, env, runbooks | sonnet | 2026-11-06 | Farjad asked for a Railway demo deploy (#14) |
+| `content-producer` | Transcribes/structures academy content into Edvora fields; flags unverified claims and consent | sonnet | 2026-11-06 | E-030 import of iranbrandacademy.com (#08) |
 
 ## Planned (create when needed — Notion page 06)
 | # | Agent | Create when |
@@ -21,7 +22,6 @@ Notion page 06 and are created only when their work starts.
 | 03 | `market-researcher` | competitor/pricing/persona research is requested |
 | 04 | `compliance-reviewer` | before any public launch or claim review (DBA "Ministry of Science" claim) |
 | 07 | `ux-writer` | Persian microcopy, SMS/email templates, FAQ at scale |
-| 08 | `content-producer` | course pages, journal articles, scripts |
 | 09 | `seo-specialist` | keyword map, schema, redirects from the old WordPress site |
 | 11 | `frontend-developer` | UI volume exceeds what ui-designer + tech-lead can do |
 | 12 | `backend-developer` | same, for backend |
