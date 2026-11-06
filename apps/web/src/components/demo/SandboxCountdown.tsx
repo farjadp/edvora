@@ -32,17 +32,21 @@ export function SandboxCountdown({ expiresAt, serverNow, contactHref }: { expire
       role="status"
       aria-live="polite"
       className={cx(
-        'flex h-10 items-center justify-between gap-3 border-b px-4 text-sm',
+        'flex h-10 items-center justify-between gap-3 border-b px-4 text-xs sm:text-sm',
         tone === 'normal' ? 'border-line bg-sunken text-ink' : 'border-accent bg-accent text-accent-ink',
       )}
     >
       <span className="min-w-0 truncate">
-        {tone === 'normal'
-          ? `آکادمی آزمایشی · ${formatRemainingFa(left)} تا پایان`
-          : `${left < 60_000 ? 'کمتر از ۱ دقیقه' : `کمتر از ${formatRemainingFa(left)}`} مانده است. کارهایتان پس از پایان پاک می‌شود.`}
+        {tone === 'normal' ? (
+          <>
+            <span className="sm:hidden">{formatRemainingFa(left)} تا پایان دمو</span>
+            <span className="hidden sm:inline">آکادمی آزمایشی · {formatRemainingFa(left)} تا پایان</span>
+          </>
+        ) : `${left < 60_000 ? 'کمتر از ۱ دقیقه' : `کمتر از ${formatRemainingFa(left)}`} مانده است. کارهایتان پس از پایان پاک می‌شود.`}
       </span>
       <a href={contactHref} className="shrink-0 font-bold underline underline-offset-4">
-        درباره ادورا صحبت کنیم
+        <span className="sm:hidden">گفتگو با ادورا</span>
+        <span className="hidden sm:inline">درباره ادورا صحبت کنیم</span>
       </a>
     </div>
   )

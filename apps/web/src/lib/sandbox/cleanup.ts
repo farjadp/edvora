@@ -89,8 +89,10 @@ export async function purgeTenant(payload: Payload, tenantId: number): Promise<{
     })
   }
   rows += await purgeCollection(payload, 'users', { sandboxTenant: { equals: tenantId } })
-  await payload.delete({ collection: 'tenants', id: tenantId, overrideAccess: true, depth: 0, context: { [SYSTEM_CONTEXT]: true } })
+  // Before the tenant goes (its FK on the record is SET NULL). If the delete below fails, the next run re-selects the
+  // tenant and repeats this, so the record never says "purged" for long while data remains.
   await payload.update({ collection: 'demo-sandboxes', where: { tenant: { equals: tenantId } }, overrideAccess: true, depth: 0, data: { status: 'purged', purgedAt: new Date().toISOString() } })
+  await payload.delete({ collection: 'tenants', id: tenantId, overrideAccess: true, depth: 0, context: { [SYSTEM_CONTEXT]: true } })
   return { rows: rows + 1 }
 }
 

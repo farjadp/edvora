@@ -269,7 +269,7 @@ function Credentials({ ready, ttlFa, contactHref }: { ready: Ready; ttlFa: strin
       <Card>
         <h1 className="text-2xl font-black leading-10 sm:text-3xl">آکادمی آزمایشی شما آماده است</h1>
         <p className="mt-3 leading-8 text-muted">
-          تا ساعت {ready.expiresAtFa} (حدود {ttlFa} ساعت دیگر) فعال است. این رمزها فقط یک بار نشان داده می‌شوند؛ همین حالا آن‌ها را کپی کنید.
+          تا ساعت <bdi dir="ltr">{ready.expiresAtFa}</bdi> (حدود {ttlFa} ساعت دیگر) فعال است. این رمزها فقط یک بار نشان داده می‌شوند؛ همین حالا آن‌ها را کپی کنید.
         </p>
         {ready.leadSaved ? (
           <div className="mt-4">
@@ -292,7 +292,7 @@ function Credentials({ ready, ttlFa, contactHref }: { ready: Ready; ttlFa: strin
       </div>
       <Card>
         <h2 className="text-lg font-black">در {ttlFa} ساعت چه چیزی را امتحان کنم؟</h2>
-        <ol className="mt-4 grid list-inside list-decimal gap-2 leading-8">
+        <ol className="mt-4 grid list-inside gap-2 leading-8 [list-style-type:persian]">
           {CHECKLIST.map((item, i) => (
             <li key={item}>
               {item}
@@ -326,7 +326,7 @@ function Continue({ view }: { view: Extract<DemoInitial, { kind: 'continue' }> }
     <Card>
       <h1 className="text-2xl font-black leading-10">آکادمی آزمایشی شما هنوز فعال است</h1>
       <p className="mt-3 leading-8 text-muted">
-        {view.remainingFa} تا پایان (تا ساعت {view.expiresAtFa}). رمزها برای امنیت دوباره نشان داده نمی‌شوند.
+        {view.remainingFa} تا پایان (تا ساعت <bdi dir="ltr">{view.expiresAtFa}</bdi>). رمزها برای امنیت دوباره نشان داده نمی‌شوند.
       </p>
       {view.hasCreator ? (
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
