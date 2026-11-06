@@ -2,6 +2,7 @@ import * as migration_20261106_173058_initial from './20261106_173058_initial';
 import * as migration_20261106_195541_admin_foundation from './20261106_195541_admin_foundation';
 import * as migration_20261106_205400_users_2fa_reset_permission from './20261106_205400_users_2fa_reset_permission';
 import * as migration_20261106_220649_e026_quizzes_assignments_drip from './20261106_220649_e026_quizzes_assignments_drip';
+import * as migration_20261106_224247_e030_iba_import from './20261106_224247_e030_iba_import';
 
 export const migrations = [
   {
@@ -22,6 +23,11 @@ export const migrations = [
   {
     up: migration_20261106_220649_e026_quizzes_assignments_drip.up,
     down: migration_20261106_220649_e026_quizzes_assignments_drip.down,
-    name: '20261106_220649_e026_quizzes_assignments_drip'
+    name: '20261106_220649_e026_quizzes_assignments_drip',
+  },
+  {
+    up: migration_20261106_224247_e030_iba_import.up,
+    down: migration_20261106_224247_e030_iba_import.down,
+    name: '20261106_224247_e030_iba_import'
   },
 ];
