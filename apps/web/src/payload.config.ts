@@ -42,6 +42,12 @@ export default buildConfig({
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },
     meta: { titleSuffix: ' · Edvora' },
+    // E-031 (Seal): brand marks, the selected academy's accent colour, a permission-aware landing block.
+    components: {
+      graphics: { Logo: '/components/admin/Brand#Logo', Icon: '/components/admin/Brand#Icon' },
+      header: ['/components/admin/TenantAccent#TenantAccent'],
+      beforeDashboard: ['/components/admin/DashboardHome#DashboardHome'],
+    },
     // Dates with `timezone: true` (drip release, assignment deadline) are entered in Tehran time and stored UTC.
     timezones: { supportedTimezones: [{ label: 'تهران (Asia/Tehran)', value: 'Asia/Tehran' }], defaultTimezone: 'Asia/Tehran' },
   },
