@@ -25,12 +25,16 @@ _Last updated: 2026-11-06 — seeded from Notion pages 04, 05, 07 after the firs
 | E-012 | Move design tokens + shared components to `packages/ui`; document in `docs/design/system.md` | ui-designer | — | web app imports from `@edvora/ui`, no visual change | todo |
 | E-013 | Phase 2 stories: live classes, protected video + watermark, assignments, certificate issuing flow | product-manager | — | `docs/product/phase-2.md` with acceptance criteria | todo |
 | E-014 | UX flows + wireframes for Phase 2 (student week view, live class join, assignment upload, defense scoring) | ux-architect | E-013 | `docs/ux/phase-2.md` | todo |
-| E-015 | Advisor CRM screens: lead queue, today's follow-ups, call log (beyond default Payload lists) | ux-architect → ui-designer → tech-lead | — | advisors can work a day's queue in ≤3 clicks per lead | todo |
+| E-015 | Advisor CRM screens: lead queue, today's follow-ups, call log (beyond default Payload lists) — first desk under `/staff` (ADR 006) | ux-architect → ui-designer → tech-lead | E-022 | advisors can work a day's queue in ≤3 clicks per lead | todo |
 | E-016 | SMS reminders worker (BullMQ + Redis): instalment due, follow-up due, class reminder | tech-lead | E-004 for real sends | jobs run with mock SMS, tested | todo |
 | E-017 | S3 storage adapter (MinIO local / ArvanCloud prod) for Media | tech-lead | E-005 for prod | uploads go to MinIO locally | todo |
 | E-018 | Staging deploy: Dockerfile, Caddy, compose.staging, nightly backup, GlitchTip, Uptime Kuma | tech-lead (`chat: tech-lead`) | E-005 | staging URL live, restore tested | todo |
 | E-019 | Certificate PDF with QR to `/verify` | tech-lead | — | PDF generated on issue, attached to certificate | todo |
 | E-020 | Update Notion after each milestone (decision log, build status) | knowledge-keeper | any | Notion matches repo | ongoing |
+| E-021 | Admin foundation: `finance` + `support` roles, audit log, staff 2FA, no hard delete from UI (ADR 006, Notion 11) | tech-lead | — | roles migrated, audit entries on money/role/certificate changes, tests for tenant + role isolation | todo |
+| E-022 | `/staff` desk shell: layout, role-based landing, tenant shown, access checks | ux-architect → ui-designer → tech-lead | E-021 | each staff role lands on its own desk; students get 403 | todo |
+| E-023 | Finance desk: overdue instalments, manual payment with four-eyes approval, refund flow, Excel export | product-manager → tech-lead | E-021, E-022, client Q9–Q11 | approval by a second person enforced in core + tested | todo |
+| E-024 | Student 360 page + manual enrollment + support tickets | ux-architect → tech-lead | E-022 | one screen shows orders, enrollments, leads, tickets, SMS | todo |
 
 ## Done
 | ID | Task | Owner | Date |
