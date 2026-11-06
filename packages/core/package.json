@@ -13,7 +13,9 @@
     "./drip": "./src/drip.ts",
     "./assignments": "./src/assignments.ts",
     "./progress": "./src/progress.ts",
-    "./jalali": "./src/jalali.ts"
+    "./jalali": "./src/jalali.ts",
+    "./gamification": "./src/gamification/index.ts",
+    "./staff-goals": "./src/staffGoals.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
