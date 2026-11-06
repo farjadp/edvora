@@ -27,7 +27,8 @@
     "./console": "./src/console.ts",
     "./live": "./src/live.ts",
     "./wpimport": "./src/wpimport.ts",
-    "./phone": "./src/phone.ts"
+    "./phone": "./src/phone.ts",
+    "./sandbox": "./src/sandbox.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
