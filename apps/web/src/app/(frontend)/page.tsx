@@ -4,6 +4,7 @@ import { Row } from '@edvora/ui'
 import { inputClass } from '@edvora/ui/classes'
 import { CourseArt, CourseCard } from '../../components/CourseCard'
 import { LeadForm } from '../../components/LeadForm'
+import type { Media } from '../../payload-types'
 import { getOpenCohorts, getPosts, getPublishedCourses, getTestimonials } from '../../lib/queries'
 import { getCurrentTenant } from '../../lib/tenant'
 import { hasRichText } from '@edvora/core/richtext'
@@ -76,12 +77,17 @@ export default async function HomePage() {
         <section className="mt-14 border-y border-line bg-surface py-6" aria-label="برندهای همراه">
           <p className="mb-4 text-center text-sm text-muted">مدیران این برندها در کلاس‌های ما بوده‌اند</p>
           <div className="overflow-hidden">
-            <div className="animate-marquee flex w-max gap-10 whitespace-nowrap px-4">
-              {[...logos, ...logos].map((l, i) => (
-                <span key={`${l.id ?? l.name}-${i}`} className="text-lg font-bold text-muted">
-                  {l.name}
-                </span>
-              ))}
+            <div className="animate-marquee flex w-max items-center gap-10 whitespace-nowrap px-4">
+              {[...logos, ...logos].map((l, i) => {
+                const img = typeof l.logo === 'object' ? (l.logo as Media | null) : null
+                return img?.url ? (
+                  <img key={`${l.id ?? l.name}-${i}`} src={img.url} alt={i < logos.length ? img.alt : ''} aria-hidden={i >= logos.length} className="h-12 w-auto object-contain opacity-80 dark:invert" />
+                ) : (
+                  <span key={`${l.id ?? l.name}-${i}`} className="text-lg font-bold text-muted">
+                    {l.name}
+                  </span>
+                )
+              })}
             </div>
           </div>
         </section>
@@ -123,12 +129,17 @@ export default async function HomePage() {
 
       {testimonials.length > 0 ? (
         <Row title="روایت دانش‌آموختگان">
-          {testimonials.map((t) => (
-            <figure key={t.id} className="w-72 shrink-0 snap-start rounded-2xl border border-line bg-surface p-6 md:w-80">
-              {t.quote ? <blockquote className="leading-8">«{t.quote}»</blockquote> : null}
-              <figcaption className="mt-4">
-                <p className="font-bold">{t.name}</p>
-                {t.role ? <p className="text-sm text-muted">{t.role}</p> : null}
+          {testimonials.map((t) => {
+            const photo = typeof t.photo === 'object' ? (t.photo as Media | null) : null
+            return (
+            <figure key={t.id} className="flex w-72 shrink-0 snap-start flex-col rounded-2xl border border-line bg-surface p-6 md:w-80">
+              {t.quote ? <blockquote className="line-clamp-[8] leading-8">«{t.quote}»</blockquote> : null}
+              <figcaption className="mt-auto flex items-center gap-3 pt-4">
+                {photo?.url ? <img src={photo.url} alt={photo.alt} className="size-12 shrink-0 rounded-full object-cover" /> : null}
+                <span>
+                  <span className="block font-bold">{t.name}</span>
+                  {t.role ? <span className="block text-sm text-muted">{t.role}</span> : null}
+                </span>
               </figcaption>
               {t.videoUrl ? (
                 <a href={t.videoUrl} className="mt-4 inline-block text-sm font-bold text-brand">
@@ -136,7 +147,8 @@ export default async function HomePage() {
                 </a>
               ) : null}
             </figure>
-          ))}
+            )
+          })}
         </Row>
       ) : null}
 
@@ -164,13 +176,20 @@ export default async function HomePage() {
 
       {posts.length > 0 ? (
         <Row id="journal" title="مجله">
-          {posts.map((p) => (
-            <article key={p.id} className="w-72 shrink-0 snap-start rounded-2xl border border-line bg-surface p-6">
-              <h3 className="font-bold leading-7">{p.title}</h3>
-              {p.excerpt ? <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted">{p.excerpt}</p> : null}
-              {p.author ? <p className="mt-4 text-xs text-muted">{p.author}</p> : null}
-            </article>
-          ))}
+          {posts.map((p) => {
+            const cover = typeof p.cover === 'object' ? (p.cover as Media | null) : null
+            const src = cover?.sizes?.card?.url ?? cover?.url
+            return (
+              <Link key={p.id} href={`/journal/${encodeURIComponent(p.slug)}`} className="group w-72 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-surface">
+                {src ? <img src={src} alt={cover?.alt ?? ''} className="aspect-video w-full object-cover" /> : null}
+                <div className="p-6">
+                  <h3 className="font-bold leading-7 group-hover:text-brand">{p.title}</h3>
+                  {p.excerpt ? <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted">{p.excerpt}</p> : null}
+                  {p.author ? <p className="mt-4 text-xs text-muted">{p.author}</p> : null}
+                </div>
+              </Link>
+            )
+          })}
         </Row>
       ) : null}
 
