@@ -1,4 +1,5 @@
 export * from './digits'
+export * from './persian'
 export * from './money'
 export * from './instalments'
 export * from './certificates'
