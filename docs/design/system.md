@@ -35,20 +35,25 @@ All colours are CSS variables mapped to Tailwind colours with `@theme inline`, s
 | Utility | Variable | Light | Dark | Use |
 | --- | --- | --- | --- | --- |
 | `bg-brand`, `text-brand` | `--brand` | tenant (default `#1a56db`) | same | Primary actions, generated cover art, focus borders |
-| `text-brand-ink` | `--brand-ink` | `#ffffff` | same | Text on `bg-brand` |
+| `text-brand-ink` | `--brand-ink` | derived: `#ffffff` or `#111827` | same | Text on `bg-brand` (whichever reads better) |
 | `bg-accent` | `--accent` | tenant (default `#f59e0b`) | same | Small highlights only: notice dot, cover stripe, selection |
+| `text-accent-ink` | `--accent-ink` | derived (default `#111827`) | same | Text on `bg-accent` (selection) |
+| `border-focus`, `ring-focus`, `outline-focus` | `--focus` | derived from brand, ≥3:1 on light surfaces | brand lightened until ≥3:1 on dark surfaces | Focus indicators only |
 | `bg-bg` | `--bg` | `#f6f6f3` | `#0c0e12` | Page background; inputs inside surface cards |
 | `bg-surface` | `--surface` | `#ffffff` | `#151820` | Cards; inputs on the page background |
 | `bg-sunken` | `--sunken` | `#eeeee9` | `#1c2029` | Stat tiles, notice bar, hover on outline buttons |
 | `text-ink` | `--ink` | `#111827` | `#eef0f4` | Body text; `bg-ink text-bg` for the secondary pill button |
 | `text-muted` | `--muted` | `#5b6372` | `#9aa2b1` | Secondary text. Never on a coloured background |
-| `border-line` | `--line` | `#e3e3dc` | `#262b36` | Borders and dividers |
+| `border-line` | `--line` | `#e3e3dc` | `#262b36` | Dividers and card edges (decorative, ~1.3:1) |
+| `border-line-strong` | `--line-strong` | `#888884` | `#676b72` | Borders that identify a control: inputs, choice chips (≥3:1, WCAG 1.4.11) |
 | `text-ok` | `--ok` | `#0f7b4b` | `#3ccf8e` | Success |
 | `text-danger` | `--danger` | `#b42318` | `#f97066` | Errors (`role="alert"`) |
 
-- **Tenant colours:** the frontend layout injects `:root{--brand:…;--accent:…}` from the tenant record (validated as
-  `#rrggbb`, falling back to the defaults above). Brand/accent do not change between light and dark, so pick tenant
-  colours that hold AA contrast with white `brand-ink`. Test with both `iba` (blue) and `demo` (teal).
+- **Tenant colours:** the layout validates the tenant's `#rrggbb` colours (falling back to the defaults above) and
+  injects `tenantPaletteCss(tenantPalette(brand, accent))` from `@edvora/ui/color`. That derives `--brand-ink` and
+  `--accent-ink` (white or near-black, whichever has more contrast) and `--focus` for each theme (brand nudged toward
+  black/white until ≥3:1 on every surface). So **any** tenant colour stays readable; a yellow brand gets dark button
+  text automatically. Test with both `iba` (blue) and `demo` (teal).
 - **Dark mode:** `data-theme="dark"` on `<html>`; use the `dark:` variant. The layout sets the tenant's default theme
   before paint; `ThemeToggle` flips and remembers it.
 - **Fonts:** `font-sans` = Vazirmatn (Persian UI). `font-latin` = Space Grotesk, for codes, phone numbers, IDs. Both
@@ -61,7 +66,8 @@ All colours are CSS variables mapped to Tailwind colours with `@theme inline`, s
 ### `CoverArt`
 Course (or any titled item) cover. Shows `imageSrc` if given, otherwise generated art: brand background, faded
 Latin watermark (`mark`, defaults to first two letters of `title`), accent stripe at the bottom, title on top.
-Fills its parent — the parent sets the aspect ratio (`aspect-video`, etc.).
+Fills its parent — the parent sets the aspect ratio (`aspect-video`, etc.). Images load lazily at `size="card"` and
+eagerly at `size="hero"`.
 
 ```tsx
 <CoverArt title="MBA برند" mark="MBA" size="hero" />
@@ -82,10 +88,11 @@ with a fixed width (see `CourseCard`). The strip bleeds to the screen edge on mo
 overflow.
 
 ### `NoticeBar`
-Full-width announcement strip (`role="status"`) above the header, with an accent dot. Props: `text`.
+Full-width announcement strip above the header, with an accent dot. Rendered as `<aside aria-label>` (not a live
+region, so screen readers don't re-announce it on every page). Props: `text`, optional `label` (default «اطلاعیه»).
 
 ### `ThemeToggle`
-Client component. Round outline button that toggles `data-theme` on `<html>` and stores it in `localStorage`
+Client component. 44px round outline button with `focusRing` that toggles `data-theme` on `<html>` and stores it in `localStorage`
 (fails silently in private mode). Optional props `toDarkLabel` / `toLightLabel` (Persian defaults) for the
 `aria-label`.
 
@@ -98,7 +105,18 @@ For native elements that must stay in the app (forms bound to server actions, `n
 | --- | --- | --- |
 | `buttonClass()` | 48px brand button, `hover:opacity-90`, `disabled:opacity-60` | `block` (w-full), `className` |
 | `inputClass()` | 48px input, `border-line`, `focus:border-brand` | `tone: 'surface' \| 'bg'`, `size: 'md' \| 'sm'`, `block`, `className` |
+| `focusRing` | `focus-visible` 2px outline in `--focus`, offset 2px | — (string constant) |
 | `cx(...parts)` | Joins truthy class strings | — |
+
+Inputs show focus as a 2px edge (1px `border-focus` + 1px `ring-focus`); buttons and links use `focusRing`. Never
+`outline-none` without a replacement. Custom controls that hide the native input (`sr-only` radios in choice chips) put
+`has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus` on the visible label.
+
+## Colour helpers (`@edvora/ui/color`)
+
+Pure functions, server- or client-safe: `contrast(a, b)`, `readableInk(bg)`, `ensureContrast(color, backgrounds,
+toward, min)`, `mix(a, b, t)`, `isHex(v)`, `tenantPalette(brand, accent)`, `tenantPaletteCss(palette)`, `SURFACES`
+(keep in sync with `--bg/--surface/--sunken`).
 
 Rule of thumb for `tone`: input on the page background → `surface`; input inside a surface card → `bg`.
 
@@ -107,7 +125,7 @@ Rule of thumb for `tone`: input on the page background → `surface`; input insi
 - Tailwind classes only, no inline `style`. New CSS only as a token or keyframe in `packages/ui/src/styles.css`.
 - RTL logical utilities: `ms-/me-/ps-/pe-/start-/end-`.
 - Every responsive grid starts with `grid-cols-1`. Check 375px: `scrollWidth === clientWidth`.
-- Visible focus, labels on inputs, AA contrast, respect reduced motion.
+- Visible focus, labels on inputs, AA contrast, respect reduced motion (`motion-safe:` on hover lifts and transitions).
 - No external fonts, icons, images or scripts.
 
 ## Not yet extracted

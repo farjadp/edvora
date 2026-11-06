@@ -61,7 +61,7 @@ export function EnrollCard(props: EnrollCardProps) {
                 {options.map((n) => (
                   <label
                     key={n}
-                    className="cursor-pointer rounded-xl border border-line px-3 py-2 text-sm has-checked:border-brand has-checked:bg-brand has-checked:text-brand-ink"
+                    className="cursor-pointer rounded-xl border border-line-strong px-3 py-2 text-sm has-checked:border-brand has-checked:bg-brand has-checked:text-brand-ink has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus"
                   >
                     <input type="radio" name="instalments" value={n} checked={count === n} onChange={() => setCount(n)} className="sr-only" />
                     {n === 1 ? 'یکجا' : `${toPersianDigits(n)} قسط`}

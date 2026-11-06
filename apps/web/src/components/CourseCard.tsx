@@ -21,7 +21,7 @@ export function CourseCard({ course, cohort }: { course: Course; cohort?: Cohort
   return (
     <Link
       href={`/courses/${course.slug}`}
-      className="group block w-72 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-surface transition-transform hover:-translate-y-1 md:w-80"
+      className="group block w-72 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-surface motion-safe:transition-transform motion-safe:hover:-translate-y-1 md:w-80"
     >
       <div className="aspect-video overflow-hidden">
         <CourseArt course={course} />
