@@ -34,4 +34,4 @@ suspected area.
 ## Sign-off
 `docs/qa/release-<date>.md`: what was tested, pass/fail per area, open bugs, **GO / NO-GO**. A blocker = NO-GO.
 End with the handoff block (Task · Output · Decisions made · Open issues · Next owner = developer agent for bugs,
-`orchestrator` for sign-off).
+`head-of-product` for sign-off).
