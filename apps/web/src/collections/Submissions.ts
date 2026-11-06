@@ -2,6 +2,7 @@ import { parseScore } from '@edvora/core'
 import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
 import { allow, allowCreate, anyOf, fieldAllow, guard, isSystemWrite, nobody, ownRecords } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
+import { awardAfterSubmissionChange } from '../lib/gamification'
 import { idOf } from '../lib/ids'
 import { throwFieldErrors } from '../lib/validation'
 
@@ -73,7 +74,7 @@ export const Submissions: CollectionConfig = {
   indexes: [{ fields: ['assignment', 'user'], unique: true }],
   hooks: {
     beforeChange: [applyGrade, guard({ create: ['submissions.grade'], update: ['submissions.grade'], fields: SCOPE })],
-    afterChange: [auditChange('submissions')],
+    afterChange: [auditChange('submissions'), awardAfterSubmissionChange],
   },
   fields: [
     {

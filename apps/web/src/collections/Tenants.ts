@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 import { ROLE_TEMPLATES } from '@edvora/core'
 import { allow, asSystem, fieldAllow, nobody } from '../access/permissions'
 import { isSuperAdmin } from '../access/roles'
+import { gamificationSettingsField } from '../fields/gamification'
 import { auditChange } from '../hooks/audit'
 
 const platformOnly = ({ req }: { req: { user?: unknown } }) => isSuperAdmin(req.user as never)
@@ -169,6 +170,10 @@ export const Tenants: CollectionConfig = {
               ],
             },
           ],
+        },
+        {
+          label: { fa: 'انگیزش و پیشرفت', en: 'Gamification' },
+          fields: [gamificationSettingsField],
         },
         {
           label: { fa: 'تنظیمات فنی', en: 'Settings' },
