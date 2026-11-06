@@ -11,6 +11,9 @@ export type BrandId = 'tenant' | 'blue' | 'teal' | 'wine'
 
 export const OPTION_IDS: readonly OptionId[] = ['seal', 'girih', 'block']
 
+/** Decision (Farjad, 2026-11-06): A · Seal, with B's girih star as the certificate seal. */
+export const CHOSEN_OPTION: OptionId = 'seal'
+
 export const SCREENS: readonly { id: ScreenId; label: string; wireframe: string }[] = [
   { id: 'dashboard', label: 'داشبورد دانشجو', wireframe: '۲٫۱' },
   { id: 'dashboard-off', label: 'داشبورد · گیمیفیکیشن خاموش', wireframe: '۲٫۱ (OFF)' },
@@ -46,7 +49,7 @@ export const OPTIONS: Record<OptionId, OptionMeta> = {
     nameFa: 'گره',
     nameEn: 'Girih',
     idea: 'صنعت دست ایرانی: الگوی گره‌چینی هشت‌پر به‌جای حلقه، بافت گرم روی رنگ آکادمی.',
-    displayFace: 'کلمه (Kalameh)',
+    displayFace: 'کلمه (Kalameh) — حذف شد؛ اینجا وزیرمتن',
     motion: 'پرها یکی‌یکی و آرام پر می‌شوند؛ چیزی نمی‌پرد و نمی‌لرزد.',
     bestFor: 'آکادمی‌هایی که هویت ایرانی و گرما می‌خواهند',
     risk: 'الگو می‌تواند شلوغ شود؛ باید فقط در ناحیه‌های بدون متن بنشیند. هزینهٔ نگهداری ایکون‌ها بیشتر است.',
@@ -56,7 +59,7 @@ export const OPTIONS: Record<OptionId, OptionMeta> = {
     nameFa: 'پیشران',
     nameEn: 'Drive',
     idea: 'بلوک‌های رنگیِ جسور و عددهای بزرگ: پیشرفت را از دور می‌شود دید.',
-    displayFace: 'پیدا (Peyda)',
+    displayFace: 'پیدا (Peyda) — حذف شد؛ اینجا وزیرمتن',
     motion: 'بلوک‌ها با کشیدن سریع (۲۵۰–۴۰۰ms) باز می‌شوند؛ ستون‌های هفتگی از پایین رشد می‌کنند.',
     bestFor: 'آکادمی‌های کارگاهی و پرانرژی، کاربران جوان‌تر',
     risk: 'کمتر «رسمی» است و به رنگ تنانت وابسته‌تر؛ رنگ‌های روشن به متن تیره روی بلوک نیاز دارند.',

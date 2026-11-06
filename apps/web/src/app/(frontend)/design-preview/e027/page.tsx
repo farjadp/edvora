@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Emblem, Ring } from './_components/art'
 import { ctaClass, disp } from './_components/kit'
-import { BRANDS, OPTIONS, OPTION_IDS, SCREENS, assertDev, type BrandId, type OptionId } from './_lib/options'
+import { BRANDS, CHOSEN_OPTION, OPTIONS, OPTION_IDS, SCREENS, assertDev, type BrandId, type OptionId } from './_lib/options'
 
 export const metadata: Metadata = { title: 'E-027 · گزینه‌های بصری', robots: { index: false, follow: false } }
 
@@ -46,6 +46,10 @@ export default function PreviewIndex() {
     <div className="mx-auto max-w-7xl px-4 pb-20 pt-10 md:px-8">
       <p className="text-sm font-bold text-muted">E-027 · مرحلهٔ ۳ از ۳ · فقط توسعه</p>
       <h1 className="mt-1 text-4xl font-black md:text-5xl">سه جهت بصری برای «پنل با روح»</h1>
+      <p role="note" className="mt-4 max-w-prose rounded-xl border border-line-strong bg-sunken p-4 leading-8">
+        <span className="font-bold">تصمیم (فرجاد، ۱۵ آبان ۱۴۰۵):</span> گزینهٔ الف · مُهر، با ستارهٔ گره از گزینهٔ ب به‌عنوان مُهر گواهی.
+        گزینه‌های ب و ج فقط برای مرجع نگه داشته شده‌اند و قلم نمایشی‌شان حذف شده است.
+      </p>
       <p className="mt-3 max-w-prose leading-8 text-muted">
         هر گزینه روی رنگ تنانت سوار است (برند و تأکید از تنانت می‌آید). هر گزینه ۵ صفحه دارد و هر صفحه با پارامتر <span dir="ltr" className="font-latin">?brand=teal</span> یا{' '}
         <span dir="ltr" className="font-latin">wine</span> روی رنگ دیگری هم دیده می‌شود. حالت تیره از دکمهٔ تم هدر.
@@ -59,6 +63,13 @@ export default function PreviewIndex() {
               <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
                 <div className="min-w-0 lg:col-span-5">
                   <p className="font-latin text-sm font-bold uppercase tracking-widest text-muted">{o.nameEn}</p>
+                  {id === CHOSEN_OPTION ? (
+                    <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[var(--milestone)] px-3 py-1 text-sm font-bold text-[var(--milestone-ink)]">
+                      ✓ انتخاب‌شده
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted">فقط برای مرجع</p>
+                  )}
                   <h2 id={`o-${id}`} className={cx(disp, 'mt-1 text-5xl font-black')}>{o.nameFa}</h2>
                   <p className="mt-4 leading-8">{o.idea}</p>
                   <p className={cx(disp, 'mt-6 text-3xl font-black')}>۴۰٪ · ۱۲ از ۳۰ جلسه</p>

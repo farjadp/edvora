@@ -7,13 +7,19 @@ Copy is taken from `docs/ux/E-027-panel-soul.md`. Data is fake and hard-coded.
 Open: `/design-preview/e027` (index), `/design-preview/e027/<seal|girih|block>/<dashboard|dashboard-off|lesson|quiz|advisor>`,
 add `?brand=teal|wine|blue` for another tenant colour, `?chrome=0` to hide the preview toolbar. Dark: the header theme toggle.
 
+## Decision (Farjad, 2026-11-06): A · Seal + girih star as certificate seal
+
+Farjad's words: "A Seal". The girih star from B becomes the certificate seal / `--milestone` badge shape in A. B and C routes and screenshots stay for reference only. Build plan: `docs/specs/E-028-seal-gamification-build.md`.
+
+**Font licence:** the Fontiran web licence for Morabba is **not yet confirmed by Farjad**. Morabba stays in the dev-only preview, but must not ship to a public page until he confirms. Peyda and Kalameh were removed after the decision; the B and C previews now fall back to Vazirmatn (their screenshots still show the original faces).
+
 ## Options side by side
 
 | | A · مُهر (Seal) | B · گره (Girih) | C · پیشران (Drive) |
 | --- | --- | --- | --- |
 | Idea | Executive's notebook: paper, ink, hairlines; gold only for lasting moments | Iranian craft: eight-point girih star replaces the ring; warm ground | Bold colour blocks and huge numerals; progress readable at a glance |
 | Accents on tenant | Brand only for ring/CTA; gold `--milestone` for badge/level/seal; no card fills, rules instead | Warm sand ground, brand-tinted surface (7%), gold for badges; pattern band only where no text | Solid brand block, solid accent block (week), gold block (level), `ok`/`ink` block for quiz result |
-| Display face | Morabba (Fontiran) | Kalameh (Fontiran) | Peyda (Fontiran) |
+| Display face | Morabba (Fontiran) | Kalameh (removed after decision) | Peyda (removed after decision) |
 | Icons / art | 1.5 stroke, round; scalloped seal; guilloche circles watermark | 1.9 stroke, mitred; 8-point star for ring (8 kites), week dots, path nodes, badge | 3 stroke, square; gold hexagon; weekly bars; 30 lesson tiles |
 | Motion (all CSS, `motion-safe`, ease-out only) | Ring sweep 700 ms, seal "sets" 380 ms + one sheen, block fade 180 ms | Kites fill one by one (90 ms stagger), fade 180 ms | Block wipe 420 ms, bars grow 320 ms |
 | Reduced motion | Final state shown at once (animations only inside `prefers-reduced-motion: no-preference`) | same | same |
@@ -32,7 +38,7 @@ Drive (C) is the pick only if Farjad wants a loud, youthful product feel; it can
 
 ## Tokens that would move to `packages/ui/src/styles.css` if chosen
 
-`--milestone` (light `#8f6200` / dark `#e0b040`, ink `#fff` / `#1b1400`; contrast on surfaces 4.6-8.8:1), `--e-tint` and `--e-track` (brand mixed with surface/sunken), display font family variable, keyframes `e-sweep`, `e-rise`, `e-stamp`. Fonts are in `apps/web/public/fonts/{morabba,peyda,kalameh}` (Farjad's web licence; only the chosen face should ship).
+`--milestone` (light `#8f6200` / dark `#e0b040`, ink `#fff` / `#1b1400`; contrast on surfaces 4.6-8.8:1), `--e-tint` and `--e-track` (brand mixed with surface/sunken), display font family variable, keyframes `e-sweep`, `e-rise`, `e-stamp`. Morabba is in `apps/web/public/fonts/morabba` (licence not yet confirmed by Farjad; dev-only preview until he confirms).
 
 ## Files
 

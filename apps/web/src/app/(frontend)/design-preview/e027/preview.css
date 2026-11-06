@@ -4,7 +4,9 @@
  * If an option is chosen, these tokens move to packages/ui/src/styles.css (docs/design/e027/README.md).
  */
 
-/* Licensed Fontiran display faces, self-hosted (apps/web/public/fonts). Body text stays Vazirmatn. */
+/* Display face for option A (chosen): Morabba, self-hosted (apps/web/public/fonts/morabba). Body text stays Vazirmatn.
+ * Fontiran web licence for Morabba is NOT yet confirmed by Farjad: dev-only preview use; must not ship to a public page until confirmed.
+ * Options B and C fall back to Vazirmatn here (their faces were removed after the decision); their screenshots show the original faces. */
 @font-face {
   font-family: 'E027 Morabba';
   src: url('/fonts/morabba/400.woff2') format('woff2');
@@ -23,43 +25,6 @@
   font-weight: 900;
   font-display: swap;
 }
-@font-face {
-  font-family: 'E027 Kalameh';
-  src: url('/fonts/kalameh/400.woff2') format('woff2');
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'E027 Kalameh';
-  src: url('/fonts/kalameh/700.woff2') format('woff2');
-  font-weight: 700;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'E027 Kalameh';
-  src: url('/fonts/kalameh/900.woff2') format('woff2');
-  font-weight: 900;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'E027 Peyda';
-  src: url('/fonts/peyda/400.woff2') format('woff2');
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'E027 Peyda';
-  src: url('/fonts/peyda/700.woff2') format('woff2');
-  font-weight: 700;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'E027 Peyda';
-  src: url('/fonts/peyda/900.woff2') format('woff2');
-  font-weight: 900;
-  font-display: swap;
-}
-
 /* ---- Per-option tokens (all sit ON TOP of the tenant's --brand / --accent) ---- */
 [data-e027-option] {
   /* Gold, the only "achievement" colour. >=3:1 on every surface, text on it >=4.5:1. */
@@ -79,14 +44,14 @@
   --e-display: 'E027 Morabba', 'Vazirmatn', serif;
 }
 [data-e027-option='girih'] {
-  --e-display: 'E027 Kalameh', 'Vazirmatn', sans-serif;
+  --e-display: 'Vazirmatn', sans-serif;
   --e-ground: color-mix(in oklab, var(--bg) 93%, #b8893b);
 }
 [data-theme='dark'] [data-e027-option='girih'] {
   --e-ground: color-mix(in oklab, var(--bg) 94%, #b8893b);
 }
 [data-e027-option='block'] {
-  --e-display: 'E027 Peyda', 'Vazirmatn', sans-serif;
+  --e-display: 'Vazirmatn', sans-serif;
 }
 
 /* ---- Motion: ease-out only (no bounce / elastic), CSS only, off for prefers-reduced-motion ---- */
