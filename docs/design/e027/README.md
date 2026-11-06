@@ -11,7 +11,7 @@ add `?brand=teal|wine|blue` for another tenant colour, `?chrome=0` to hide the p
 
 Farjad's words: "A Seal". The girih star from B becomes the certificate seal / `--milestone` badge shape in A. B and C routes and screenshots stay for reference only. Build plan: `docs/specs/E-028-seal-gamification-build.md`.
 
-**Font licence:** the Fontiran web licence for Morabba is **not yet confirmed by Farjad**. Morabba stays in the dev-only preview, but must not ship to a public page until he confirms. Peyda and Kalameh were removed after the decision; the B and C previews now fall back to Vazirmatn (their screenshots still show the original faces).
+**Font licence:** Morabba web licence confirmed by Farjad, 2026-11-06. It can ship as the display face when E-028 is built. Peyda and Kalameh were removed after the decision; the B and C previews now fall back to Vazirmatn (their screenshots still show the original faces).
 
 ## Options side by side
 
@@ -38,7 +38,7 @@ Drive (C) is the pick only if Farjad wants a loud, youthful product feel; it can
 
 ## Tokens that would move to `packages/ui/src/styles.css` if chosen
 
-`--milestone` (light `#8f6200` / dark `#e0b040`, ink `#fff` / `#1b1400`; contrast on surfaces 4.6-8.8:1), `--e-tint` and `--e-track` (brand mixed with surface/sunken), display font family variable, keyframes `e-sweep`, `e-rise`, `e-stamp`. Morabba is in `apps/web/public/fonts/morabba` (licence not yet confirmed by Farjad; dev-only preview until he confirms).
+`--milestone` (light `#8f6200` / dark `#e0b040`, ink `#fff` / `#1b1400`; contrast on surfaces 4.6-8.8:1), `--e-tint` and `--e-track` (brand mixed with surface/sunken), display font family variable, keyframes `e-sweep`, `e-rise`, `e-stamp`. Morabba is in `apps/web/public/fonts/morabba` (Morabba web licence confirmed by Farjad, 2026-11-06).
 
 ## Files
 

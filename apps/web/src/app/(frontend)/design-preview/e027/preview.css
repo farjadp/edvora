@@ -5,7 +5,7 @@
  */
 
 /* Display face for option A (chosen): Morabba, self-hosted (apps/web/public/fonts/morabba). Body text stays Vazirmatn.
- * Fontiran web licence for Morabba is NOT yet confirmed by Farjad: dev-only preview use; must not ship to a public page until confirmed.
+ * Morabba web licence confirmed by Farjad, 2026-11-06.
  * Options B and C fall back to Vazirmatn here (their faces were removed after the decision); their screenshots show the original faces. */
 @font-face {
   font-family: 'E027 Morabba';

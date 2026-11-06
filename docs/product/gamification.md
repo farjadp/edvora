@@ -31,7 +31,7 @@ Give every panel a pulse: visible progress, small wins, a reason to come back th
 
 | Setting | Default | Notes |
 | --- | --- | --- |
-| Gamification on/off (master) | **Off** for new tenants `[Farjad: or on?]`; IBA on after Farjad's approval | A tenant feature flag next to `lms`/`crm` in `tenants.features`, tech-lead decides shape |
+| Gamification on/off (master) | **On** for new tenants (Farjad, 2026-11-06: «روشن باشه»); academy admin can turn it off | A tenant feature flag next to `lms`/`crm` in `tenants.features`, tech-lead decides shape |
 | Per-mechanic toggles | all on when master is on | XP & levels · streaks · badges · cohort leaderboard · celebrations · staff goals · finance inbox-zero |
 | Audience | students / staff / both | Staff side can be on while students are off, and vice versa |
 | Level names, badge names/icons | platform defaults (section 4) | Tenant may rename; keep Persian half-spaces |
@@ -256,6 +256,7 @@ Tags: **Core** = every academy · **Config** = tenant setting · **IBA** = IBA-o
 - G1.4 **G** user of tenant `demo` **W** requests any `iba` gamification data by URL/id **T** 404, no existence leak.
 - G1.5 **G** tenant colours changed **W** panels reload **T** rings/cards use the new `primaryColor`/`accentColor`; milestone gold stays legible in light and dark themes.
 - G1.6 **G** an academy admin without super-admin role **W** tries to edit XP values (P1) **T** denied.
+- G1.7 **G** a new academy is created **W** nobody has changed its settings **T** the gamification master switch is on, with the default mechanic toggles (leaderboard stays off).
 
 **G2 · XP, levels, rings**
 - G2.1 **G** student completes a lesson for the first time **W** completion is saved **T** +10 XP appears once; the ring and `courseProgress` % increase.
@@ -353,7 +354,7 @@ Tags: **Core** = every academy · **Config** = tenant setting · **IBA** = IBA-o
 
 | # | Question (plain language) |
 | --- | --- |
-| 1 | Should gamification be on by default for new academies, or off until they ask? |
+| 1 | ~~Should gamification be on by default for new academies?~~ **Answered: on** (Farjad, 2026-11-06). |
 | 2 | For IBA's executives, is a points-and-badges feel acceptable, or only progress rings and milestones? Show Farjad the mock-ups first. |
 | 3 | Which day does your week start? (Saturday?) And which are your working days and holidays for staff? |
 | 4 | Should students see a leaderboard at all? If yes, minimum people needed before it appears (suggest 8)? |
