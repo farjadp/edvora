@@ -8,12 +8,13 @@ import {
   staffNav,
   type DeskKey,
   type StaffGate,
+  type Target,
 } from '@edvora/core'
 import { forbidden, redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { createLocalReq, type PayloadRequest } from 'payload'
 import { cache } from 'react'
-import { getAccess, staff2faRequired } from '../access/permissions'
+import { canIn, getAccess, staff2faRequired } from '../access/permissions'
 import type { StaffNavItem, StaffUserInfo } from '../components/staff/types'
 import type { Media, Tenant, User } from '../payload-types'
 import { getPayloadClient } from './payload'
@@ -139,3 +140,21 @@ export async function lockedUntilOf(s: StaffSession): Promise<number | null> {
   const t = raw ? new Date(raw).getTime() : NaN
   return Number.isFinite(t) && t > Date.now() ? t : null
 }
+
+/**
+ * Staff signed in to /admin (Payload session cookie) while browsing the public site (E-026). Used for "preview locked
+ * lessons" (R6) and for downloading private submission files (ADR 009). Permissions come from memberships on every
+ * request (ADR 006), and the user keeps its session id, so the 2FA verified-session check (E-022) still applies.
+ */
+export const getStaff = cache(async () => {
+  const payload = await getPayloadClient()
+  const { user } = await payload.auth({ headers: await headers() })
+  if (!user || user.collection !== 'users') return null
+  const req = await createLocalReq({ user }, payload)
+  return {
+    user,
+    can: (tenantId: number, permission: string, target?: Target) => canIn(req, tenantId, permission, target),
+  }
+})
+
+export type Staff = NonNullable<Awaited<ReturnType<typeof getStaff>>>

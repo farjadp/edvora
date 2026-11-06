@@ -12,54 +12,7 @@
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "supportedTimezones".
  */
-export type SupportedTimezones =
-  | 'Pacific/Midway'
-  | 'Pacific/Niue'
-  | 'Pacific/Honolulu'
-  | 'Pacific/Rarotonga'
-  | 'America/Anchorage'
-  | 'Pacific/Gambier'
-  | 'America/Los_Angeles'
-  | 'America/Tijuana'
-  | 'America/Denver'
-  | 'America/Phoenix'
-  | 'America/Chicago'
-  | 'America/Guatemala'
-  | 'America/New_York'
-  | 'America/Bogota'
-  | 'America/Caracas'
-  | 'America/Santiago'
-  | 'America/Buenos_Aires'
-  | 'America/Sao_Paulo'
-  | 'Atlantic/South_Georgia'
-  | 'Atlantic/Azores'
-  | 'Atlantic/Cape_Verde'
-  | 'Europe/London'
-  | 'Europe/Berlin'
-  | 'Africa/Lagos'
-  | 'Europe/Athens'
-  | 'Africa/Cairo'
-  | 'Europe/Moscow'
-  | 'Asia/Riyadh'
-  | 'Asia/Dubai'
-  | 'Asia/Baku'
-  | 'Asia/Karachi'
-  | 'Asia/Tashkent'
-  | 'Asia/Calcutta'
-  | 'Asia/Dhaka'
-  | 'Asia/Almaty'
-  | 'Asia/Jakarta'
-  | 'Asia/Bangkok'
-  | 'Asia/Shanghai'
-  | 'Asia/Singapore'
-  | 'Asia/Tokyo'
-  | 'Asia/Seoul'
-  | 'Australia/Brisbane'
-  | 'Australia/Sydney'
-  | 'Pacific/Guam'
-  | 'Pacific/Noumea'
-  | 'Pacific/Auckland'
-  | 'Pacific/Fiji';
+export type SupportedTimezones = 'Asia/Tehran';
 
 export interface Config {
   auth: {
@@ -76,6 +29,12 @@ export interface Config {
     cohorts: Cohort;
     lessons: Lesson;
     enrollments: Enrollment;
+    questions: Question;
+    quizzes: Quiz;
+    'quiz-attempts': QuizAttempt;
+    assignments: Assignment;
+    submissions: Submission;
+    'submission-files': SubmissionFile;
     certificates: Certificate;
     leads: Lead;
     orders: Order;
@@ -100,6 +59,12 @@ export interface Config {
     cohorts: CohortsSelect<false> | CohortsSelect<true>;
     lessons: LessonsSelect<false> | LessonsSelect<true>;
     enrollments: EnrollmentsSelect<false> | EnrollmentsSelect<true>;
+    questions: QuestionsSelect<false> | QuestionsSelect<true>;
+    quizzes: QuizzesSelect<false> | QuizzesSelect<true>;
+    'quiz-attempts': QuizAttemptsSelect<false> | QuizAttemptsSelect<true>;
+    assignments: AssignmentsSelect<false> | AssignmentsSelect<true>;
+    submissions: SubmissionsSelect<false> | SubmissionsSelect<true>;
+    'submission-files': SubmissionFilesSelect<false> | SubmissionFilesSelect<true>;
     certificates: CertificatesSelect<false> | CertificatesSelect<true>;
     leads: LeadsSelect<false> | LeadsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
@@ -383,6 +348,9 @@ export interface Role {
         | 'assignments.grade'
         | 'qa.answer'
         | 'defense.score'
+        | 'quizzes.manage'
+        | 'assignments.manage'
+        | 'submissions.grade'
         | 'certificates.view'
         | 'certificates.issue'
         | 'certificates.revoke'
@@ -582,6 +550,9 @@ export interface Lesson {
   module?: string | null;
   order: number;
   durationMinutes?: number | null;
+  /**
+   * Free previews ignore drip (public).
+   */
   isFreePreview?: boolean | null;
   /**
    * HLS URL from ArvanCloud VOD. Served signed + watermarked in production.
@@ -595,6 +566,19 @@ export interface Lesson {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Unlock time is computed for each student when they open the course; a lesson already opened is never locked again.
+   */
+  drip?: {
+    mode?: ('none' | 'fixedDate' | 'afterEnrollment' | 'afterCohortStart' | 'afterPrevious') | null;
+    /**
+     * 0 = the same day. Days start at 00:00 Tehran time.
+     */
+    days?: number | null;
+    releaseAt?: string | null;
+    releaseAt_tz?: SupportedTimezones;
+    preview?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -610,7 +594,25 @@ export interface Enrollment {
   cohort?: (number | null) | Cohort;
   order?: (number | null) | Order;
   status?: ('active' | 'completed' | 'cancelled') | null;
+  /**
+   * Drip "days after enrollment" counts from here. Set when the enrollment is created; kept when it is re-activated.
+   */
+  enrolledAt?: string | null;
   completedLessons?: (number | Lesson)[] | null;
+  /**
+   * Lessons the student has opened. They are never locked again when dates change.
+   */
+  openedLessons?: (number | Lesson)[] | null;
+  /**
+   * Give this student more attempts on one quiz (audited).
+   */
+  quizExtraAttempts?:
+    | {
+        quiz: number | Quiz;
+        extra: number;
+        id?: string | null;
+      }[]
+    | null;
   defensePassed?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -655,6 +657,227 @@ export interface Order {
     | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * Changes apply only to attempts started afterwards: every attempt keeps a copy of its questions, points and answers.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quizzes".
+ */
+export interface Quiz {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  course: number | Course;
+  /**
+   * Empty = course-level (final) quiz.
+   */
+  lesson?: (number | null) | Lesson;
+  status: 'draft' | 'published' | 'archived';
+  description?: string | null;
+  questions?:
+    | {
+        question: number | Question;
+        /**
+         * Empty = points from the bank.
+         */
+        points?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  required?: boolean | null;
+  passMark: number;
+  /**
+   * Empty = unlimited.
+   */
+  attemptsLimit?: number | null;
+  /**
+   * Empty = no limit.
+   */
+  timeLimitMin?: number | null;
+  countedAttempt?: ('best' | 'last') | null;
+  review?: ('none' | 'score' | 'wrongRight' | 'full') | null;
+  fullReviewWhen?: ('always' | 'afterPass' | 'afterLastAttempt') | null;
+  partialCredit?: boolean | null;
+  allowRetakeAfterPass?: boolean | null;
+  shuffle?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Editing a question changes only attempts started afterwards; past attempts keep their copy.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "questions".
+ */
+export interface Question {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  course: number | Course;
+  type: 'single' | 'multiple' | 'trueFalse' | 'short';
+  points: number;
+  text: string;
+  options?:
+    | {
+        text: string;
+        isCorrect?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  correctAnswer?: ('true' | 'false') | null;
+  /**
+   * Exact match after normalising Persian/Arabic digits, ي/ك, نیم‌فاصله, spaces and letter case. No fuzzy matching.
+   */
+  acceptedAnswers?:
+    | {
+        answer: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Shown only when the quiz review setting is "full".
+   */
+  explanation?: string | null;
+  archived?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quiz-attempts".
+ */
+export interface QuizAttempt {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  quiz: number | Quiz;
+  user: number | User;
+  attemptNo: number;
+  enrollment: number | Enrollment;
+  course: number | Course;
+  cohort?: (number | null) | Cohort;
+  status: 'in_progress' | 'submitted' | 'auto_submitted';
+  score?: number | null;
+  maxScore?: number | null;
+  passed?: boolean | null;
+  startedAt: string;
+  deadlineAt?: string | null;
+  submittedAt?: string | null;
+  /**
+   * Last saved answers, by question id.
+   */
+  answers?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Questions, options, points and accepted answers as they were when the attempt started.
+   */
+  snapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "assignments".
+ */
+export interface Assignment {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  course: number | Course;
+  /**
+   * Empty = every cohort of the course.
+   */
+  cohort?: (number | null) | Cohort;
+  /**
+   * Optional. A required assignment on a lesson also blocks that lesson’s completion and is locked with it.
+   */
+  lesson?: (number | null) | Lesson;
+  description?: string | null;
+  dueAt: string;
+  dueAt_tz: SupportedTimezones;
+  maxScore: number;
+  /**
+   * Empty = graded is enough.
+   */
+  passScore?: number | null;
+  required?: boolean | null;
+  allowLate?: boolean | null;
+  status: 'draft' | 'published' | 'archived';
+  attachments?: (number | Media)[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Grading queue: filter by assignment, cohort, status or late. Oldest first.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "submissions".
+ */
+export interface Submission {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  assignment: number | Assignment;
+  user: number | User;
+  enrollment?: (number | null) | Enrollment;
+  course?: (number | null) | Course;
+  cohort?: (number | null) | Cohort;
+  status?: ('submitted' | 'graded' | 'missing') | null;
+  late?: boolean | null;
+  submittedAt?: string | null;
+  text?: string | null;
+  /**
+   * Download from the file record (opens the protected download link).
+   */
+  files?: (number | SubmissionFile)[] | null;
+  /**
+   * e.g. ۱۸٫۵ or 18.5 — empty = not graded.
+   */
+  scoreInput?: string | null;
+  score?: number | null;
+  feedback?: string | null;
+  gradedBy?: (number | null) | User;
+  gradedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Private. Open a file with the "download" link; it checks access on every request.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "submission-files".
+ */
+export interface SubmissionFile {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  owner: number | User;
+  course: number | Course;
+  cohort?: (number | null) | Cohort;
+  kind: 'pdf' | 'docx' | 'jpg' | 'png';
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -859,6 +1082,30 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'enrollments';
         value: number | Enrollment;
+      } | null)
+    | ({
+        relationTo: 'questions';
+        value: number | Question;
+      } | null)
+    | ({
+        relationTo: 'quizzes';
+        value: number | Quiz;
+      } | null)
+    | ({
+        relationTo: 'quiz-attempts';
+        value: number | QuizAttempt;
+      } | null)
+    | ({
+        relationTo: 'assignments';
+        value: number | Assignment;
+      } | null)
+    | ({
+        relationTo: 'submissions';
+        value: number | Submission;
+      } | null)
+    | ({
+        relationTo: 'submission-files';
+        value: number | SubmissionFile;
       } | null)
     | ({
         relationTo: 'certificates';
@@ -1217,6 +1464,15 @@ export interface LessonsSelect<T extends boolean = true> {
         file?: T;
         id?: T;
       };
+  drip?:
+    | T
+    | {
+        mode?: T;
+        days?: T;
+        releaseAt?: T;
+        releaseAt_tz?: T;
+        preview?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1231,10 +1487,171 @@ export interface EnrollmentsSelect<T extends boolean = true> {
   cohort?: T;
   order?: T;
   status?: T;
+  enrolledAt?: T;
   completedLessons?: T;
+  openedLessons?: T;
+  quizExtraAttempts?:
+    | T
+    | {
+        quiz?: T;
+        extra?: T;
+        id?: T;
+      };
   defensePassed?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "questions_select".
+ */
+export interface QuestionsSelect<T extends boolean = true> {
+  tenant?: T;
+  course?: T;
+  type?: T;
+  points?: T;
+  text?: T;
+  options?:
+    | T
+    | {
+        text?: T;
+        isCorrect?: T;
+        id?: T;
+      };
+  correctAnswer?: T;
+  acceptedAnswers?:
+    | T
+    | {
+        answer?: T;
+        id?: T;
+      };
+  explanation?: T;
+  archived?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quizzes_select".
+ */
+export interface QuizzesSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  course?: T;
+  lesson?: T;
+  status?: T;
+  description?: T;
+  questions?:
+    | T
+    | {
+        question?: T;
+        points?: T;
+        id?: T;
+      };
+  required?: T;
+  passMark?: T;
+  attemptsLimit?: T;
+  timeLimitMin?: T;
+  countedAttempt?: T;
+  review?: T;
+  fullReviewWhen?: T;
+  partialCredit?: T;
+  allowRetakeAfterPass?: T;
+  shuffle?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quiz-attempts_select".
+ */
+export interface QuizAttemptsSelect<T extends boolean = true> {
+  tenant?: T;
+  quiz?: T;
+  user?: T;
+  attemptNo?: T;
+  enrollment?: T;
+  course?: T;
+  cohort?: T;
+  status?: T;
+  score?: T;
+  maxScore?: T;
+  passed?: T;
+  startedAt?: T;
+  deadlineAt?: T;
+  submittedAt?: T;
+  answers?: T;
+  snapshot?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "assignments_select".
+ */
+export interface AssignmentsSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  course?: T;
+  cohort?: T;
+  lesson?: T;
+  description?: T;
+  dueAt?: T;
+  dueAt_tz?: T;
+  maxScore?: T;
+  passScore?: T;
+  required?: T;
+  allowLate?: T;
+  status?: T;
+  attachments?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "submissions_select".
+ */
+export interface SubmissionsSelect<T extends boolean = true> {
+  tenant?: T;
+  assignment?: T;
+  user?: T;
+  enrollment?: T;
+  course?: T;
+  cohort?: T;
+  status?: T;
+  late?: T;
+  submittedAt?: T;
+  text?: T;
+  files?: T;
+  scoreInput?: T;
+  score?: T;
+  feedback?: T;
+  gradedBy?: T;
+  gradedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "submission-files_select".
+ */
+export interface SubmissionFilesSelect<T extends boolean = true> {
+  tenant?: T;
+  owner?: T;
+  course?: T;
+  cohort?: T;
+  kind?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -79,6 +79,11 @@ export default async function DashboardPage() {
                 <p className="mt-2 text-xs text-muted">
                   {toPersianDigits(progress)}٪ · {toPersianDigits(total)} جلسه
                 </p>
+                {course ? (
+                  <Link href={`/learn/${course.slug}`} className="mt-4 me-3 inline-block text-sm font-bold text-brand hover:underline">
+                    جلسات، آزمون‌ها و تکالیف
+                  </Link>
+                ) : null}
                 {course && nextLesson ? (
                   <Link href={`/learn/${course.slug}/${nextLesson.id}`} className="mt-4 inline-block rounded-xl bg-brand px-4 py-2 text-sm font-bold text-brand-ink">
                     ▶ {nextLesson.title}

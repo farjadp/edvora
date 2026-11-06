@@ -226,3 +226,26 @@ describe('four-eyes', () => {
     expect(checkFourEyes({ makerId: null, checkerId: 11, checkerAllowed: true })).toEqual({ ok: false, reason: 'missing-maker' })
   })
 })
+
+describe('E-026 permission keys', () => {
+  const keys = ['quizzes.manage', 'assignments.manage', 'submissions.grade'] as const
+  it('are in the catalog and grantable inside an academy', () => {
+    for (const k of keys) expect(ACADEMY_PERMISSIONS).toContain(k)
+    expect(validateRolePermissions([...keys]).ok).toBe(true)
+  })
+  it('go to academy admins and instructors, not to advisors, support or students', () => {
+    for (const k of keys) {
+      expect(template('academy-admin')).toContain(k)
+      expect(template('instructor')).toContain(k)
+      expect(template('advisor')).not.toContain(k)
+      expect(template('support')).not.toContain(k)
+      expect(template('student')).not.toContain(k)
+    }
+  })
+  it('respect an instructor course scope', () => {
+    const c = ctx([m(A, template('instructor'), { scope: { courses: [5] } })])
+    expect(can(c, A, 'submissions.grade', { courseId: 5, cohortId: null })).toBe(true)
+    expect(can(c, A, 'submissions.grade', { courseId: 6, cohortId: null })).toBe(false)
+    expect(can(c, B, 'quizzes.manage')).toBe(false)
+  })
+})

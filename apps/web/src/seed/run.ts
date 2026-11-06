@@ -9,6 +9,7 @@
  *   pnpm seed
  */
 import { ROLE_TEMPLATES, tomanToRial } from '@edvora/core'
+import { randomBytes } from 'node:crypto'
 import { getPayload, type CollectionSlug, type Payload, type Where } from 'payload'
 import config from '../payload.config'
 
@@ -255,12 +256,24 @@ async function seedDemo(payload: Payload) {
   const cohort = await upsert(payload, 'cohorts', { and: [{ tenant: { equals: t } }, { course: { equals: course.id } }] }, {
     tenant: t, course: course.id, title: 'ورودی اول', startDate: new Date(Date.now() + 14 * DAY).toISOString(), schedule: 'دوشنبه‌ها ۱۸ تا ۲۰', seats: 30, mode: 'online', status: 'open',
   })
-  for (const [i, title] of ['معرفی دوره', 'تحلیل بازار', 'طراحی پروژه'].entries()) {
-    await upsert(payload, 'lessons', { and: [{ course: { equals: course.id } }, { order: { equals: i + 1 } }] }, {
-      tenant: t, course: course.id, title, order: i + 1, module: i === 0 ? 'شروع' : 'ماژول ۱', durationMinutes: 20 + i * 5, isFreePreview: i === 0,
-      notes: 'یادداشت نمونه جلسه.',
+  // Lessons 3–5 exercise drip (E-026): 3 opens after lesson 2 (and its required quiz), 4 opens 14 days after
+  // enrollment (locked for a fresh student), 5 is dripped with 0 days (already open).
+  const lessonSpecs: { title: string; module: string; drip: { mode: string; days?: number } }[] = [
+    { title: 'معرفی دوره', module: 'شروع', drip: { mode: 'none' } },
+    { title: 'تحلیل بازار', module: 'ماژول ۱', drip: { mode: 'none' } },
+    { title: 'طراحی پروژه', module: 'ماژول ۱', drip: { mode: 'afterPrevious' } },
+    { title: 'جمع‌بندی و پروژهٔ نهایی', module: 'ماژول ۲', drip: { mode: 'afterEnrollment', days: 14 } },
+    { title: 'منابع تکمیلی', module: 'ماژول ۲', drip: { mode: 'afterEnrollment', days: 0 } },
+  ]
+  const lessonIds: number[] = []
+  for (const [i, spec] of lessonSpecs.entries()) {
+    const lesson = await upsert(payload, 'lessons', { and: [{ course: { equals: course.id } }, { order: { equals: i + 1 } }] }, {
+      tenant: t, course: course.id, title: spec.title, order: i + 1, module: spec.module, durationMinutes: 20 + i * 5, isFreePreview: i === 0,
+      notes: 'یادداشت نمونه جلسه.', drip: { days: null, releaseAt: null, ...spec.drip },
     })
+    lessonIds.push(lesson.id)
   }
+  await seedDemoQuizAndAssignment(payload, t, course.id, lessonIds[1]!)
   await upsert(payload, 'coupons', { and: [{ tenant: { equals: t } }, { code: { equals: 'TEST20' } }] }, {
     tenant: t, code: 'TEST20', kind: 'percent', value: 20, active: true, note: 'Test coupon',
   })
@@ -268,6 +281,108 @@ async function seedDemo(payload: Payload) {
     tenant: t, code: 'ED-MGT-001', holderName: 'دانشجوی نمونه', course: course.id, cohort: cohort.id, finalProject: 'پروژه نمونه', issuedAt: new Date().toISOString(), status: 'valid',
   })
   return t
+}
+
+/**
+ * E-026 demo data (demo tenant only): a question bank with every question type, a required quiz on lesson 2 and a
+ * required course assignment. Questions are generic textbook items, not claims about any academy.
+ */
+async function seedDemoQuizAndAssignment(payload: Payload, t: number, courseId: number, lessonId: number) {
+  const inCourse = (extra: Where[]): Where => ({ and: [{ tenant: { equals: t } }, { course: { equals: courseId } }, ...extra] })
+  const questions: Record<string, unknown>[] = [
+    {
+      type: 'single',
+      text: 'کدام مورد جزو چهار بخش تحلیل SWOT نیست؟',
+      options: [{ text: 'نقاط قوت' }, { text: 'فرصت‌ها' }, { text: 'تهدیدها' }, { text: 'قیمت‌گذاری', isCorrect: true }],
+      explanation: 'SWOT از قوت‌ها، ضعف‌ها، فرصت‌ها و تهدیدها تشکیل می‌شود.',
+    },
+    {
+      type: 'single',
+      text: '«بازار هدف» یعنی…',
+      options: [{ text: 'گروهی از مشتریان که کسب‌وکار برای آن‌ها محصول یا خدمت ارائه می‌کند', isCorrect: true }, { text: 'همهٔ مردم یک کشور' }, { text: 'فهرست رقبای اصلی' }],
+    },
+    {
+      type: 'multiple',
+      text: 'کدام موارد در SWOT عوامل بیرونی‌اند؟',
+      options: [{ text: 'فرصت‌ها', isCorrect: true }, { text: 'تهدیدها', isCorrect: true }, { text: 'نقاط قوت' }, { text: 'نقاط ضعف' }],
+      explanation: 'فرصت‌ها و تهدیدها از محیط بیرون می‌آیند؛ قوت‌ها و ضعف‌ها درونی‌اند.',
+    },
+    {
+      type: 'multiple',
+      text: 'کدام‌ها روش جمع‌آوری داده از مشتری‌اند؟',
+      options: [{ text: 'مصاحبه', isCorrect: true }, { text: 'پرسش‌نامه', isCorrect: true }, { text: 'حدس زدن بدون داده' }],
+    },
+    { type: 'trueFalse', text: 'تحلیل رقبا بخشی از تحلیل بازار است.', correctAnswer: 'true' },
+    { type: 'trueFalse', text: 'تحلیل SWOT فقط برای شرکت‌های بزرگ کاربرد دارد.', correctAnswer: 'false' },
+    { type: 'short', text: 'تحلیل SWOT چند بخش دارد؟ (عدد را بنویسید)', acceptedAnswers: [{ answer: '4' }, { answer: 'چهار' }] },
+    { type: 'short', text: 'حرف S در SWOT نشانهٔ کدام کلمهٔ انگلیسی است؟', acceptedAnswers: [{ answer: 'Strengths' }, { answer: 'Strength' }] },
+  ]
+  const questionIds: number[] = []
+  for (const q of questions) {
+    const doc = await upsert(payload, 'questions', inCourse([{ text: { equals: q.text as string } }]), { tenant: t, course: courseId, points: 1, archived: false, ...q })
+    questionIds.push(doc.id)
+  }
+  await upsert(payload, 'quizzes', inCourse([{ title: { equals: 'آزمون جلسهٔ تحلیل بازار' } }]), {
+    tenant: t,
+    course: courseId,
+    lesson: lessonId,
+    title: 'آزمون جلسهٔ تحلیل بازار',
+    description: 'برای تکمیل جلسهٔ «تحلیل بازار» و باز شدن جلسهٔ بعد، در این آزمون قبول شوید.',
+    status: 'published',
+    required: true,
+    passMark: 70,
+    attemptsLimit: 3,
+    timeLimitMin: 15,
+    countedAttempt: 'best',
+    review: 'full',
+    fullReviewWhen: 'afterPass',
+    partialCredit: false,
+    allowRetakeAfterPass: false,
+    shuffle: false,
+    questions: questionIds.map((question) => ({ question })),
+  })
+  await upsert(payload, 'assignments', inCourse([{ title: { equals: 'تکلیف: تحلیل SWOT یک کسب‌وکار' } }]), {
+    tenant: t,
+    course: courseId,
+    title: 'تکلیف: تحلیل SWOT یک کسب‌وکار',
+    description: 'یک کسب‌وکار واقعی یا فرضی انتخاب کنید و جدول SWOT آن را با دست‌کم دو مورد در هر بخش بنویسید. متن را همین‌جا بنویسید یا فایل PDF بفرستید.',
+    dueAt: new Date(Date.now() + 30 * DAY).toISOString(),
+    maxScore: 20,
+    passScore: 12,
+    required: true,
+    allowLate: false,
+    status: 'published',
+  })
+}
+
+/**
+ * Demo-only people for E-026: an instructor (grades in /admin, no password login — the e2e grades through the local
+ * API as this user) and an enrolled student for screenshots. Fake numbers; login is phone OTP with the mock SMS code.
+ */
+async function seedDemoPeople(payload: Payload, t: number) {
+  const course = (await payload.find({ collection: 'courses', where: { and: [{ tenant: { equals: t } }, { slug: { equals: 'demo-program' } }] }, limit: 1, overrideAccess: true })).docs[0]
+  const role = (await payload.find({ collection: 'roles', where: { and: [{ tenant: { equals: t } }, { key: { equals: 'instructor' } }] }, limit: 1, overrideAccess: true })).docs[0]
+  if (!course || !role) return
+  const ensureUser = async (email: string, data: Record<string, unknown>) => {
+    const found = (await payload.find({ collection: 'users', where: { email: { equals: email } }, limit: 1, overrideAccess: true })).docs[0]
+    if (found) return payload.update({ collection: 'users', id: found.id, overrideAccess: true, data: data as never })
+    return payload.create({ collection: 'users', overrideAccess: true, data: { email, password: randomBytes(24).toString('base64url'), ...data } as never })
+  }
+  const instructor = await ensureUser('instructor@demo.edvora.local', { name: 'مدرس نمونه', tenants: [{ tenant: t }] })
+  await upsert(payload, 'memberships', { and: [{ tenant: { equals: t } }, { user: { equals: instructor.id } }] }, {
+    tenant: t,
+    user: instructor.id,
+    roles: [role.id],
+    scope: { courses: [course.id], cohorts: [], ownRecordsOnly: false },
+    status: 'active',
+    note: 'Demo instructor (E-026 test data)',
+  })
+  const student = await ensureUser('09129990001@phone.demo.edvora.local', { name: 'دانشجوی نمونه', phone: '09129990001', roles: ['student'], tenants: [{ tenant: t }] })
+  const cohort = (await payload.find({ collection: 'cohorts', where: { and: [{ tenant: { equals: t } }, { course: { equals: course.id } }] }, limit: 1, overrideAccess: true })).docs[0]
+  const existing = (await payload.find({ collection: 'enrollments', where: { and: [{ user: { equals: student.id } }, { course: { equals: course.id } }] }, limit: 1, overrideAccess: true })).docs[0]
+  if (!existing) {
+    await payload.create({ collection: 'enrollments', overrideAccess: true, data: { tenant: t, user: student.id, course: course.id, cohort: cohort?.id ?? null, status: 'active' } })
+  }
 }
 
 /** Role templates (ADR 006 §4) for one academy. Re-running resets the templates to the code definition. */
@@ -314,6 +429,7 @@ async function main() {
   if (wanted.has('iba')) ids.push(await seedIba(payload))
   if (wanted.has('demo')) ids.push(await seedDemo(payload))
   for (const t of ids) await seedRoleTemplates(payload, t)
+  if (wanted.has('demo')) await seedDemoPeople(payload, ids[ids.length - 1]!)
   await seedAdmin(payload, ids)
   console.info(`Seed complete: tenants ${[...wanted].join(' + ')}, role templates`)
   process.exit(0)

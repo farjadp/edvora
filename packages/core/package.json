@@ -8,7 +8,12 @@
     ".": "./src/index.ts",
     "./digits": "./src/digits.ts",
     "./money": "./src/money.ts",
-    "./staff": "./src/staff.ts"
+    "./staff": "./src/staff.ts",
+    "./quiz": "./src/quiz.ts",
+    "./drip": "./src/drip.ts",
+    "./assignments": "./src/assignments.ts",
+    "./progress": "./src/progress.ts",
+    "./jalali": "./src/jalali.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
