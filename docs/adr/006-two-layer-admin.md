@@ -21,12 +21,25 @@ four-eyes approval for money: the person who records a manual payment or a refun
    `tenant` explicitly (`lib/queries.ts`).
 3. **Business rules live in `packages/core`** (lead outcome → status, approval checks, overdue states), so both UIs
    behave the same.
-4. **Two new roles:** `finance` (payments, instalments, manual receipts, refunds, exports) and `support`
-   (tickets, student lookup, no money actions). Labels: «مالی» and «پشتیبانی».
+4. **Permissions, not fixed roles** (Farjad, 2026-11-06: the academy admin must be able to create users with full
+   details and exactly the access they need):
+   - A **permission catalog** (`module.action[.scope]`) is defined in code and is the only thing access checks read.
+   - **Roles** are editable, named sets of permissions **per academy**. Each academy is seeded with templates:
+     academy admin, advisor, instructor, `finance` «مالی», `support` «پشتیبانی», content editor, student.
+     Admins can copy templates and create custom roles.
+   - **Membership** (user × academy) holds roles, scope (courses / cohorts / own vs all leads and tickets), status
+     and optional expiry. One account per mobile across Edvora; access is per academy.
+   - Nobody grants what they do not have; platform permissions are never grantable inside an academy; the last
+     role manager cannot be removed; nobody edits their own roles; four-eyes is checked on the action.
+   - Permissions are resolved server-side per request from the database, not from the JWT, so revoking works at once.
 
 ## Consequences
 - More UI to build and test than using Payload only; in return the high-volume screens can be fast and RTL-first.
 - Desk pages follow ADR 005 (no same-site `redirect()` from server actions).
-- Adding roles needs a migration and access updates in every collection; tests must cover that `finance` and
-  `support` cannot reach other tenants or each other's actions.
+- `access/roles.ts` is replaced by permission checks (`can(user, tenant, 'payments.manual.approve', scope)`) in
+  `packages/core` with tests; every collection's `access` moves to it. Migration: today's global `roles` become
+  memberships with the matching template role.
+- Fixes current gaps: roles are global on the user, advisors/instructors can read all users, admins can hard-delete
+  users, and removed roles stay valid until the 8 h token expires.
+- Tests must cover tenant isolation, scope (own leads, own cohorts), no privilege escalation and four-eyes.
 - Staff (all roles except `student`) need password + OTP as second factor.
