@@ -13,12 +13,12 @@ Notion page 06 and are created only when their work starts.
 | `ui-designer` | Screens in code, design system | sonnet | 2026-11-06 | Core (#06) |
 | `tech-lead` | Architecture, implementation, review (also backend, integrations, DevOps for now) | opus | 2026-11-06 | Core (#10) |
 | `qa` | Tests, bug reports, release GO/NO-GO | sonnet | 2026-11-06 | Core (#15) |
+| `market-researcher` | Build-vs-buy, vendor/OSS comparisons, pricing, Iran feasibility; cited docs in `docs/research/` | sonnet | 2026-11-06 | E-033 live-class research (#03) |
 | `devops` | Containers, deploys (Railway demo now, Iranian host later), DB, env, runbooks | sonnet | 2026-11-06 | Farjad asked for a Railway demo deploy (#14) |
 
 ## Planned (create when needed — Notion page 06)
 | # | Agent | Create when |
 | --- | --- | --- |
-| 03 | `market-researcher` | competitor/pricing/persona research is requested |
 | 04 | `compliance-reviewer` | before any public launch or claim review (DBA "Ministry of Science" claim) |
 | 07 | `ux-writer` | Persian microcopy, SMS/email templates, FAQ at scale |
 | 08 | `content-producer` | course pages, journal articles, scripts |

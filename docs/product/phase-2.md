@@ -94,23 +94,54 @@ Cross-cutting rules for every story below (QA checks these on each one):
 ## D · Live classes + automatic recordings (provider-agnostic)
 
 **Goal:** schedule a class once; students join with one click; the recording appears in the lesson list automatically.
-**Non-goals:** building our own video conferencing, in-class polls/whiteboard, attendance by face, choosing the provider (Skyroom vs BigBlueButton is open — stories below depend only on the adapter contract).
+**Non-goals:** building our own video conferencing or classroom UI (the provider supplies whiteboard, slides, polls,
+breakouts), attendance by face, rooms over 200 people in one session (webinar mode, D7, is P3).
+**Provider (E-033, proposed in ADR 012, pending Farjad):** self-hosted **BigBlueButton 4.0** on an Iranian server.
+Skyroom can be a fallback or used for webinars. Research: `docs/research/live-classes.md`. The stories still depend
+only on the adapter contract.
 
-**Adapter contract** (`packages/integrations/live/`, mock + real per provider): `createRoom(session)`, `getJoinUrl(room, user, role)` (signed, per-user, short-lived), `getRecordings(room)` / recording-ready webhook, `endRoom`. A mock must exist so CI and demo work offline.
+**Adapter contract** (`packages/integrations/live-class/`, mock now, real BBB adapter in Phase 3):
+- `createRoom(input)`: idempotent on `externalRoomId` = `<tenantId>:<liveSessionId>` while the room runs; called right before every join
+- `getJoinTicket(input)`: per user, per role (`moderator` | `attendee`); returns either a redirect URL (`expiresAt` may be null) or a token + server URL
+- `getRoomStatus`, `endRoom`, `listRecordings`, `getRecording`, `deleteRecording`
+- `parseWebhook(req)`: verifies the signature, returns normalised `room.*`, `participant.joined/left`, `recording.ready` and `attendance.summary` events with an `eventId`
+- `capabilities`: flows degrade when a provider lacks something, e.g. Skyroom has no attendance webhooks
+
+The mock works offline for CI and the demo.
 
 | ID | Story | Acceptance |
 | --- | --- | --- |
 | D1 | As an admin/instructor, I want to schedule a session for a cohort. | **G** cohort + instructor **W** I set start, duration, title **T** session appears in students' week view in Tehran time; overlapping sessions for the same instructor warn |
-| D2 | As a student, I want to join with one click. | **G** my enrollment is active **W** within `[10]` min before until end **T** I'm redirected to a per-user signed join URL with my name; before the window the button explains when it opens |
+| D2 | As a student, I want to join with one click. | **G** my enrollment is active **W** within `[10]` min before until end **T** the join route checks my enrollment and redirects (303) me to a per-user signed join URL with my name; the URL is never in page HTML and expires in ≤ `[2]` min where the provider supports it (BBB URLs don't expire while the meeting runs, so the route is the gate); before the window the button explains when it opens. Works in Android Chrome and iOS Safari with **no app install** |
 | D2f | (failures) | **G** not enrolled / other tenant / provider API down **W** join **T** 403/404 respectively; provider down shows "try again / backup link" and logs, never a stack trace |
-| D3 | As an instructor, I want to join as moderator. | **G** I'm the session's instructor **W** join **T** moderator role; a student link never grants moderator |
-| D4 | As a student, I want the recording as soon as it is ready. | **G** class ended and provider finishes processing **W** webhook/poll receives it **T** a recording lesson is attached to the cohort (idempotent on repeated webhooks) and visible only to that cohort, played through B (watermarked) |
-| D4f | (failure) | **G** no recording produced / webhook never arrives **W** `[30]` min after end **T** admin sees "recording missing" with a manual attach option |
-| D5 | As an instructor, I want attendance. | **G** provider reports join times **W** class ends **T** attendance stored per student; manual correction possible |
+| D2n | As a student on a restricted network (mobile carrier, office firewall, UDP blocked), I want the class to still connect. | **G** UDP is blocked on my network **W** I join **T** media connects over TURN/TLS on port 443; if video can't hold, I keep audio + slides. QA checks on MCI, Irancell and a corporate network before release |
+| D3 | As an instructor, I want to join as moderator. | **G** I'm the session's instructor **W** join **T** moderator role; a student link never grants moderator (role is set server-side, never from the URL) |
+| D4 | As a student, I want the recording as soon as it is ready. | **G** class ended and provider finishes processing **W** the `recording.ready` webhook (or a poll) arrives **T** the MP4 is **copied to our object storage** (provider links expire), a recording lesson is attached to the cohort, visible only to that cohort and played through B (watermarked). Idempotent on repeated webhooks (dedupe on `eventId`) |
+| D4f | (failure) | **G** no recording produced / webhook never arrives **W** `[30]` min after end (BBB MP4 processing time `[unverified]`, set after the load test) **T** admin sees "recording missing" with a manual attach option |
+| D5 | As an instructor, I want attendance. | **G** provider reports join/leave events **W** class ends **T** attendance stored per student (first join, last leave, total minutes), reconciled with the provider's end-of-class report (`attendance.summary`, authoritative) where one exists; manual correction possible; source marked `webhook` / `manual` / `import`. If the provider has no attendance webhooks (`capabilities`), the session page asks staff to mark attendance by hand |
 | D6 | As the academy, I want to cancel/reschedule. | **G** a session in 2 days **W** I reschedule **T** students are notified (F) and the old join link stops working |
+| D7 | (P3) As the academy, I want an open webinar for over 200 people. | **G** expected audience > 200 **W** I schedule a webinar **T** it uses the tenant's webinar provider (e.g. a Skyroom day pass) through the same adapter; if none is configured, scheduling over 200 is refused with a clear message |
+| D8 | As a student during an internet disruption, I want to know what happens. | **G** the provider is unreachable at start time **W** `[15]` min pass without the moderator joining **T** students get an SMS/notification (F) and the session shows "moved / recording will follow"; nothing is marked absent automatically |
 
-**Data:** Tenants `features` already has `live` — gate on it. New `liveSessions` (tenant via plugin, cohort, title, startsAt UTC, durationMin, instructor→users, provider, providerRoomId, status, recording→lessons, joinWindowMin) and `attendance` (session, user, joinedAt, leftAt). `cohorts.schedule` stays human text. Provider credentials are per-tenant config (like `zarinpalMerchantId`), stored encrypted/env, never in public reads.
-**Client questions:** Which do you prefer or already own: Skyroom or BigBlueButton? Do you host on your own servers or buy a plan? Typical class size and length? Must recordings be downloadable by students? Recording retention period? Is attendance counted toward the certificate?
+**Data:** Tenants `features` already has `live`; gate on it.
+- New `liveSessions`: tenant via plugin, cohort, title, startsAt UTC, durationMin, instructor→users, provider, providerRoomId, status, joinWindowMin, and `recordings` (array: providerRecordingId, status, lesson→lessons). One session can have several recordings.
+- New `attendance`: session, user, joinedAt, leftAt, minutes, source (`webhook` / `summary` / `manual` / `import`).
+- New `liveEvents`: (tenant, provider, eventId) unique, for webhook dedupe and replay protection.
+
+`cohorts.schedule` stays human text. Provider credentials are per-tenant config (like `zarinpalMerchantId`), stored
+encrypted or in env, never in public reads. `externalRoomId` = `<tenantId>:<liveSessionId>`. The webhook route finds the
+session by `(provider, providerRoomId)`, verifies with that tenant's credentials, then checks `externalRoomId` matches.
+It never trusts the Host header or the payload alone.
+
+**Client questions:**
+- Typical and maximum class size?
+- Any webinars over 200?
+- Must students be able to download recordings?
+- Recording retention period?
+- Is attendance counted toward the certificate?
+- Do instructors need breakout rooms?
+
+(Build vs buy and the server are Farjad's decisions, ADR 012.)
 
 ---
 
@@ -227,7 +258,7 @@ Cross-cutting rules for every story below (QA checks these on each one):
 
 | Step | Items | Depends on |
 | --- | --- | --- |
-| 1 | D adapter + mock, `liveSessions`; A week view; F adapters (email, Bale) + `notificationLog` | live provider decision |
+| 1 | D adapter + mock (contract done in E-033), `liveSessions`; A week view; F adapters (email, Bale) + `notificationLog` | ADR 012 approval (build on BBB vs buy Skyroom) |
 | 2 | B video adapter + signed playback + watermark | Arvan account `[client]` |
 | 3 | **E-026a:** lock down `lessons` field reads; `enrolledAt`; R drip (core `lessonUnlockAt` + lesson list/route enforcement) | none; unblocks B and Q |
 | 4 | **E-026b:** ADR 009 (private uploads) → C1–C6 assignments/submissions + `submissionFiles` | ADR 009 |
@@ -258,7 +289,7 @@ Cross-cutting rules for every story below (QA checks these on each one):
 
 ## Open questions for Farjad / the client (consolidated)
 
-1. Skyroom or BigBlueButton; self-hosted or paid plan?
+1. Skyroom or BigBlueButton; self-hosted or paid plan? → E-033 recommends self-hosted BigBlueButton (ADR 012, `docs/research/live-classes.md`); waiting for Farjad.
 2. Arvan VOD already set up; watermark content; recording retention and post-cohort access.
 3. Grading scale, pass mark, late policy, defense panel and re-defense policy.
 4. Certificate approval: automatic or director-signed; signature/seal assets; workshops get certificates?
