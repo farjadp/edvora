@@ -73,7 +73,10 @@ for (const [template, desk, title] of LANDING) {
     await staffLogin(page, DEMO, u)
     await expect(page).toHaveURL(`${DEMO}/staff/${desk}`)
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
-    await expect(page.getByText('این میز هنوز آماده نیست.')).toBeVisible()
+    // E-028: the leads and finance desks have real bodies; the others are still E-022 placeholders.
+    if (desk === 'leads') await expect(page.getByTestId('leads-desk')).toBeVisible()
+    else if (desk === 'finance') await expect(page.getByTestId('finance-desk')).toBeVisible()
+    else await expect(page.getByText('این میز هنوز آماده نیست.')).toBeVisible()
     // Tenant indicator + permission-filtered nav with the active item marked.
     await expect(page.getByRole('navigation', { name: 'ناوبری میز کار' }).first().locator('[aria-current="page"]')).toHaveAttribute('href', `/staff/${desk}`)
   })

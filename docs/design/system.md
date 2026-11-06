@@ -120,6 +120,31 @@ toward, min)`, `mix(a, b, t)`, `isHex(v)`, `tenantPalette(brand, accent)`, `tena
 
 Rule of thumb for `tone`: input on the page background → `surface`; input inside a surface card → `bg`.
 
+## Seal components (E-028)
+
+Direction A · Seal: thin rings, hairlines, one gold `milestone` colour, Morabba (`font-display`) for headings and
+numbers, Vazirmatn for everything else. All in `@edvora/ui`, server-safe unless noted. Numbers are formatted by the page
+(`toPersianDigits`) and passed in as strings; the package has no dependency on `@edvora/core`.
+
+| Component | What | Notes |
+| --- | --- | --- |
+| `ProgressRing` | Thin SVG ring, `value` 0-100 (`stroke-dasharray` on a 100-long path). | `label` = accessible name; the number must also be visible beside it. `data-ring-value`, `testId`. Sweep is `motion-safe:animate-e-sweep`. |
+| `Seal` | The certificate seal: eight-pointed girih star (option B), gold. `state="issued" \| "sealed"`, optional one-pass `sheen`. | The only gold seal on a page. Sealed = dashed outline + lock (not colour alone). |
+| `Emblem` | Scalloped gold rosette for badges and level. `locked` = outline only. | Never used for the certificate. |
+| `WeekRhythm` | One mark per Jalali week (met / in progress / frozen / missed / neutral), `data-week-state` on each. | A missed week is an empty circle, never red. |
+| `CertificatePath`, `CertificateChecklist` | Stepper to the certificate (ON) and the plain checklist (gamification OFF: no gold, no lock). | A stepper, not a card in a card. |
+| `GoalRing` | Staff goal: ring + `valueText` beside it; closes in `ok` when complete. | Counts only what the server confirms. |
+| `Celebration` (client) | Inline `role="status"` live region. Budget: 1 per view, 3 per day (`celebrationBudget.ts`, localStorage in try/catch). | Visual is `aria-hidden`, `announce` is read instead; put links outside it. Never a modal, never steals focus. |
+| `Guilloche`, `Icon` | Banknote hairline watermark (decorative, never over text); thin line icons. | |
+
+Tokens used: `bg-milestone` / `text-milestone` / `text-milestone-ink` (gold; light `#8f6200`, dark `#e0b040`),
+`bg-e-tint`, `bg-e-track` / `stroke-e-track`, `font-display`, keyframes `e-sweep`, `e-rise`, `e-stamp`, `e-sheen`
+(all behind `motion-safe:`). Gold text only large/bold or with `milestone-ink` on gold.
+
+Where they are used: `/dashboard` (`components/panel/dashboard.tsx`), lesson page (`LessonVideo` beacon +
+`LessonStatus`), quiz result, certificate finale (`/dashboard/certificates/[id]`), `/staff/leads` and `/staff/finance`.
+Gamification OFF is a separate composition (bar + checklist, no aside), not hidden pieces.
+
 ## Rules (from AGENTS.md, repeated because they bite)
 
 - Tailwind classes only, no inline `style`. New CSS only as a token or keyframe in `packages/ui/src/styles.css`.

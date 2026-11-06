@@ -110,8 +110,10 @@ export function LessonStatus({ lessonId, initiallyCompleted, progress, completed
             {gam?.xp && just ? (
               xp > 0 ? (
                 <span data-testid="xp-chip" className="ms-auto inline-flex items-center rounded-full border border-milestone px-3 py-1 text-sm font-bold text-milestone">
-                  {'‏+'}
-                  {fa(xp)} امتیاز
+                  <span dir="ltr" className="me-1">
+                    +{fa(xp)}
+                  </span>
+                  امتیاز
                 </span>
               ) : just.capped ? (
                 <span data-testid="xp-capped" className="ms-auto text-sm text-muted">
