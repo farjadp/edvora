@@ -7,6 +7,8 @@ import { EnrollCard } from '../../../../components/EnrollCard'
 import { LeadForm } from '../../../../components/LeadForm'
 import { getCourseBySlug, getLessons, getOpenCohorts } from '../../../../lib/queries'
 import { getCurrentTenant } from '../../../../lib/tenant'
+import { hasRichText, lexicalToPlainText } from '@edvora/core/richtext'
+import { RichText } from '../../../../components/RichText'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -50,7 +52,7 @@ export default async function CoursePage({ params }: Props) {
           {
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
-            mainEntity: course.faq.map((f) => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })),
+            mainEntity: course.faq.map((f) => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: lexicalToPlainText(f.answer) } })),
           },
         ]
       : []),
@@ -127,7 +129,7 @@ export default async function CoursePage({ params }: Props) {
                     <span className="font-latin text-2xl font-bold text-brand">{String(i + 1).padStart(2, '0')}</span>
                     <div>
                       <p className="font-bold">{s.title}</p>
-                      {s.description ? <p className="mt-1 text-sm leading-7 text-muted">{s.description}</p> : null}
+                      {hasRichText(s.description) ? <RichText data={s.description} tenantId={tenant.id} className="mt-1 text-sm leading-7 text-muted" /> : null}
                     </div>
                     {s.hours ? <span className="ms-auto shrink-0 text-sm text-muted">{toPersianDigits(s.hours)} ساعت</span> : null}
                   </li>
@@ -163,7 +165,7 @@ export default async function CoursePage({ params }: Props) {
                       <span className="me-2 inline-block text-brand transition-transform group-open:rotate-45">+</span>
                       {f.question}
                     </summary>
-                    <p className="mt-3 whitespace-pre-line leading-8 text-muted">{f.answer}</p>
+                    <RichText data={f.answer} tenantId={tenant.id} className="mt-3 leading-8 text-muted" />
                   </details>
                 ))}
               </div>
