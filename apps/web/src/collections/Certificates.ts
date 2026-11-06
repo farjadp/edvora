@@ -1,22 +1,28 @@
 import type { CollectionConfig } from 'payload'
 import { APIError } from 'payload'
 import { buildCertificateCode, parseCertificateCode } from '@edvora/core'
-import { admins, adminsOrInstructors } from '../access/roles'
+import { allow, allowCreate, anyOf, guard, nobody, requireForFields } from '../access/permissions'
+import { auditChange } from '../hooks/audit'
 
 /** Certificates with a public verification page at /verify. */
+const SCOPE = { course: 'course', cohort: 'cohort' }
+
 export const Certificates: CollectionConfig = {
   slug: 'certificates',
   labels: { singular: { fa: 'گواهی', en: 'Certificate' }, plural: { fa: 'گواهی‌ها', en: 'Certificates' } },
   admin: { useAsTitle: 'code', defaultColumns: ['code', 'holderName', 'course', 'status', 'issuedAt'], group: { fa: 'آموزش', en: 'Learning' } },
   access: {
     // The public verify page reads through the server and shows only safe fields.
-    read: adminsOrInstructors,
-    create: admins,
-    update: admins,
-    delete: () => false,
+    read: anyOf(allow('certificates.view', SCOPE), allow('certificates.issue', SCOPE), allow('certificates.revoke', SCOPE)),
+    create: allowCreate('certificates.issue'),
+    update: anyOf(allow('certificates.issue', SCOPE), allow('certificates.revoke', SCOPE)),
+    delete: nobody,
   },
   hooks: {
+    afterChange: [auditChange('certificates')],
     beforeChange: [
+      guard({ create: ['certificates.issue'], update: ['certificates.issue', 'certificates.revoke'], fields: SCOPE }),
+      requireForFields(['status'], 'certificates.revoke', (a, b) => (a ?? 'valid') !== (b ?? 'valid')),
       async ({ data, req, operation }) => {
         if (operation !== 'create' || !data || data.code) return data
         const idOf = (v: unknown) => (v && typeof v === 'object' && 'id' in v ? (v as { id: number }).id : (v as number))

@@ -8,7 +8,10 @@ import { buildConfig } from 'payload'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
+import { getAccess } from './access/permissions'
 import { isSuperAdmin } from './access/roles'
+import { tenantsWith } from '@edvora/core'
+import { AuditLogs } from './collections/AuditLogs'
 import { Certificates } from './collections/Certificates'
 import { Cohorts } from './collections/Cohorts'
 import { OtpCodes, Posts, Testimonials } from './collections/Content'
@@ -18,7 +21,9 @@ import { Enrollments } from './collections/Enrollments'
 import { Leads } from './collections/Leads'
 import { Lessons } from './collections/Lessons'
 import { Media } from './collections/Media'
+import { Memberships } from './collections/Memberships'
 import { Orders } from './collections/Orders'
+import { Roles } from './collections/Roles'
 import { Tenants } from './collections/Tenants'
 import { Users } from './collections/Users'
 import { migrations } from './migrations'
@@ -39,6 +44,9 @@ export default buildConfig({
   collections: [
     Tenants,
     Users,
+    Roles,
+    Memberships,
+    AuditLogs,
     Courses,
     Cohorts,
     Lessons,
@@ -79,8 +87,30 @@ export default buildConfig({
         testimonials: {},
         posts: {},
         media: {},
+        // E-021: access is per academy.
+        roles: {},
+        memberships: {},
+        'audit-logs': {},
       },
+      // No hard delete: academies are never removed, so never cascade-delete their records.
+      cleanupAfterTenantDelete: false,
       userHasAccessToAllTenants: (user) => isSuperAdmin(user),
+      // Academy staff may set academies on users where they hold users.create / users.edit;
+      // the Users beforeChange guard checks each added or removed academy.
+      tenantsArrayField: {
+        arrayFieldAccess: {
+          create: async ({ req }) => {
+            const ctx = await getAccess(req)
+            const t = ctx ? tenantsWith(ctx, 'users.create') : []
+            return t === 'all' || t.length > 0
+          },
+          update: async ({ req }) => {
+            const ctx = await getAccess(req)
+            const t = ctx ? tenantsWith(ctx, 'users.edit') : []
+            return t === 'all' || t.length > 0
+          },
+        },
+      },
       i18n: {
         translations: {
           fa: { 'nav-tenantSelector-label': 'آکادمی' },

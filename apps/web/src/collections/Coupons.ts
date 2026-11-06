@@ -1,11 +1,16 @@
 import type { CollectionConfig } from 'payload'
-import { admins } from '../access/roles'
+import { allow, allowCreate, guard, nobody } from '../access/permissions'
+import { auditChange } from '../hooks/audit'
 
 export const Coupons: CollectionConfig = {
   slug: 'coupons',
   labels: { singular: { fa: 'کد تخفیف', en: 'Coupon' }, plural: { fa: 'کدهای تخفیف', en: 'Coupons' } },
   admin: { useAsTitle: 'code', defaultColumns: ['code', 'kind', 'value', 'usedCount', 'active'], group: { fa: 'فروش', en: 'Sales' } },
-  access: { read: admins, create: admins, update: admins, delete: admins },
+  access: { read: allow('coupons.manage'), create: allowCreate('coupons.manage'), update: allow('coupons.manage'), delete: nobody },
+  hooks: {
+    beforeChange: [guard({ create: ['coupons.manage'], update: ['coupons.manage'] })],
+    afterChange: [auditChange('coupons')],
+  },
   fields: [
     {
       name: 'code',

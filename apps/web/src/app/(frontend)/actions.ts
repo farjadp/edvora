@@ -182,6 +182,7 @@ export async function verifyOtp(_prev: FormState, form: FormData): Promise<FormS
     })
   }
 
+  if ((user.status ?? 'active') !== 'active') return { ok: false, step: 'code', phone, message: 'این حساب غیرفعال است. با پشتیبانی آکادمی تماس بگیرید.' }
   await startSession(user, tenant.id)
   return { ok: true, step: 'code', phone, message: 'وارد شدید.', redirectTo: next }
 }

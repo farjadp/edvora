@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { admins, anyone } from '../access/roles'
+import { allow, allowCreate, anyone, guard, nobody, requireForFields } from '../access/permissions'
+import { auditChange } from '../hooks/audit'
 
 export const COURSE_KINDS = [
   { value: 'program', label: { fa: 'دوره بلندمدت', en: 'Long program' } },
@@ -15,9 +16,17 @@ export const Courses: CollectionConfig = {
   access: {
     // Public pages query through the server with explicit tenant + status filters.
     read: anyone,
-    create: admins,
-    update: admins,
-    delete: admins,
+    create: allowCreate('courses.edit'),
+    update: allow('courses.edit', { course: 'id' }),
+    delete: nobody,
+  },
+  hooks: {
+    beforeChange: [
+      guard({ create: ['courses.edit'], update: ['courses.edit'], fields: { course: 'id' } }),
+      requireForFields(['price', 'maxInstalments'], 'pricing.edit', (a, b) => (a ?? null) !== (b ?? null) && !(a == null && (b === 0 || b === 1))),
+      requireForFields(['status'], 'courses.publish', (a, b) => (a === 'published') !== (b === 'published')),
+    ],
+    afterChange: [auditChange('courses')],
   },
   fields: [
     {

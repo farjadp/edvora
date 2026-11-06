@@ -1,11 +1,16 @@
 import type { CollectionConfig } from 'payload'
-import { admins, anyone, nobody } from '../access/roles'
+import { allow, allowCreate, anyone, guard, nobody, requireForFields } from '../access/permissions'
+import { auditChange } from '../hooks/audit'
 
 export const Testimonials: CollectionConfig = {
   slug: 'testimonials',
   labels: { singular: { fa: 'روایت دانش‌آموخته', en: 'Testimonial' }, plural: { fa: 'روایت دانش‌آموختگان', en: 'Testimonials' } },
   admin: { useAsTitle: 'name', group: { fa: 'محتوا', en: 'Content' } },
-  access: { read: anyone, create: admins, update: admins, delete: admins },
+  access: { read: anyone, create: allowCreate('content.edit'), update: allow('content.edit'), delete: nobody },
+  hooks: {
+    beforeChange: [guard({ create: ['content.edit'], update: ['content.edit'] }), requireForFields(['approvedForUse'], 'content.publish', (a, b) => Boolean(a) !== Boolean(b))],
+    afterChange: [auditChange('testimonials')],
+  },
   fields: [
     { name: 'name', type: 'text', required: true },
     { name: 'role', type: 'text', admin: { description: 'e.g. مدیرعامل فرش امارات' } },
@@ -20,7 +25,11 @@ export const Posts: CollectionConfig = {
   slug: 'posts',
   labels: { singular: { fa: 'مقاله', en: 'Article' }, plural: { fa: 'مجله', en: 'Journal' } },
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'author', 'publishedAt'], group: { fa: 'محتوا', en: 'Content' } },
-  access: { read: anyone, create: admins, update: admins, delete: admins },
+  access: { read: anyone, create: allowCreate('content.edit'), update: allow('content.edit'), delete: nobody },
+  hooks: {
+    beforeChange: [guard({ create: ['content.edit'], update: ['content.edit'] }), requireForFields(['publishedAt'], 'content.publish')],
+    afterChange: [auditChange('posts')],
+  },
   fields: [
     { name: 'title', type: 'text', required: true },
     { name: 'slug', type: 'text', required: true, index: true },
