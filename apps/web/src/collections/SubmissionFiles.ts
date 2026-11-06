@@ -2,6 +2,7 @@ import { SUBMISSION_MIME } from '@edvora/core'
 import type { CollectionConfig } from 'payload'
 import { allow, anyOf, nobody, ownRecords } from '../access/permissions'
 import { privateUploadsDir } from '../lib/privateUploads'
+import { sandboxUploadQuota } from '../access/sandbox'
 
 /** Outside any public/static path (ADR 009). Relative paths resolve from apps/web. */
 export { privateUploadsDir }
@@ -35,6 +36,8 @@ export const SubmissionFiles: CollectionConfig = {
     disableLocalStorage: false,
   },
   hooks: {
+    // E-029 (S6): sandboxes share one small upload quota across media and submission files.
+    beforeChange: [sandboxUploadQuota],
     afterRead: [
       ({ doc }) => {
         // Point every link (admin included) at the protected route.

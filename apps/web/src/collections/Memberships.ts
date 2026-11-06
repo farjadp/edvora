@@ -3,6 +3,7 @@ import type { CollectionConfig, PayloadRequest, Where } from 'payload'
 import { APIError } from 'payload'
 import { assertManagersRemain } from '../access/managers'
 import { allow, allowCreate, anyOf, asSystem, getAccess, invalidateAccess, isSystemWrite, nobody, ownRecords } from '../access/permissions'
+import { clampSandboxMembership } from '../access/sandbox'
 import { auditChange } from '../hooks/audit'
 import { idOf } from '../lib/ids'
 
@@ -52,6 +53,8 @@ export const Memberships: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
+      // E-029 (E3, S5): a membership in a sandbox never outlives the sandbox, system writes included.
+      clampSandboxMembership,
       async ({ data, originalDoc, operation, req }) => {
         const tenantId = idOf(data.tenant ?? originalDoc?.tenant)
         const userId = idOf(data.user ?? originalDoc?.user)

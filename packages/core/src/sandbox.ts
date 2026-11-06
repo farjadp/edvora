@@ -311,20 +311,7 @@ export class RateWindow {
 
 // ---------------------------------------------------------------- Proof of work (shared by worker and server)
 
-/** Number of leading zero bits in a digest. */
-export function leadingZeroBits(bytes: Uint8Array): number {
-  let n = 0
-  for (const b of bytes) {
-    if (b === 0) {
-      n += 8
-      continue
-    }
-    return n + Math.clz32(b) - 24
-  }
-  return n
-}
-
-export const powMessage = (nonce: string, counter: number) => `${nonce}:${counter}`
+export { leadingZeroBits, powMessage } from './pow'
 
 // ---------------------------------------------------------------- Display
 

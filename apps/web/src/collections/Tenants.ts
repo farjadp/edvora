@@ -3,6 +3,7 @@ import { ROLE_TEMPLATES } from '@edvora/core'
 import { allow, asSystem, fieldAllow, nobody } from '../access/permissions'
 import { isSuperAdmin } from '../access/roles'
 import { gamificationSettingsField } from '../fields/gamification'
+import { lockSandboxTenantFields } from '../access/sandbox'
 import { auditChange } from '../hooks/audit'
 import { richTextField, tenantSelf } from '../lib/richText'
 
@@ -23,8 +24,10 @@ export const Tenants: CollectionConfig = {
     delete: nobody,
   },
   hooks: {
+    // E-029: sandbox accounts cannot touch routing, plan, modules, gateway or the sandbox flags (real 403).
+    beforeOperation: [lockSandboxTenantFields],
     afterChange: [
-      // Every new academy starts with the role templates (ADR 006 §4); admins copy and edit them.
+      // Every new academy (sandboxes included: lib/academies.ts createAcademy is the one path for new tenants) starts with the role templates (ADR 006 §4); admins copy and edit them.
       async ({ doc, operation, req }) => {
         if (operation !== 'create') return doc
         await asSystem(req, async () => {
@@ -46,6 +49,32 @@ export const Tenants: CollectionConfig = {
   },
   fields: [
     { name: 'name', type: 'text', required: true, label: { fa: 'نام آکادمی', en: 'Name' } },
+    // E-029 / ADR 010: self-serve demo sandboxes. Written only by server code (overrideAccess); never via the API.
+    {
+      name: 'isSandbox',
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      label: { fa: 'آکادمی آزمایشی (دمو)', en: 'Sandbox (demo)' },
+      access: { create: () => false, update: () => false },
+      admin: { position: 'sidebar', readOnly: true, description: 'Self-serve demo. Hard-deleted by the cleanup job after expiry + grace.' },
+    },
+    {
+      name: 'expiresAt',
+      type: 'date',
+      index: true,
+      label: { fa: 'پایان آکادمی آزمایشی', en: 'Sandbox expires at' },
+      access: { create: () => false, update: () => false },
+      admin: { position: 'sidebar', readOnly: true, condition: (data) => Boolean(data?.isSandbox), date: { pickerAppearance: 'dayAndTime' } },
+    },
+    {
+      name: 'purgeAt',
+      type: 'date',
+      index: true,
+      label: { fa: 'حذف کامل پس از', en: 'Purge after' },
+      access: { create: () => false, update: () => false },
+      admin: { position: 'sidebar', readOnly: true, condition: (data) => Boolean(data?.isSandbox), date: { pickerAppearance: 'dayAndTime' } },
+    },
     {
       name: 'slug',
       type: 'text',

@@ -4,6 +4,7 @@ import { APIError } from 'payload'
 import { assertManagersRemain } from '../access/managers'
 import { allowCreate, getAccess, isStaffRequest, isSystemWrite, nobody } from '../access/permissions'
 import { ROLES, ROLE_LABELS, isSuperAdmin } from '../access/roles'
+import { assertSandboxUserActive, sandboxOfUser } from '../access/sandbox'
 import { twoFactorEndpoints } from '../endpoints/twoFactor'
 import { auditChange } from '../hooks/audit'
 import { idOf } from '../lib/ids'
@@ -84,6 +85,13 @@ const guardUsers: CollectionBeforeChangeHook = async ({ data, originalDoc, opera
 
   const after = 'tenants' in data ? tenantIds(data.tenants) : before
 
+  // E-029 (S5): people a sandbox account creates belong to that sandbox only, and are deleted with it.
+  const actorSandbox = sandboxOfUser(req.user)
+  if (actorSandbox) {
+    denyUnless(after.every((t) => t === actorSandbox), 'A sandbox account can only add people to its own sandbox')
+    if (operation === 'create') data.sandboxTenant = actorSandbox
+  }
+
   if (operation === 'create') {
     denyUnless(after.length > 0, 'Choose the academy for the new user')
     for (const t of after) denyUnless(can(ctx, t, 'users.create'), 'You cannot create users in this academy')
@@ -117,7 +125,8 @@ export const Users: CollectionConfig = {
   auth: { tokenExpiration: 60 * 60 * 8 },
   endpoints: twoFactorEndpoints,
   access: {
-    admin: ({ req }) => isStaffRequest(req),
+    // E-029 (C4): sandbox accounts work in /staff only; /admin exposes platform-level settings.
+    admin: async ({ req }) => !sandboxOfUser(req.user) && (await isStaffRequest(req)),
     read: selfOr('users.view'),
     create: allowCreate('users.create'),
     update: selfOr('users.edit'),
@@ -133,8 +142,10 @@ export const Users: CollectionConfig = {
     ],
     beforeChange: [guardUsers],
     beforeLogin: [
-      ({ user }) => {
+      async ({ user, req }) => {
         if ((user.status ?? 'active') !== 'active') throw new APIError('This account is not active', 403)
+        // E-029 (E1): an ended sandbox refuses every login, whatever the password.
+        await assertSandboxUserActive(req, user)
         return user
       },
     ],
@@ -241,6 +252,17 @@ export const Users: CollectionConfig = {
                 { name: 'status', type: 'select', defaultValue: 'active', index: true, label: { fa: 'وضعیت حساب', en: 'Account status' }, options: [...USER_STATUSES] },
                 { name: 'statusReason', type: 'text', label: { fa: 'دلیل تغییر وضعیت', en: 'Status reason' } },
               ],
+            },
+            {
+              // E-029 / ADR 010: the demo sandbox this account was made for (null = a real account). Set by server
+              // code, or forced to the actor's own sandbox when a sandbox admin creates someone.
+              name: 'sandboxTenant',
+              type: 'relationship',
+              relationTo: 'tenants',
+              index: true,
+              label: { fa: 'آکادمی آزمایشی', en: 'Sandbox' },
+              admin: { readOnly: true, condition: (data) => Boolean(data?.sandboxTenant) },
+              access: { create: ({ req }) => Boolean(sandboxOfUser(req.user)), update: () => false },
             },
             {
               name: 'roles',

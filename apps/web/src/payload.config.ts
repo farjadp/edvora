@@ -17,6 +17,7 @@ import { Certificates } from './collections/Certificates'
 import { Cohorts } from './collections/Cohorts'
 import { OtpCodes, Pages, Posts, Testimonials } from './collections/Content'
 import { Coupons } from './collections/Coupons'
+import { DemoLeads, DemoSandboxes } from './collections/Demo'
 import { Courses } from './collections/Courses'
 import { Enrollments } from './collections/Enrollments'
 import { LearningEvents } from './collections/LearningEvents'
@@ -103,6 +104,9 @@ export default buildConfig({
     ImportJobs,
     ImportRefs,
     Redirects,
+    // E-029: platform-owned demo records (not tenant-owned, so not in multiTenantPlugin.collections).
+    DemoSandboxes,
+    DemoLeads,
   ],
   // E-032: first use of the Payload jobs queue (ADR 011 §Resumability). Each import task works ≤ 20 s, then re-queues
   // itself with its cursor. One app process runs the queue (IMPORT_QUEUE_AUTORUN=false on the others).
@@ -182,7 +186,8 @@ export default buildConfig({
         'import-refs': {},
         redirects: {},
       },
-      // No hard delete: academies are never removed, so never cascade-delete their records.
+      // No hard delete: academies are never removed, so never cascade-delete their records. The one exception,
+      // demo sandboxes (ADR 010), is purged explicitly by lib/sandbox/cleanup.ts, collection by collection.
       cleanupAfterTenantDelete: false,
       userHasAccessToAllTenants: (user) => isSuperAdmin(user),
       // Academy staff may set academies on users where they hold users.create / users.edit;

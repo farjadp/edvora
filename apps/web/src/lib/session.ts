@@ -1,5 +1,5 @@
 import 'server-only'
-import { signSession, verifySession } from '@edvora/core'
+import { sandboxState, signSession, verifySession } from '@edvora/core'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
@@ -33,6 +33,8 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   const tenant = await getCurrentTenant()
   // A session is only valid on the academy that issued it.
   if (payload.tid !== tenant.id) return null
+  // E-029 (E2, T5): an ended sandbox has no sessions, whatever the cookie says.
+  if (tenant.isSandbox && sandboxState(tenant) !== 'active') return null
   const client = await getPayloadClient()
   try {
     const user = await client.findByID({ collection: 'users', id: payload.uid, depth: 0, overrideAccess: true })

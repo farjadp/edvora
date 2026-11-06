@@ -6,7 +6,14 @@ import { isStudentRoute } from '../lib/studentRoutes'
 
 /** Routes that bring their own full-page frame: the staff desk (E-022) and the login screens (E-034). */
 function isBare(pathname: string): boolean {
-  return pathname === '/login' || pathname === '/staff' || pathname.startsWith('/staff/')
+  return (
+    pathname === '/login' ||
+    pathname === '/staff' ||
+    pathname.startsWith('/staff/') ||
+    // E-029: the platform demo page is Edvora's, not the academy's — no academy chrome around it.
+    pathname === '/demo' ||
+    pathname.startsWith('/demo/')
+  )
 }
 
 /**

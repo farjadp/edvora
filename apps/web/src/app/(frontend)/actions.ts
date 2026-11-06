@@ -88,7 +88,7 @@ export async function submitLead(_prev: FormState, form: FormData): Promise<Form
           source: { page: data.page ?? null, utmSource: utm.get('utm_source'), utmCampaign: utm.get('utm_campaign') },
         },
       })
-      await notify(data.phone, `${tenant.name}: درخواست مشاوره شما ثبت شد. مشاوران ما به‌زودی با شما تماس می‌گیرند.`)
+      await notify(data.phone, `${tenant.name}: درخواست مشاوره شما ثبت شد. مشاوران ما به‌زودی با شما تماس می‌گیرند.`, tenant)
     }
     return { ok: true, message: 'درخواست شما ثبت شد. مشاوران ما به‌زودی با شما تماس می‌گیرند.' }
   } catch (err) {
@@ -155,6 +155,11 @@ export async function requestOtp(_prev: FormState, form: FormData): Promise<Form
 
   try {
     const payload = await getPayloadClient()
+    // E-029: demo sandboxes have no phone login (no real numbers, no SMS); the demo page signs people in.
+    const tenant = await getCurrentTenant()
+    if (tenant.isSandbox) {
+      return { ok: false, step: 'phone', message: 'در آکادمی آزمایشی ورود با پیامک غیرفعال است. از دکمهٔ «ورود» در صفحهٔ دمو یا نشانی ورود استفاده کنید.' }
+    }
     const recent = await payload.find({
       collection: 'otp-codes',
       where: { and: [{ phone: { equals: phone } }, { createdAt: { greater_than: new Date(Date.now() - 60 * 1000).toISOString() } }] },
@@ -169,7 +174,7 @@ export async function requestOtp(_prev: FormState, form: FormData): Promise<Form
       overrideAccess: true,
       data: { phone, codeHash: hashOtp(code, phone, env().SESSION_SECRET), expiresAt: new Date(Date.now() + OTP_TTL_MS).toISOString() },
     })
-    const sent = await getSms().sendTemplate({ to: phone, template: env().KAVENEGAR_OTP_TEMPLATE, tokens: [code] })
+    const sent = await getSms(tenant).sendTemplate({ to: phone, template: env().KAVENEGAR_OTP_TEMPLATE, tokens: [code] })
     if (!sent.ok) return { ok: false, step: 'phone', message: 'ارسال پیامک انجام نشد. دوباره تلاش کنید.' }
 
     return {
@@ -195,6 +200,8 @@ export async function verifyOtp(_prev: FormState, form: FormData): Promise<FormS
 
   const payload = await getPayloadClient()
   const tenant = await getCurrentTenant()
+  // E-029: never attach a real phone account to a demo sandbox.
+  if (tenant.isSandbox) return { ok: false, step: 'phone', message: 'در آکادمی آزمایشی ورود با پیامک غیرفعال است.' }
   const latinCode = toLatinDigits(code)
 
   const res = await payload.find({

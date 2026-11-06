@@ -28,7 +28,8 @@
     "./live": "./src/live.ts",
     "./wpimport": "./src/wpimport.ts",
     "./phone": "./src/phone.ts",
-    "./sandbox": "./src/sandbox.ts"
+    "./sandbox": "./src/sandbox.ts",
+    "./pow": "./src/pow.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

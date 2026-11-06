@@ -22,6 +22,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: tenant.name, template: `%s · ${tenant.name}` },
     description: tenant.tagline ?? undefined,
+    // E-029: demo sandboxes are never indexed.
+    ...(tenant.isSandbox ? { robots: { index: false, follow: false, nocache: true } } : {}),
   }
 }
 

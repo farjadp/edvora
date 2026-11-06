@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { allow, allowCreate, anyone, guard, nobody } from '../access/permissions'
+import { sandboxUploadQuota } from '../access/sandbox'
 import { auditChange } from '../hooks/audit'
 import { sourceUrlField } from './fields'
 
@@ -13,7 +14,7 @@ export const Media: CollectionConfig = {
   admin: { group: { fa: 'محتوا', en: 'Content' } },
   access: { read: anyone, create: allowCreate('media.upload'), update: allow('media.upload'), delete: nobody },
   hooks: {
-    beforeChange: [guard({ create: ['media.upload'], update: ['media.upload'] })],
+    beforeChange: [guard({ create: ['media.upload'], update: ['media.upload'] }), sandboxUploadQuota],
     afterChange: [auditChange('media')],
   },
   fields: [{ name: 'alt', type: 'text', required: true, label: { fa: 'متن جایگزین', en: 'Alt text' } }, sourceUrlField],

@@ -7,8 +7,16 @@ import { env } from '../env'
 import type { Tenant } from '../payload-types'
 
 let sms: SmsProvider | undefined
+let mockSms: SmsProvider | undefined
 
-export function getSms(): SmsProvider {
+type ProviderTenant = Pick<Tenant, 'isSandbox'> | null | undefined
+
+/**
+ * SMS for an academy. Demo sandboxes always get the mock, whatever SMS_PROVIDER says (E-029 C8): the platform host
+ * may also serve real academies, so the env var alone is not a guard.
+ */
+export function getSms(tenant: ProviderTenant): SmsProvider {
+  if (tenant?.isSandbox) return (mockSms ??= createSmsProvider({ provider: 'mock' }))
   if (!sms) {
     const e = env()
     sms = createSmsProvider({ provider: e.SMS_PROVIDER, kavenegarApiKey: e.KAVENEGAR_API_KEY, kavenegarSender: e.KAVENEGAR_SENDER })
@@ -16,11 +24,11 @@ export function getSms(): SmsProvider {
   return sms
 }
 
-/** Each academy can use its own gateway account; falls back to the platform default. */
+/** Each academy can use its own gateway account; falls back to the platform default. Sandboxes: always mock (C8). */
 export function getPayment(tenant: Tenant, origin?: string): PaymentProvider {
   const e = env()
   return createPaymentProvider({
-    provider: e.PAYMENT_PROVIDER,
+    provider: tenant.isSandbox ? 'mock' : e.PAYMENT_PROVIDER,
     zarinpalMerchantId: tenant.zarinpalMerchantId || e.ZARINPAL_MERCHANT_ID,
     zarinpalSandbox: e.ZARINPAL_SANDBOX,
     mockGatewayUrl: `${origin ?? e.NEXT_PUBLIC_SITE_URL}/pay/mock`,
@@ -64,11 +72,14 @@ export function getStorage(): ObjectStorage {
   return storage
 }
 
-/** Notifications never break the main flow: failures are logged, not thrown. */
-export async function notify(to: string | null | undefined, text: string): Promise<void> {
+/**
+ * Notifications never break the main flow: failures are logged, not thrown. The academy is required so a sandbox
+ * can never reach a real phone (S8).
+ */
+export async function notify(to: string | null | undefined, text: string, tenant: ProviderTenant): Promise<void> {
   if (!to) return
   try {
-    const res = await getSms().send({ to, text })
+    const res = await getSms(tenant).send({ to, text })
     if (!res.ok) console.error(`[notify] SMS to ${to} failed: ${res.error}`)
   } catch (err) {
     console.error('[notify] SMS error', err)

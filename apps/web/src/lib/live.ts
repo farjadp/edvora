@@ -18,6 +18,7 @@ import { idOf } from './ids'
 import { findEnrollment } from './learning'
 import { getPayloadClient } from './payload'
 import { copyRecording } from './liveRecordings'
+import { env } from '../env'
 import { getLiveClass } from './providers'
 
 /** Live classes (phase-2 §D, ADR 012). Edvora checks who may join; the provider only sees opaque ids. */
@@ -109,6 +110,9 @@ export async function startAsHost(opts: { tenant: Tenant; user: User; session: L
 }
 
 async function issueTicket(payload: Payload, tenant: Tenant, session: LiveSession, user: User, role: 'attendee' | 'moderator', origin: string): Promise<LiveResult> {
+  // E-029 (C8, ADR 013): a demo sandbox never reaches a real live-class server. The provider is instance-wide, so
+  // with a real one configured, sandboxes simply get "unavailable"; with the mock (demo deployments) they work.
+  if (tenant.isSandbox && env().LIVE_CLASS_PROVIDER !== 'mock') return { ok: false, reason: 'provider-down' }
   const provider = getLiveClass(origin)
   try {
     const room = await ensureRoom(payload, provider, tenant, session, origin)
