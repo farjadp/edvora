@@ -59,6 +59,13 @@ pnpm test
 pnpm build
 ```
 
+End-to-end (Playwright, mock providers, both tenants). Needs Postgres and a seed; starts `next dev` itself:
+
+```bash
+pnpm db:up && pnpm seed
+pnpm e2e            # E2E_PORT=3100 pnpm e2e if port 3000 is taken
+```
+
 ## Rules that shape everything
 
 1. **Runs inside Iran.** No runtime dependency on foreign services (fonts are self-hosted, no Google/CDN scripts).
