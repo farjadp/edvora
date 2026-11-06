@@ -36,3 +36,49 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm e2e:typecheck
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: edvora
+          POSTGRES_PASSWORD: edvora
+          POSTGRES_DB: edvora
+        ports: ['5442:5432']
+        options: >-
+          --health-cmd "pg_isready -U edvora" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://edvora:edvora@localhost:5442/edvora
+      PAYLOAD_SECRET: ci-only-secret-not-used-anywhere-else
+      SESSION_SECRET: ci-only-session-secret
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      DEFAULT_TENANT_SLUG: iba
+      PAYMENT_PROVIDER: mock
+      SMS_PROVIDER: mock
+      E2E_PORT: 3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      # The seed script reads apps/web/.env; job env above takes precedence over the example values.
+      - run: cp apps/web/.env.example apps/web/.env
+      # Fresh Postgres service per run, so this is a fresh seed.
+      - run: pnpm seed
+      - run: pnpm e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
