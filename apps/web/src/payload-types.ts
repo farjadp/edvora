@@ -352,6 +352,7 @@ export interface Role {
         | 'users.view_sensitive'
         | 'users.import'
         | 'users.export'
+        | 'users.2fa.reset'
         | 'roles.view'
         | 'roles.manage'
         | 'roles.assign'

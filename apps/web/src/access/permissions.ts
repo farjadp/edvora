@@ -40,20 +40,18 @@ export function sessionIdOf(req: PayloadRequest): string | null {
   return typeof sid === 'string' ? sid : null
 }
 
-async function load(req: PayloadRequest): Promise<AccessContext | null> {
-  const user = req.user
-  if (!user || user.collection !== 'users') return null
-
+/** Every membership of a user (any status), with the union of its non-archived roles' permissions. */
+export async function loadMembershipGrants(req: PayloadRequest, userId: Id): Promise<MembershipGrant[]> {
   const res = await req.payload.find({
     collection: 'memberships',
-    where: { user: { equals: user.id } },
+    where: { user: { equals: userId } },
     depth: 1,
     limit: 500,
     pagination: false,
     overrideAccess: true,
     req,
   })
-  const memberships: MembershipGrant[] = res.docs.map((m) => {
+  return res.docs.map((m) => {
     const roles = (m.roles ?? []).filter((r): r is Exclude<typeof r, number> => typeof r === 'object' && r !== null)
     return {
       tenantId: idOf(m.tenant) ?? -1,
@@ -63,6 +61,13 @@ async function load(req: PayloadRequest): Promise<AccessContext | null> {
       scope: { courses: ids(m.scope?.courses), cohorts: ids(m.scope?.cohorts), ownRecordsOnly: Boolean(m.scope?.ownRecordsOnly) },
     }
   })
+}
+
+async function load(req: PayloadRequest): Promise<AccessContext | null> {
+  const user = req.user
+  if (!user || user.collection !== 'users') return null
+
+  const memberships = await loadMembershipGrants(req, user.id)
 
   const platform = isSuperAdmin(user)
   const isStaffUser = platform || memberships.some((m) => m.permissions.length > 0)

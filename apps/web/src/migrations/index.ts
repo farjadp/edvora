@@ -1,5 +1,6 @@
 import * as migration_20261106_173058_initial from './20261106_173058_initial';
 import * as migration_20261106_195541_admin_foundation from './20261106_195541_admin_foundation';
+import * as migration_20261106_205400_users_2fa_reset_permission from './20261106_205400_users_2fa_reset_permission';
 
 export const migrations = [
   {
@@ -10,6 +11,11 @@ export const migrations = [
   {
     up: migration_20261106_195541_admin_foundation.up,
     down: migration_20261106_195541_admin_foundation.down,
-    name: '20261106_195541_admin_foundation'
+    name: '20261106_195541_admin_foundation',
+  },
+  {
+    up: migration_20261106_205400_users_2fa_reset_permission.up,
+    down: migration_20261106_205400_users_2fa_reset_permission.down,
+    name: '20261106_205400_users_2fa_reset_permission'
   },
 ];
