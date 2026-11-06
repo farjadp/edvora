@@ -3,6 +3,8 @@ import { APIError } from 'payload'
 import { buildCertificateCode, parseCertificateCode } from '@edvora/core'
 import { allow, allowCreate, anyOf, guard, nobody, requireForFields } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
+import { idOf as relId } from '../lib/ids'
+import { findEnrollment, loadCourseState } from '../lib/learning'
 
 /** Certificates with a public verification page at /verify. */
 const SCOPE = { course: 'course', cohort: 'cohort' }
@@ -23,6 +25,25 @@ export const Certificates: CollectionConfig = {
     beforeChange: [
       guard({ create: ['certificates.issue'], update: ['certificates.issue', 'certificates.revoke'], fields: SCOPE }),
       requireForFields(['status'], 'certificates.revoke', (a, b) => (a ?? 'valid') !== (b ?? 'valid')),
+      // E-026: a certificate for an enrolled student needs every required quiz and assignment passed (Q8, C6).
+      // Progress/defense are not enforced here yet (imported historic certificates); the issuing flow (E) will.
+      async ({ data, req, operation }) => {
+        if (operation !== 'create' || !data) return data
+        const tenantId = relId(data.tenant)
+        const userId = relId(data.user)
+        const courseId = relId(data.course)
+        if (!tenantId || !userId || !courseId) return data
+        const enrollment = await findEnrollment({ payload: req.payload, req }, tenantId, userId, courseId)
+        if (!enrollment) return data
+        const course = await req.payload.findByID({ collection: 'courses', id: courseId, depth: 0, overrideAccess: true, req })
+        const state = await loadCourseState({ payload: req.payload, req }, { tenantId, course, enrollment })
+        const missing = state.eligibility.eligible ? [] : state.eligibility.missing.filter((m) => m === 'quiz' || m === 'assignment')
+        if (missing.length) {
+          const open = state.requirements.filter((r) => r.state !== 'done').map((r) => r.title)
+          throw new APIError(`Certificate blocked (${missing.join(', ')}): ${open.join(' · ')}`, 400)
+        }
+        return data
+      },
       async ({ data, req, operation }) => {
         if (operation !== 'create' || !data || data.code) return data
         const idOf = (v: unknown) => (v && typeof v === 'object' && 'id' in v ? (v as { id: number }).id : (v as number))

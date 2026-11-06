@@ -11,6 +11,7 @@ coverage
 .DS_Store
 next-env.d.ts
 /apps/web/media
+/apps/web/private-uploads
 playwright-report
 test-results
 .claude/launch.json

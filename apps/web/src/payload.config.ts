@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url'
 import { getAccess } from './access/permissions'
 import { isSuperAdmin } from './access/roles'
 import { tenantsWith } from '@edvora/core'
+import { Assignments } from './collections/Assignments'
 import { AuditLogs } from './collections/AuditLogs'
 import { Certificates } from './collections/Certificates'
 import { Cohorts } from './collections/Cohorts'
@@ -23,7 +24,12 @@ import { Lessons } from './collections/Lessons'
 import { Media } from './collections/Media'
 import { Memberships } from './collections/Memberships'
 import { Orders } from './collections/Orders'
+import { Questions } from './collections/Questions'
+import { QuizAttempts } from './collections/QuizAttempts'
+import { Quizzes } from './collections/Quizzes'
 import { Roles } from './collections/Roles'
+import { SubmissionFiles } from './collections/SubmissionFiles'
+import { Submissions } from './collections/Submissions'
 import { Tenants } from './collections/Tenants'
 import { Users } from './collections/Users'
 import { migrations } from './migrations'
@@ -36,6 +42,8 @@ export default buildConfig({
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },
     meta: { titleSuffix: ' · Edvora' },
+    // Dates with `timezone: true` (drip release, assignment deadline) are entered in Tehran time and stored UTC.
+    timezones: { supportedTimezones: [{ label: 'تهران (Asia/Tehran)', value: 'Asia/Tehran' }], defaultTimezone: 'Asia/Tehran' },
   },
   i18n: {
     supportedLanguages: { fa, en },
@@ -51,6 +59,12 @@ export default buildConfig({
     Cohorts,
     Lessons,
     Enrollments,
+    Questions,
+    Quizzes,
+    QuizAttempts,
+    Assignments,
+    Submissions,
+    SubmissionFiles,
     Certificates,
     Leads,
     Orders,
@@ -91,6 +105,13 @@ export default buildConfig({
         roles: {},
         memberships: {},
         'audit-logs': {},
+        // E-026: quizzes, assignments, private submission files.
+        questions: {},
+        quizzes: {},
+        'quiz-attempts': {},
+        assignments: {},
+        submissions: {},
+        'submission-files': {},
       },
       // No hard delete: academies are never removed, so never cascade-delete their records.
       cleanupAfterTenantDelete: false,
