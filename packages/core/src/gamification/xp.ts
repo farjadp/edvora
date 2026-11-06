@@ -6,12 +6,13 @@
 import { tehranDayNumber } from './calendar'
 
 export const LEARNING_EVENT_TYPES = [
-  // Activity (count as a learning day; subject to the daily cap)
+  // The student's own actions (count as a learning day; subject to the daily cap)
   'lesson.completed',
   'quiz.passed',
   'assignment.submitted',
-  'assignment.passed',
   'live.attended',
+  // Instructor's grade at/above the pass mark: not the student's day, not capped
+  'assignment.passed',
   // Progress only, 0 XP: the manual «mark complete» button
   'lesson.marked',
   // Milestones (cap-exempt)
@@ -24,9 +25,12 @@ export const LEARNING_EVENT_TYPES = [
 ] as const
 export type LearningEventType = (typeof LEARNING_EVENT_TYPES)[number]
 
-/** Actions that make a "learning day" (PRD §3.3). */
-export const LEARNING_DAY_TYPES: ReadonlySet<LearningEventType> = new Set(['lesson.completed', 'quiz.passed', 'assignment.submitted', 'assignment.passed', 'live.attended'])
-/** XP subject to the daily cap. Milestones and the weekly bonus are exempt so a finale is never "capped". */
+/** The student's own actions that make a "learning day" (PRD §3.3). A grade arriving later is not one. */
+export const LEARNING_DAY_TYPES: ReadonlySet<LearningEventType> = new Set(['lesson.completed', 'quiz.passed', 'assignment.submitted', 'live.attended'])
+/**
+ * XP subject to the daily cap (anti binge-farming). Milestones, the weekly bonus and the instructor's grade bonus
+ * are exempt so a finale or a grade is never "capped".
+ */
 export const CAPPED_TYPES: ReadonlySet<LearningEventType> = LEARNING_DAY_TYPES
 
 export const XP = {

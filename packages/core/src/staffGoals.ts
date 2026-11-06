@@ -22,7 +22,9 @@ export const LEAD_OUTCOME_LABELS_FA: Record<LeadOutcome, string> = {
 
 /** Written when a due follow-up date is moved WITHOUT an outcome: it stays "due" and never counts as done. */
 export const DATE_MOVED = 'date_moved' as const
-export type FollowUpKind = LeadOutcome | typeof DATE_MOVED
+/** Logged when the lead's status is changed in /admin while a follow-up was due: counts as an outcome (PRD §4.1). */
+export const STATUS_CHANGED = 'status_changed' as const
+export type FollowUpKind = LeadOutcome | typeof DATE_MOVED | typeof STATUS_CHANGED
 
 export const isLeadOutcome = (v: unknown): v is LeadOutcome => typeof v === 'string' && (LEAD_OUTCOMES as readonly string[]).includes(v)
 
