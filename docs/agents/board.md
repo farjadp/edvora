@@ -1,6 +1,6 @@
 # Edvora task board
 
-Owned by the **orchestrator**. Every agent reads it; only the orchestrator changes status (separate chats write a
+Owned by the **head-of-product**. Every agent reads it; only the head-of-product changes status (separate chats write a
 handoff in `handoffs/` instead). Statuses: `todo · doing · review · blocked · done`. `chat: <agent>` = run in a
 separate session.
 
