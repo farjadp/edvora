@@ -39,6 +39,14 @@ describe('cleanPersianText', () => {
   })
 })
 
+describe('bidi', () => {
+  it('anchors a closing parenthesis after Latin text, once', () => {
+    expect(cleanPersianText('دوره مدیریت برند (Brand MBA)')).toBe('دوره مدیریت برند (Brand MBA)\u200f')
+    expect(cleanPersianText(cleanPersianText('برند (Brand DBA) عالی'))).toBe('برند (Brand DBA)\u200f عالی')
+    expect(cleanPersianText('(آنلاین)')).toBe('(آنلاین)')
+  })
+})
+
 describe('cleanPersianLine', () => {
   it('folds newlines', () => {
     expect(cleanPersianLine('دکتر\n شهریار شفیعی')).toBe('دکتر شهریار شفیعی')
