@@ -1,4 +1,4 @@
-# ADR 008 — Private uploads (student submissions)
+# ADR 009 — Private uploads (student submissions)
 
 **Status:** proposed (2026-11-06, E-026) — needs Farjad's review
 

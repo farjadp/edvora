@@ -9789,6 +9789,7 @@
         "users.view_sensitive",
         "users.import",
         "users.export",
+        "users.2fa.reset",
         "roles.view",
         "roles.manage",
         "roles.assign",
@@ -10089,6 +10090,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "74913e85-7be8-485d-94db-91638ac84c88",
+  "id": "8e632464-4224-410d-a935-90e7615bae43",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

@@ -11,7 +11,7 @@ const NO_STORE = { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options
 const notFound = () => new Response('Not found', { status: 404, headers: NO_STORE })
 
 /**
- * The only way to download a submission file (ADR 008, C3f). Checked on every request:
+ * The only way to download a submission file (ADR 009, C3f). Checked on every request:
  * the owner student (session of this academy's host) or staff with `submissions.grade` in the file's academy
  * and course/cohort scope. Everyone else gets 404 (401 when not signed in at all); nothing is cached.
  */

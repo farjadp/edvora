@@ -339,29 +339,31 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TABLE "submissions" CASCADE;
   DROP TABLE "submissions_rels" CASCADE;
   DROP TABLE "submission_files" CASCADE;
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_questions_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_questions_fk";
   
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_quizzes_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_quizzes_fk";
   
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_quiz_attempts_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_quiz_attempts_fk";
   
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_assignments_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_assignments_fk";
   
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_submissions_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_submissions_fk";
   
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_submission_files_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_submission_files_fk";
   
   ALTER TABLE "roles_permissions" ALTER COLUMN "value" SET DATA TYPE text;
+  -- Roles holding the E-026 keys would block the cast back to the old enum.
+  DELETE FROM "roles_permissions" WHERE "value" IN ('quizzes.manage', 'assignments.manage', 'submissions.grade');
   DROP TYPE "public"."enum_roles_permissions";
-  CREATE TYPE "public"."enum_roles_permissions" AS ENUM('users.view', 'users.create', 'users.edit', 'users.deactivate', 'users.view_sensitive', 'users.import', 'users.export', 'roles.view', 'roles.manage', 'roles.assign', 'courses.view', 'courses.edit', 'courses.publish', 'cohorts.manage', 'lessons.edit', 'pricing.edit', 'leads.view.own', 'leads.view.all', 'leads.create', 'leads.assign', 'leads.export', 'orders.create_for_lead', 'discount.give', 'orders.view', 'orders.edit', 'payments.manual.record', 'payments.manual.approve', 'refunds.request', 'refunds.approve', 'coupons.manage', 'finance.export', 'enrollments.view', 'enrollments.manage', 'live.host', 'assignments.grade', 'qa.answer', 'defense.score', 'certificates.view', 'certificates.issue', 'certificates.revoke', 'content.edit', 'content.publish', 'media.upload', 'tickets.view.own', 'tickets.view.all', 'tickets.reply', 'tickets.assign', 'sms.send_single', 'sms.broadcast', 'templates.edit', 'reports.sales', 'reports.finance', 'reports.learning', 'settings.edit', 'audit.view');
+  CREATE TYPE "public"."enum_roles_permissions" AS ENUM('users.view', 'users.create', 'users.edit', 'users.deactivate', 'users.view_sensitive', 'users.import', 'users.export', 'users.2fa.reset', 'roles.view', 'roles.manage', 'roles.assign', 'courses.view', 'courses.edit', 'courses.publish', 'cohorts.manage', 'lessons.edit', 'pricing.edit', 'leads.view.own', 'leads.view.all', 'leads.create', 'leads.assign', 'leads.export', 'orders.create_for_lead', 'discount.give', 'orders.view', 'orders.edit', 'payments.manual.record', 'payments.manual.approve', 'refunds.request', 'refunds.approve', 'coupons.manage', 'finance.export', 'enrollments.view', 'enrollments.manage', 'live.host', 'assignments.grade', 'qa.answer', 'defense.score', 'certificates.view', 'certificates.issue', 'certificates.revoke', 'content.edit', 'content.publish', 'media.upload', 'tickets.view.own', 'tickets.view.all', 'tickets.reply', 'tickets.assign', 'sms.send_single', 'sms.broadcast', 'templates.edit', 'reports.sales', 'reports.finance', 'reports.learning', 'settings.edit', 'audit.view');
   ALTER TABLE "roles_permissions" ALTER COLUMN "value" SET DATA TYPE "public"."enum_roles_permissions" USING "value"::"public"."enum_roles_permissions";
-  DROP INDEX "enrollments_enrolled_at_idx";
-  DROP INDEX "payload_locked_documents_rels_questions_id_idx";
-  DROP INDEX "payload_locked_documents_rels_quizzes_id_idx";
-  DROP INDEX "payload_locked_documents_rels_quiz_attempts_id_idx";
-  DROP INDEX "payload_locked_documents_rels_assignments_id_idx";
-  DROP INDEX "payload_locked_documents_rels_submissions_id_idx";
-  DROP INDEX "payload_locked_documents_rels_submission_files_id_idx";
+  DROP INDEX IF EXISTS "enrollments_enrolled_at_idx";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_questions_id_idx";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_quizzes_id_idx";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_quiz_attempts_id_idx";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_assignments_id_idx";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_submissions_id_idx";
+  DROP INDEX IF EXISTS "payload_locked_documents_rels_submission_files_id_idx";
   ALTER TABLE "lessons" DROP COLUMN "drip_mode";
   ALTER TABLE "lessons" DROP COLUMN "drip_days";
   ALTER TABLE "lessons" DROP COLUMN "drip_release_at";

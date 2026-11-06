@@ -3,14 +3,14 @@ import path from 'path'
 import type { CollectionConfig } from 'payload'
 import { allow, anyOf, nobody, ownRecords } from '../access/permissions'
 
-/** Outside any public/static path (ADR 008). Relative paths resolve from apps/web. */
+/** Outside any public/static path (ADR 009). Relative paths resolve from apps/web. */
 export function privateUploadsDir(): string {
   const dir = process.env.PRIVATE_UPLOADS_DIR?.trim() || 'private-uploads/submission-files'
   return path.isAbsolute(dir) ? dir : path.resolve(process.cwd(), dir)
 }
 
 /**
- * Private student uploads (ADR 008). Created only by the submit action with a random file name; downloaded only
+ * Private student uploads (ADR 009). Created only by the submit action with a random file name; downloaded only
  * through GET /files/submissions/<id>, which checks the academy and owner-or-grader on every request.
  */
 export const SubmissionFiles: CollectionConfig = {
