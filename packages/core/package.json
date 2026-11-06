@@ -1,0 +1,26 @@
+{
+  "name": "@edvora/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure business logic for Edvora. No framework code.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./digits": "./src/digits.ts",
+    "./money": "./src/money.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "date-fns-jalali": "4.4.0-0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@edvora/config": "workspace:*",
+    "@types/node": "^24.10.0",
+    "typescript": "5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
