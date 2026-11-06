@@ -6,6 +6,7 @@
  *  - Latin digits in Persian prose → Persian digits; digits inside Latin words, URLs and emails stay Latin
  *  - «،» used as a thousands separator between digits → «٬»
  *  - whitespace collapsed and trimmed
+ *  - a right-to-left mark after «)» that closes Latin text, so «(Brand MBA)» doesn't render flipped
  *
  * Conservative on purpose: it never rewrites words, only spacing, letters and digits.
  */
@@ -51,6 +52,10 @@ export function cleanPersianText(input: string | null | undefined): string {
 
   // Thousands separators written with an Arabic comma: 35،770،000 → 35٬770٬000.
   t = t.replace(/(?<=[0-9۰-۹])[،,](?=[0-9۰-۹]{3}(?![0-9۰-۹]))/g, '٬')
+
+  // Bidi: a ")" right after Latin text (e.g. «برند (Brand MBA)») otherwise takes the Latin direction and the
+  // parentheses render flipped in RTL. A right-to-left mark after it anchors it to the Persian text.
+  t = t.replace(/(?<=[A-Za-z0-9.])\)(?!\u200f)/g, ')\u200f')
 
   return persianDigitsInProse(t).trim()
 }

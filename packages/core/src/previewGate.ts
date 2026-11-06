@@ -36,7 +36,7 @@ export function checkPreviewGate(gate: PreviewGate, host: string | null, authori
   if (!m) return 'challenge'
   let decoded = ''
   try {
-    decoded = atob(m[1]!.trim())
+    decoded = new TextDecoder().decode(Uint8Array.from(atob(m[1]!.trim()), (ch) => ch.charCodeAt(0)))
   } catch {
     return 'challenge'
   }
