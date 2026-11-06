@@ -35,7 +35,9 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   if (payload.tid !== tenant.id) return null
   const client = await getPayloadClient()
   try {
-    return await client.findByID({ collection: 'users', id: payload.uid, depth: 0, overrideAccess: true })
+    const user = await client.findByID({ collection: 'users', id: payload.uid, depth: 0, overrideAccess: true })
+    // Suspended or archived accounts lose their session at once (E-021).
+    return (user.status ?? 'active') === 'active' ? user : null
   } catch {
     return null
   }

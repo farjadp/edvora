@@ -69,6 +69,9 @@ export interface Config {
   collections: {
     tenants: Tenant;
     users: User;
+    roles: Role;
+    memberships: Membership;
+    'audit-logs': AuditLog;
     courses: Course;
     cohorts: Cohort;
     lessons: Lesson;
@@ -90,6 +93,9 @@ export interface Config {
   collectionsSelect: {
     tenants: TenantsSelect<false> | TenantsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    roles: RolesSelect<false> | RolesSelect<true>;
+    memberships: MembershipsSelect<false> | MembershipsSelect<true>;
+    'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     courses: CoursesSelect<false> | CoursesSelect<true>;
     cohorts: CohortsSelect<false> | CohortsSelect<true>;
     lessons: LessonsSelect<false> | LessonsSelect<true>;
@@ -250,9 +256,54 @@ export interface Media {
  */
 export interface User {
   id: number;
+  /**
+   * Filled from first + last name when empty.
+   */
   name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  firstNameLatin?: string | null;
+  lastNameLatin?: string | null;
   phone?: string | null;
-  roles: ('super-admin' | 'admin' | 'advisor' | 'instructor' | 'company-manager' | 'student')[];
+  nationalCode?: string | null;
+  birthDate?: string | null;
+  city?: string | null;
+  jobTitle?: string | null;
+  company?: string | null;
+  education?: string | null;
+  linkedin?: string | null;
+  publicProfile?: {
+    showOnSite?: boolean | null;
+    title?: string | null;
+    bio?: string | null;
+  };
+  status?: ('active' | 'suspended' | 'archived') | null;
+  statusReason?: string | null;
+  /**
+   * Only "super-admin" (Edvora staff) still grants access. Academy access is set in Memberships.
+   */
+  roles?: ('super-admin' | 'admin' | 'advisor' | 'instructor' | 'company-manager' | 'student')[] | null;
+  /**
+   * Turned on by the person via /api/users/2fa/setup + enable.
+   */
+  twoFactorEnabled?: boolean | null;
+  twoFactor?: {
+    secret?: string | null;
+    pendingSecret?: string | null;
+    lastUsedStep?: number | null;
+    failedAttempts?: number | null;
+    lockedUntil?: string | null;
+    verifiedSessions?:
+      | {
+          sid: string;
+          at?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  tags?: string[] | null;
+  source?: ('self-signup' | 'lead' | 'import' | 'manual') | null;
+  internalNotes?: string | null;
   tenants?:
     | {
         tenant: number | Tenant;
@@ -278,6 +329,116 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles".
+ */
+export interface Role {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  name: string;
+  /**
+   * Lowercase latin, e.g. sales-lead
+   */
+  key: string;
+  description?: string | null;
+  permissions?:
+    | (
+        | 'users.view'
+        | 'users.create'
+        | 'users.edit'
+        | 'users.deactivate'
+        | 'users.view_sensitive'
+        | 'users.import'
+        | 'users.export'
+        | 'roles.view'
+        | 'roles.manage'
+        | 'roles.assign'
+        | 'courses.view'
+        | 'courses.edit'
+        | 'courses.publish'
+        | 'cohorts.manage'
+        | 'lessons.edit'
+        | 'pricing.edit'
+        | 'leads.view.own'
+        | 'leads.view.all'
+        | 'leads.create'
+        | 'leads.assign'
+        | 'leads.export'
+        | 'orders.create_for_lead'
+        | 'discount.give'
+        | 'orders.view'
+        | 'orders.edit'
+        | 'payments.manual.record'
+        | 'payments.manual.approve'
+        | 'refunds.request'
+        | 'refunds.approve'
+        | 'coupons.manage'
+        | 'finance.export'
+        | 'enrollments.view'
+        | 'enrollments.manage'
+        | 'live.host'
+        | 'assignments.grade'
+        | 'qa.answer'
+        | 'defense.score'
+        | 'certificates.view'
+        | 'certificates.issue'
+        | 'certificates.revoke'
+        | 'content.edit'
+        | 'content.publish'
+        | 'media.upload'
+        | 'tickets.view.own'
+        | 'tickets.view.all'
+        | 'tickets.reply'
+        | 'tickets.assign'
+        | 'sms.send_single'
+        | 'sms.broadcast'
+        | 'templates.edit'
+        | 'reports.sales'
+        | 'reports.finance'
+        | 'reports.learning'
+        | 'settings.edit'
+        | 'audit.view'
+      )[]
+    | null;
+  /**
+   * Set by the seed for the built-in templates.
+   */
+  template?: string | null;
+  /**
+   * Archived roles grant nothing.
+   */
+  archived?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "memberships".
+ */
+export interface Membership {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  user: number | User;
+  roles: (number | Role)[];
+  /**
+   * Empty = the whole academy.
+   */
+  scope?: {
+    courses?: (number | Course)[] | null;
+    cohorts?: (number | Cohort)[] | null;
+    ownRecordsOnly?: boolean | null;
+  };
+  status: 'active' | 'suspended';
+  expiresAt?: string | null;
+  /**
+   * e.g. مدرس مهمان ورودی هفدهم
+   */
+  note?: string | null;
+  createdBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -376,6 +537,32 @@ export interface Cohort {
    * Rials. Leave empty to use course price.
    */
   priceOverride?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs".
+ */
+export interface AuditLog {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  actor?: (number | null) | User;
+  actorEmail?: string | null;
+  action: string;
+  targetCollection: string;
+  docId: string;
+  changes?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  note?: string | null;
+  ip?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -645,6 +832,18 @@ export interface PayloadLockedDocument {
         value: number | User;
       } | null)
     | ({
+        relationTo: 'roles';
+        value: number | Role;
+      } | null)
+    | ({
+        relationTo: 'memberships';
+        value: number | Membership;
+      } | null)
+    | ({
+        relationTo: 'audit-logs';
+        value: number | AuditLog;
+      } | null)
+    | ({
         relationTo: 'courses';
         value: number | Course;
       } | null)
@@ -799,8 +998,48 @@ export interface TenantsSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  firstName?: T;
+  lastName?: T;
+  firstNameLatin?: T;
+  lastNameLatin?: T;
   phone?: T;
+  nationalCode?: T;
+  birthDate?: T;
+  city?: T;
+  jobTitle?: T;
+  company?: T;
+  education?: T;
+  linkedin?: T;
+  publicProfile?:
+    | T
+    | {
+        showOnSite?: T;
+        title?: T;
+        bio?: T;
+      };
+  status?: T;
+  statusReason?: T;
   roles?: T;
+  twoFactorEnabled?: T;
+  twoFactor?:
+    | T
+    | {
+        secret?: T;
+        pendingSecret?: T;
+        lastUsedStep?: T;
+        failedAttempts?: T;
+        lockedUntil?: T;
+        verifiedSessions?:
+          | T
+          | {
+              sid?: T;
+              at?: T;
+              id?: T;
+            };
+      };
+  tags?: T;
+  source?: T;
+  internalNotes?: T;
   tenants?:
     | T
     | {
@@ -824,6 +1063,60 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles_select".
+ */
+export interface RolesSelect<T extends boolean = true> {
+  tenant?: T;
+  name?: T;
+  key?: T;
+  description?: T;
+  permissions?: T;
+  template?: T;
+  archived?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "memberships_select".
+ */
+export interface MembershipsSelect<T extends boolean = true> {
+  tenant?: T;
+  user?: T;
+  roles?: T;
+  scope?:
+    | T
+    | {
+        courses?: T;
+        cohorts?: T;
+        ownRecordsOnly?: T;
+      };
+  status?: T;
+  expiresAt?: T;
+  note?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs_select".
+ */
+export interface AuditLogsSelect<T extends boolean = true> {
+  tenant?: T;
+  actor?: T;
+  actorEmail?: T;
+  action?: T;
+  targetCollection?: T;
+  docId?: T;
+  changes?: T;
+  note?: T;
+  ip?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

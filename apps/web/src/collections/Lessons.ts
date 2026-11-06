@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { adminsOrInstructors, anyone } from '../access/roles'
+import { allow, allowCreate, anyone, guard, nobody } from '../access/permissions'
+import { auditChange } from '../hooks/audit'
 
 export const Lessons: CollectionConfig = {
   slug: 'lessons',
@@ -8,9 +9,13 @@ export const Lessons: CollectionConfig = {
   access: {
     // Metadata is public (playlist); the video URL is only handed out to enrolled students by the server.
     read: anyone,
-    create: adminsOrInstructors,
-    update: adminsOrInstructors,
-    delete: adminsOrInstructors,
+    create: allowCreate('lessons.edit'),
+    update: allow('lessons.edit', { course: 'course' }),
+    delete: nobody,
+  },
+  hooks: {
+    beforeChange: [guard({ create: ['lessons.edit'], update: ['lessons.edit'], fields: { course: 'course' } })],
+    afterChange: [auditChange('lessons')],
   },
   fields: [
     { name: 'course', type: 'relationship', relationTo: 'courses', required: true, index: true },

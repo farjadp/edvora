@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { admins, hasRole } from '../access/roles'
+import { allow, allowCreate, anyOf, guard, nobody, ownRecords } from '../access/permissions'
+import { auditChange } from '../hooks/audit'
 
 const STATUS = [
   { value: 'pending', label: { fa: 'در انتظار پرداخت', en: 'Pending' } },
@@ -11,20 +12,22 @@ const STATUS = [
 ]
 
 /** An order with its instalment schedule and every gateway attempt. All amounts in rials. */
+const SCOPE = { course: 'course', cohort: 'cohort' }
+
 export const Orders: CollectionConfig = {
   slug: 'orders',
   labels: { singular: { fa: 'سفارش', en: 'Order' }, plural: { fa: 'سفارش‌ها', en: 'Orders' } },
   admin: { defaultColumns: ['id', 'user', 'course', 'total', 'status', 'createdAt'], group: { fa: 'فروش', en: 'Sales' } },
   access: {
-    read: ({ req }) => {
-      if (!req.user) return false
-      if (hasRole(req.user, 'super-admin', 'admin', 'advisor')) return true
-      return { user: { equals: req.user.id } }
-    },
-    // Orders are created by the checkout server action.
-    create: admins,
-    update: admins,
-    delete: () => false,
+    read: anyOf(ownRecords('user'), allow('orders.view', SCOPE)),
+    // Students' orders are created by the checkout server action (server code, no API access needed).
+    create: allowCreate('orders.create_for_lead'),
+    update: allow('orders.edit', SCOPE),
+    delete: nobody,
+  },
+  hooks: {
+    beforeChange: [guard({ create: ['orders.create_for_lead'], update: ['orders.edit'], fields: SCOPE })],
+    afterChange: [auditChange('orders')],
   },
   fields: [
     {
