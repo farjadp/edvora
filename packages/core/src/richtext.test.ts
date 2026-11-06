@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   collectLexicalRefs,
   crossTenantRefs,
+  hasRichText,
   isLexicalDoc,
   lexicalExcerpt,
   lexicalToPlainText,
@@ -91,6 +92,12 @@ describe('lexicalToPlainText', () => {
     expect(lexicalToPlainText('plain')).toBe('plain')
     expect(lexicalToPlainText(JSON.stringify(plainTextToLexical('json')))).toBe('json')
     expect(lexicalToPlainText({})).toBe('')
+  })
+  it('knows when there is nothing to show', () => {
+    expect(hasRichText(null)).toBe(false)
+    expect(hasRichText(doc(p()))).toBe(false)
+    expect(hasRichText('x')).toBe(true)
+    expect(hasRichText(doc({ type: 'upload', relationTo: 'media', value: 1 }))).toBe(true)
   })
   it('excerpts on one line', () => {
     expect(lexicalExcerpt(plainTextToLexical('a\nb\n\nc'))).toBe('a b c')

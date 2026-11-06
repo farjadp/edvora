@@ -140,6 +140,11 @@ export function lexicalToPlainText(value: unknown): string {
   return nodeText(value.root).trim()
 }
 
+/** True when the value has visible text or an image/relationship (decides whether a section renders at all). */
+export function hasRichText(value: unknown): boolean {
+  return lexicalToPlainText(value).trim() !== '' || collectLexicalRefs(value).some((r) => r.kind !== 'link')
+}
+
 /** First `max` characters of the plain text on one line (for meta descriptions, list previews, SMS). */
 export function lexicalExcerpt(value: unknown, max = 160): string {
   const flat = lexicalToPlainText(value).replace(/\s+/g, ' ').trim()
