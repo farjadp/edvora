@@ -138,7 +138,7 @@ function converters(targets: Targets): JSXConvertersFunction {
     list: ({ node, nodesToJSX }: JSXConverterArgs<SerializedListNode>) => {
       const children = nodesToJSX({ nodes: node.children })
       if (node.listType === 'check') return <ul className="space-y-1">{children}</ul>
-      if (node.listType === 'number') return <ol className="list-decimal space-y-1 ps-6 marker:text-muted">{children}</ol>
+      if (node.listType === 'number') return <ol className="list-[persian] space-y-1 ps-6 marker:text-muted">{children}</ol>
       return <ul className="list-disc space-y-1 ps-6 marker:text-muted">{children}</ul>
     },
     listitem: ({ node, nodesToJSX, parent }: JSXConverterArgs<SerializedListItemNode>) => {
