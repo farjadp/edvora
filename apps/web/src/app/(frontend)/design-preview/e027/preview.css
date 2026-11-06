@@ -1,0 +1,127 @@
+/*
+ * E-027 design preview only. Imported by design-preview/e027/layout.tsx and nowhere else.
+ * Everything is scoped to [data-e027-option] / [data-e027-brand] so nothing leaks into the app.
+ * If an option is chosen, these tokens move to packages/ui/src/styles.css (docs/design/e027/README.md).
+ */
+
+/* Display face for option A (chosen): Morabba, self-hosted (apps/web/public/fonts/morabba). Body text stays Vazirmatn.
+ * Fontiran web licence for Morabba is NOT yet confirmed by Farjad: dev-only preview use; must not ship to a public page until confirmed.
+ * Options B and C fall back to Vazirmatn here (their faces were removed after the decision); their screenshots show the original faces. */
+@font-face {
+  font-family: 'E027 Morabba';
+  src: url('/fonts/morabba/400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'E027 Morabba';
+  src: url('/fonts/morabba/700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'E027 Morabba';
+  src: url('/fonts/morabba/900.woff2') format('woff2');
+  font-weight: 900;
+  font-display: swap;
+}
+/* ---- Per-option tokens (all sit ON TOP of the tenant's --brand / --accent) ---- */
+[data-e027-option] {
+  /* Gold, the only "achievement" colour. >=3:1 on every surface, text on it >=4.5:1. */
+  --milestone: #8f6200;
+  --milestone-ink: #ffffff;
+  --e-tint: color-mix(in oklab, var(--brand) 7%, var(--surface));
+  --e-track: color-mix(in oklab, var(--brand) 16%, var(--sunken));
+  --e-ground: var(--bg);
+}
+[data-theme='dark'] [data-e027-option] {
+  --milestone: #e0b040;
+  --milestone-ink: #1b1400;
+  --e-tint: color-mix(in oklab, var(--brand) 14%, var(--surface));
+  --e-track: color-mix(in oklab, var(--brand) 32%, var(--sunken));
+}
+[data-e027-option='seal'] {
+  --e-display: 'E027 Morabba', 'Vazirmatn', serif;
+}
+[data-e027-option='girih'] {
+  --e-display: 'Vazirmatn', sans-serif;
+  --e-ground: color-mix(in oklab, var(--bg) 93%, #b8893b);
+}
+[data-theme='dark'] [data-e027-option='girih'] {
+  --e-ground: color-mix(in oklab, var(--bg) 94%, #b8893b);
+}
+[data-e027-option='block'] {
+  --e-display: 'Vazirmatn', sans-serif;
+}
+
+/* ---- Motion: ease-out only (no bounce / elastic), CSS only, off for prefers-reduced-motion ---- */
+@keyframes e-sweep {
+  from {
+    stroke-dasharray: 0 100;
+  }
+}
+@keyframes e-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes e-stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+@keyframes e-petal {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+@keyframes e-wipe {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+@keyframes e-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes e-sheen {
+  from {
+    transform: translateX(120%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .e-sweep {
+    animation: e-sweep 700ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .e-rise {
+    animation: e-rise 180ms ease-out backwards;
+  }
+  .e-stamp {
+    animation: e-stamp 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .e-petal {
+    animation: e-petal 260ms ease-out backwards;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .e-wipe {
+    animation: e-wipe 420ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .e-grow {
+    animation: e-grow 320ms ease-out backwards;
+    transform-origin: bottom;
+  }
+  .e-sheen {
+    animation: e-sheen 1200ms ease-out 400ms 1 backwards;
+  }
+}
