@@ -182,6 +182,41 @@ Also check by hand: `/staff/login` loads (staff desk, E-022); the seeded demo st
 `/learn/demo-program` and its quiz page; `/files/submissions/1` without login → 401;
 `railway ssh --service web -- touch /data/submission-files/.t` succeeds (volume writable).
 
+## Demo sandboxes (E-029)
+
+Self-serve `/demo` on this host (ADR 010). Off until `SANDBOX_ENABLED=true`. Variables on `web` (defaults in
+`apps/web/.env.example`):
+
+| Key | Value |
+| --- | --- |
+| `SANDBOX_ENABLED` | `true` to open `/demo`; `false` is the kill switch (existing demos run until they expire) |
+| `SANDBOX_CRON_SECRET` | `openssl rand -hex 32` — protects the cleanup route |
+| `SANDBOX_PLATFORM_HOSTS` | leave empty (= host of `NEXT_PUBLIC_SITE_URL`) unless `/demo` moves to another domain |
+| `SANDBOX_TRUSTED_PROXY_HOPS` | `1` (Railway edge). `2` if a CDN is put in front |
+| `SANDBOX_MAX_ACTIVE`, `SANDBOX_IP_DAILY_MAX`, `SANDBOX_TTL_HOURS`, `SANDBOX_GRACE_HOURS` | defaults 20 / 3 / 3 / 24 |
+| `SANDBOX_E2E_HOOKS` | never set here |
+
+**Cleanup cron (every 10 min).** Railway cron runs a *service* on a schedule, so add a tiny second service rather than
+a thread in `web`:
+
+```bash
+railway add --service sandbox-cron --image curlimages/curl:8.10.1   # check flags: railway add --help
+railway variables --service sandbox-cron --set 'TARGET=https://web-production-39ee1.up.railway.app/demo/api/cleanup' \
+  --set 'SANDBOX_CRON_SECRET=${{web.SANDBOX_CRON_SECRET}}'
+```
+
+Then in the dashboard: `sandbox-cron` → Settings → **Cron Schedule** `*/10 * * * *`, **Start command**
+`sh -c 'curl -fsS -X POST -H "Authorization: Bearer $SANDBOX_CRON_SECRET" "$TARGET"'`, restart policy **Never**.
+The route is idempotent (safe to run twice, safe after a crash) and answers 500 with the failed ids when a purge
+failed; the next run retries. Any other scheduler (an Iranian host's crontab) can call the same URL.
+
+Check by hand: `curl -X POST -H "Authorization: Bearer $SANDBOX_CRON_SECRET" https://<host>/demo/api/cleanup` →
+`{"ok":true,"revoked":0,"purged":[],…}`. Operator view: sign in to `/admin` as the super-admin, then open
+`/demo/ops` (count vs cap, delete now, leads CSV). Logs: `sandbox created` (with `buildMs`), `sandbox purged`,
+`sandbox build failed`, `sandbox purge failed`.
+
+Media of sandboxes live on the container disk (lost on redeploy — fine; the records are purged by the job anyway).
+
 ## Rollback
 
 Dashboard → `web` → **Deployments** → pick the last good deployment → **Redeploy** (or `railway redeploy` for the
