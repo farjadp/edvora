@@ -31,7 +31,7 @@ _Last updated: 2026-11-06 — seeded from Notion pages 04, 05, 07 after the firs
 | E-018 | Staging deploy: Dockerfile, Caddy, compose.staging, nightly backup, GlitchTip, Uptime Kuma | tech-lead (`chat: tech-lead`) | E-005 | staging URL live, restore tested | todo |
 | E-019 | Certificate PDF with QR to `/verify` | tech-lead | — | PDF generated on issue, attached to certificate | todo |
 | E-020 | Update Notion after each milestone (decision log, build status) | knowledge-keeper | any | Notion matches repo | ongoing |
-| E-025 | Demo deploy on Railway: app + Railway Postgres, mock providers, seed, runbook incl. DB move-out | devops (`chat: devops`) | — | public Railway URL serves the demo tenant + /admin; `docs/runbooks/deploy-railway.md` | doing |
+| E-025 | Demo deploy on Railway: app + Railway Postgres, mock providers, seed, runbook incl. DB move-out | devops (`chat: devops`) | — | public Railway URL serves the demo tenant + /admin; `docs/runbooks/deploy-railway.md` | review |
 
 ## Done
 | ID | Task | Owner | Date |
