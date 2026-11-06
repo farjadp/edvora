@@ -770,3 +770,324 @@ div.nav__link {
   flex-wrap: wrap;
   gap: calc(var(--base) / 2);
 }
+
+/* ---------- Rich text editor (Lexical) ----------
+ * Toolbars, blocks, tables, checklist, upload card, link popup and drawers. Same tokens as the rest of Seal; logical
+ * properties only so RTL (Persian) and LTR blocks both read correctly. Light/dark come from the --ed-* tokens.
+ */
+
+/* Lexical parks hidden floaters (drag handle, link popup) at translateX(-10000px). In RTL that is the scrollable side,
+ * so the whole edit page gained ~10 000px of sideways scroll. Clip horizontally at the field; vertical stays visible. */
+.rich-text-lexical__wrap {
+  overflow-x: clip;
+}
+
+.rich-text-lexical .editor {
+  background: var(--ed-surface);
+  border-radius: 0 0 var(--style-radius-m) var(--style-radius-m);
+  line-height: 1.9;
+}
+
+.rich-text-lexical .ContentEditable__root {
+  padding-inline: 12px;
+}
+
+.rich-text-lexical .LexicalEditorTheme__placeholder {
+  color: var(--ed-muted);
+}
+
+/* Fixed toolbar: a hairline strip above the editor, sticky under the document controls. */
+.fixed-toolbar {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line-strong);
+  border-block-end-color: var(--ed-line);
+  border-radius: var(--style-radius-m) var(--style-radius-m) 0 0;
+  gap: 2px;
+}
+
+.fixed-toolbar__group,
+.inline-toolbar-popup__group {
+  gap: 2px;
+}
+
+.fixed-toolbar__group + .fixed-toolbar__group,
+.inline-toolbar-popup__group + .inline-toolbar-popup__group {
+  border-inline-start: 1px solid var(--ed-line);
+  padding-inline-start: 4px;
+  margin-inline-start: 2px;
+}
+
+.toolbar-popup__button,
+.toolbar-popup__dropdown {
+  color: var(--ed-ink);
+  border-radius: var(--style-radius-s);
+}
+
+.toolbar-popup__button:hover:not(:disabled),
+.toolbar-popup__dropdown:hover:not(:disabled),
+.toolbar-popup__dropdown-item:hover:not(:disabled) {
+  background: var(--ed-sunken);
+}
+
+.toolbar-popup__button.active,
+.toolbar-popup__dropdown.active,
+.toolbar-popup__dropdown-item.active {
+  background: var(--ed-brand-wash);
+  color: var(--ed-brand-text);
+}
+
+.toolbar-popup__button:focus-visible,
+.toolbar-popup__dropdown:focus-visible,
+.toolbar-popup__dropdown-item:focus-visible {
+  outline: var(--accessibility-outline);
+  outline-offset: 0;
+}
+
+.toolbar-popup__dropdown-items,
+.fixed-toolbar__dropdown-items,
+.table-action-menu-dropdown {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-m);
+  box-shadow: 0 8px 24px rgb(17 24 39 / 0.12);
+  color: var(--ed-ink);
+}
+
+.toolbar-popup__dropdown-label {
+  color: var(--ed-muted);
+}
+
+/* Floating toolbar on selection and the link popup: paper card, hairline, no heavy shadow. */
+.inline-toolbar-popup,
+.link-editor {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-m);
+  box-shadow: 0 8px 24px rgb(17 24 39 / 0.12);
+  color: var(--ed-ink);
+}
+
+.link-editor a {
+  color: var(--ed-brand-text);
+}
+
+html[data-theme='dark'] .inline-toolbar-popup,
+html[data-theme='dark'] .link-editor,
+html[data-theme='dark'] .toolbar-popup__dropdown-items,
+html[data-theme='dark'] .table-action-menu-dropdown {
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
+}
+
+/* Content. */
+.LexicalEditorTheme__paragraph {
+  color: var(--ed-ink);
+}
+
+.LexicalEditorTheme__h {
+  color: var(--ed-ink);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+h2.LexicalEditorTheme__h {
+  font-family: var(--ed-display);
+}
+
+.LexicalEditorTheme__link {
+  color: var(--ed-brand-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.LexicalEditorTheme__quote {
+  color: var(--ed-muted);
+  border-inline-start-color: var(--ed-brand);
+  margin-inline: 0;
+}
+
+.LexicalEditorTheme__hr::after {
+  height: 1px;
+  background-color: var(--ed-line-strong);
+}
+
+.LexicalEditorTheme__hrSelected {
+  outline: 2px solid var(--ed-focus);
+}
+
+.LexicalEditorTheme__textCode {
+  background: var(--ed-sunken);
+  border-color: var(--ed-line);
+  color: var(--ed-ink);
+  font-family: var(--font-latin);
+}
+
+.LexicalEditorTheme__ul,
+.LexicalEditorTheme__ol {
+  padding-inline-start: 1.5em;
+  margin-inline: 0;
+}
+
+/* Checklist: logical placement so the box sits at the start edge in RTL and LTR blocks alike. */
+.LexicalEditorTheme__listItemChecked,
+.LexicalEditorTheme__listItemUnchecked,
+.LexicalEditorTheme__listItemChecked[dir='rtl'],
+.LexicalEditorTheme__listItemUnchecked[dir='rtl'] {
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+  margin-inline-start: 4px;
+  padding-inline-start: 26px;
+}
+
+.LexicalEditorTheme__listItemChecked::before,
+.LexicalEditorTheme__listItemUnchecked::before,
+.LexicalEditorTheme__listItemChecked[dir='rtl']::before,
+.LexicalEditorTheme__listItemUnchecked[dir='rtl']::before {
+  left: auto;
+  right: auto;
+  inset-inline-start: 0;
+  top: 0.45em;
+  border: 1px solid var(--ed-line-strong);
+  border-radius: var(--style-radius-s);
+  background-color: var(--ed-surface);
+}
+
+.LexicalEditorTheme__listItemChecked::before,
+.LexicalEditorTheme__listItemChecked[dir='rtl']::before {
+  background-color: var(--ed-brand);
+  border-color: var(--ed-brand);
+}
+
+.LexicalEditorTheme__listItemChecked::after,
+.LexicalEditorTheme__listItemChecked[dir='rtl']::after {
+  left: auto;
+  right: auto;
+  inset-inline-start: 6px;
+  top: calc(0.45em + 3px);
+  border-color: var(--ed-brand-ink);
+}
+
+.LexicalEditorTheme__listItemChecked {
+  color: var(--ed-muted);
+}
+
+/* Tables. */
+.LexicalEditorTheme__table {
+  border-collapse: collapse;
+  margin-block: 12px;
+}
+
+.LexicalEditorTheme__tableCell {
+  border-color: var(--ed-line-strong);
+  padding-inline: 10px;
+  color: var(--ed-ink);
+  text-align: start;
+}
+
+.LexicalEditorTheme__tableCellHeader {
+  background: var(--ed-sunken);
+  font-weight: 700;
+}
+
+.LexicalEditorTheme__tableCellSelected,
+.LexicalEditorTheme__tableSelection *::selection {
+  background: var(--ed-brand-wash);
+}
+
+.LexicalEditorTheme__tableCellActionButton {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  color: var(--ed-ink);
+}
+
+.LexicalEditorTheme__tableCellResizer {
+  inset-inline-end: -4px;
+}
+
+.LexicalEditorTheme__tableAddColumns,
+.LexicalEditorTheme__tableAddRows {
+  background: var(--ed-sunken);
+  border: 1px dashed var(--ed-line-strong);
+}
+
+.LexicalEditorTheme__tableAddColumns:hover,
+.LexicalEditorTheme__tableAddRows:hover {
+  background: var(--ed-brand-wash);
+}
+
+/* Upload node (image card) and relationship node. */
+.LexicalEditorTheme__upload,
+.LexicalEditorTheme__relationship {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-m);
+  box-shadow: none;
+}
+
+.LexicalEditorTheme__upload__card {
+  background: var(--ed-surface);
+}
+
+.LexicalEditorTheme__upload__collectionLabel,
+.LexicalEditorTheme__relationship__label {
+  color: var(--ed-muted);
+}
+
+.LexicalEditorTheme__upload__filename,
+.LexicalEditorTheme__relationship__title {
+  color: var(--ed-ink);
+  font-family: var(--font-latin);
+}
+
+.LexicalEditorTheme__upload__media img {
+  border-radius: var(--style-radius-s);
+}
+
+/* Slash menu ("/" to insert blocks). */
+.slash-menu-popup {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-m);
+  box-shadow: 0 8px 24px rgb(17 24 39 / 0.12);
+}
+
+.slash-menu-popup__group-title {
+  color: var(--ed-muted);
+}
+
+.slash-menu-popup__item {
+  color: var(--ed-ink);
+  border-radius: var(--style-radius-s);
+}
+
+.slash-menu-popup__item--selected,
+.slash-menu-popup__item:hover {
+  background: var(--ed-brand-wash);
+  color: var(--ed-brand-text);
+}
+
+/* Drawers and modals (upload / link / relationship pickers, "create new"). */
+.drawer__content {
+  background: var(--ed-paper);
+}
+
+.drawer__header {
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.drawer__header__title {
+  font-family: var(--ed-display);
+  color: var(--ed-ink);
+}
+
+.drawer__blur-bg {
+  background: var(--theme-overlay);
+}
+
+.confirmation-modal__wrapper,
+.payload__modal-item .confirmation-modal__content {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-l);
+}
