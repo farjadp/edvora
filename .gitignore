@@ -16,3 +16,6 @@ playwright-report
 test-results
 .claude/launch.json
 .claude/settings.local.json
+
+# E-030 IBA import cache (raw scrape, images)
+/apps/web/.cache

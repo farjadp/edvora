@@ -987,7 +987,7 @@ export interface Testimonial {
   tenant?: (number | null) | Tenant;
   name: string;
   /**
-   * e.g. مدیرعامل فرش امارات
+   * e.g. مدیرعامل فرش عمارت
    */
   role?: string | null;
   quote?: string | null;

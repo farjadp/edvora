@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { allow, allowCreate, anyone, guard, nobody, requireForFields } from '../access/permissions'
+import { allow, allowCreate, anyOf, fieldAllow, guard, nobody, requireForFields } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
 import { sourceUrlField } from './fields'
 
@@ -7,7 +7,8 @@ export const Testimonials: CollectionConfig = {
   slug: 'testimonials',
   labels: { singular: { fa: 'روایت دانش‌آموخته', en: 'Testimonial' }, plural: { fa: 'روایت دانش‌آموختگان', en: 'Testimonials' } },
   admin: { useAsTitle: 'name', group: { fa: 'محتوا', en: 'Content' } },
-  access: { read: anyone, create: allowCreate('content.edit'), update: allow('content.edit'), delete: nobody },
+  // Public: approved testimonials only. Staff with content.edit see everything.
+  access: { read: anyOf(() => ({ approvedForUse: { equals: true } }), allow('content.edit')), create: allowCreate('content.edit'), update: allow('content.edit'), delete: nobody },
   hooks: {
     beforeChange: [guard({ create: ['content.edit'], update: ['content.edit'] }), requireForFields(['approvedForUse'], 'content.publish', (a, b) => Boolean(a) !== Boolean(b))],
     afterChange: [auditChange('testimonials')],
@@ -19,7 +20,7 @@ export const Testimonials: CollectionConfig = {
     { name: 'videoUrl', type: 'text' },
     { name: 'photo', type: 'upload', relationTo: 'media' },
     { name: 'approvedForUse', type: 'checkbox', defaultValue: false, admin: { description: 'Only approved testimonials are shown.' } },
-    { name: 'consentNote', type: 'text', admin: { description: 'Where consent for reuse comes from / what is still to confirm.' } },
+    { name: 'consentNote', type: 'text', access: { read: fieldAllow('content.edit') }, admin: { description: 'Where consent for reuse comes from / what is still to confirm.' } },
     { name: 'sortOrder', type: 'number', defaultValue: 0 },
     sourceUrlField,
   ],
@@ -29,7 +30,13 @@ export const Posts: CollectionConfig = {
   slug: 'posts',
   labels: { singular: { fa: 'مقاله', en: 'Article' }, plural: { fa: 'مجله', en: 'Journal' } },
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'author', 'publishedAt'], group: { fa: 'محتوا', en: 'Content' } },
-  access: { read: anyone, create: allowCreate('content.edit'), update: allow('content.edit'), delete: nobody },
+  // Public: posts with a publish date in the past. No publishedAt = draft/held (staff only).
+  access: {
+    read: anyOf(() => ({ publishedAt: { less_than_equal: new Date().toISOString() } }), allow('content.edit')),
+    create: allowCreate('content.edit'),
+    update: allow('content.edit'),
+    delete: nobody,
+  },
   hooks: {
     beforeChange: [guard({ create: ['content.edit'], update: ['content.edit'] }), requireForFields(['publishedAt'], 'content.publish')],
     afterChange: [auditChange('posts')],
@@ -46,12 +53,16 @@ export const Posts: CollectionConfig = {
   ],
 }
 
+/** Top-level routes a page slug would collide with (static routes win, so the page would never show). */
+const RESERVED_PAGE_SLUGS = new Set(['admin', 'api', 'courses', 'dashboard', 'design-preview', 'faculty', 'files', 'journal', 'learn', 'login', 'logout', 'pay', 'payments', 'staff', 'verify'])
+
 /** Simple content pages per academy (about, FAQ, regulations, contact…). Shown at /<slug> when published. */
 export const Pages: CollectionConfig = {
   slug: 'pages',
   labels: { singular: { fa: 'صفحه', en: 'Page' }, plural: { fa: 'صفحه‌ها', en: 'Pages' } },
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'slug', 'status'], group: { fa: 'محتوا', en: 'Content' } },
-  access: { read: anyone, create: allowCreate('content.edit'), update: allow('content.edit'), delete: nobody },
+  // Drafts (e.g. pages holding unverified claims) are visible to content staff only, never via the open API.
+  access: { read: anyOf(() => ({ status: { equals: 'published' } }), allow('content.edit')), create: allowCreate('content.edit'), update: allow('content.edit'), delete: nobody },
   hooks: {
     beforeChange: [
       guard({ create: ['content.edit'], update: ['content.edit'] }),
@@ -66,7 +77,12 @@ export const Pages: CollectionConfig = {
       type: 'text',
       required: true,
       index: true,
-      validate: (v: unknown) => (typeof v === 'string' && /^[a-z0-9-]+$/.test(v)) || 'lowercase latin letters, digits and dashes',
+      validate: (v: unknown) =>
+        typeof v !== 'string' || !/^[a-z0-9-]+$/.test(v)
+          ? 'lowercase latin letters, digits and dashes'
+          : RESERVED_PAGE_SLUGS.has(v)
+            ? `"${v}" is already a site address`
+            : true,
     },
     {
       name: 'status',
