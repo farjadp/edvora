@@ -1,6 +1,6 @@
 import { toPersianDigits } from '@edvora/core/digits'
 import { formatJalali } from '@edvora/core/jalali'
-import type { LessonLock, Requirement } from '@edvora/core'
+import type { LessonLock, LearningRequirement } from '@edvora/core'
 
 /** Jalali date in Tehran time; adds the time unless it is the start of the day. */
 export function jalaliDateTime(date: Date | string): string {
@@ -10,7 +10,7 @@ export function jalaliDateTime(date: Date | string): string {
 }
 
 /** "باز می‌شود ..." line for a locked lesson (R2). */
-export function lockText(lock: LessonLock, titleOf: (lessonId: string) => string, blockerOf?: (lessonId: string) => Requirement[]): string {
+export function lockText(lock: LessonLock, titleOf: (lessonId: string) => string, blockerOf?: (lessonId: string) => LearningRequirement[]): string {
   if (lock.state === 'open') return ''
   if (lock.reason === 'date') return `باز می‌شود ${jalaliDateTime(lock.unlockAt)}`
   const blockers = blockerOf?.(lock.previousLessonId) ?? []
@@ -19,7 +19,7 @@ export function lockText(lock: LessonLock, titleOf: (lessonId: string) => string
   return quiz ? `${base} و قبولی در «${quiz.title}»` : base
 }
 
-export const REQUIREMENT_STATE: Record<Requirement['state'], string> = {
+export const REQUIREMENT_STATE: Record<LearningRequirement['state'], string> = {
   done: 'انجام شد',
   pending: 'انجام نشده',
   failed: 'قبول نشده',

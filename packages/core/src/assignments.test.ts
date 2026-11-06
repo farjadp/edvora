@@ -5,7 +5,7 @@ import {
   certificateEligibility,
   lessonCompletionBlockers,
   quizRequirementState,
-  type Requirement,
+  type LearningRequirement,
 } from './progress'
 
 describe('parseScore (C4)', () => {
@@ -63,8 +63,8 @@ describe('detectSubmissionFile (C2f)', () => {
 })
 
 describe('requirements and certificate gates (C6, Q8, R8)', () => {
-  const quiz = (state: Requirement['state'], lessonId: string | null = null): Requirement => ({ kind: 'quiz', id: 'q1', title: 'Q', state, lessonId })
-  const asg = (state: Requirement['state']): Requirement => ({ kind: 'assignment', id: 'a1', title: 'A', state })
+  const quiz = (state: LearningRequirement['state'], lessonId: string | null = null): LearningRequirement => ({ kind: 'quiz', id: 'q1', title: 'Q', state, lessonId })
+  const asg = (state: LearningRequirement['state']): LearningRequirement => ({ kind: 'assignment', id: 'a1', title: 'A', state })
 
   it('assignment pass logic', () => {
     expect(assignmentPassed({ score: 12, passScore: 12 })).toBe(true)

@@ -14,7 +14,7 @@ export function courseProgress(completedLessonIds: readonly string[], allLessonI
  * - `unreleased`: belongs to a drip-locked lesson — "not yet released", not "missing" (R8)
  */
 export type RequirementState = 'done' | 'pending' | 'failed' | 'unreleased'
-export type Requirement = { kind: 'quiz' | 'assignment'; id: string; title: string; state: RequirementState; lessonId?: string | null }
+export type LearningRequirement = { kind: 'quiz' | 'assignment'; id: string; title: string; state: RequirementState; lessonId?: string | null }
 
 export type EligibilityReason = 'progress' | 'quiz' | 'assignment' | 'defense'
 export type CertificateEligibility = { eligible: true } | { eligible: false; reason: EligibilityReason; missing: EligibilityReason[] }
@@ -28,7 +28,7 @@ export function certificateEligibility(input: {
   progress: number
   defensePassed: boolean
   requiresDefense: boolean
-  requirements?: readonly Requirement[]
+  requirements?: readonly LearningRequirement[]
 }): CertificateEligibility {
   const missing: EligibilityReason[] = []
   if (input.progress < 100) missing.push('progress')
@@ -40,7 +40,7 @@ export function certificateEligibility(input: {
 }
 
 /** A lesson is added to `completedLessons` only when its required quiz/assignment is done (Q8). */
-export function lessonCompletionBlockers(requirements: readonly Requirement[], lessonId: string): Requirement[] {
+export function lessonCompletionBlockers(requirements: readonly LearningRequirement[], lessonId: string): LearningRequirement[] {
   return requirements.filter((r) => r.lessonId != null && String(r.lessonId) === lessonId && r.state !== 'done')
 }
 

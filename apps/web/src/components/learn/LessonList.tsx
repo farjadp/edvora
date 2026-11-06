@@ -1,4 +1,4 @@
-import type { LessonLock, Requirement } from '@edvora/core'
+import type { LessonLock, LearningRequirement } from '@edvora/core'
 import { cx } from '@edvora/ui'
 import Link from 'next/link'
 import type { Lesson } from '../../payload-types'
@@ -11,7 +11,7 @@ type Props = {
   completed: Set<number>
   currentId?: number
   /** Required items still open per lesson (to name the quiz in "after previous" messages). */
-  blockersOf?: (lessonId: string) => Requirement[]
+  blockersOf?: (lessonId: string) => LearningRequirement[]
   /** Not enrolled: only free previews are open. */
   guest?: boolean
   compact?: boolean

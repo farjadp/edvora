@@ -16,7 +16,7 @@ import {
   type CertificateEligibility,
   type CountedAttempt,
   type LessonLock,
-  type Requirement,
+  type LearningRequirement,
   type SubmissionWindow,
 } from '@edvora/core'
 import type { Payload, PayloadRequest, Where } from 'payload'
@@ -50,7 +50,7 @@ export type CourseState = {
   completed: Set<number>
   quizzes: QuizStatus[]
   assignments: AssignmentStatus[]
-  requirements: Requirement[]
+  requirements: LearningRequirement[]
   progress: number
   eligibility: CertificateEligibility
 }
@@ -166,10 +166,10 @@ export async function loadCourseState(ctx: Ctx, input: { tenantId: number; cours
     }
   })
 
-  const requirements: Requirement[] = [
+  const requirements: LearningRequirement[] = [
     ...quizStatuses
       .filter((s) => s.quiz.required)
-      .map((s): Requirement => ({
+      .map((s): LearningRequirement => ({
         kind: 'quiz',
         id: String(s.quiz.id),
         title: s.quiz.title,
@@ -178,7 +178,7 @@ export async function loadCourseState(ctx: Ctx, input: { tenantId: number; cours
       })),
     ...assignmentStatuses
       .filter((s) => s.assignment.required)
-      .map((s): Requirement => ({
+      .map((s): LearningRequirement => ({
         kind: 'assignment',
         id: String(s.assignment.id),
         title: s.assignment.title,
