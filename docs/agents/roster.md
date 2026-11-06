@@ -13,6 +13,7 @@ Notion page 06 and are created only when their work starts.
 | `ui-designer` | Screens in code, design system | sonnet | 2026-11-06 | Core (#06) |
 | `tech-lead` | Architecture, implementation, review (also backend, integrations, DevOps for now) | opus | 2026-11-06 | Core (#10) |
 | `qa` | Tests, bug reports, release GO/NO-GO | sonnet | 2026-11-06 | Core (#15) |
+| `devops` | Containers, deploys (Railway demo now, Iranian host later), DB, env, runbooks | sonnet | 2026-11-06 | Farjad asked for a Railway demo deploy (#14) |
 
 ## Planned (create when needed — Notion page 06)
 | # | Agent | Create when |
@@ -25,7 +26,6 @@ Notion page 06 and are created only when their work starts.
 | 11 | `frontend-developer` | UI volume exceeds what ui-designer + tech-lead can do |
 | 12 | `backend-developer` | same, for backend |
 | 13 | `integrations-engineer` | real Zarinpal/Kavenegar/Arvan VOD/Skyroom work starts |
-| 14 | `devops` | staging server in Iran exists (E-005, E-018) |
 | 16 | `security-auditor` | before each production release |
 | 17 | `data-analyst` | tracking plan and dashboards (module 13) |
 | 18 | `sales-ops` | advisor process mapping for the CRM desk (E-015) |

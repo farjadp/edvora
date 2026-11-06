@@ -29,10 +29,11 @@ _Last updated: 2026-11-06 — E-010, E-012 done; E-013 and E-021 in review._
 | E-018 | Staging deploy: Dockerfile, Caddy, compose.staging, nightly backup, GlitchTip, Uptime Kuma | tech-lead (`chat: tech-lead`) | E-005 | staging URL live, restore tested | todo |
 | E-019 | Certificate PDF with QR to `/verify` | tech-lead | — | PDF generated on issue, attached to certificate | todo |
 | E-020 | Update Notion after each milestone (decision log, build status) | knowledge-keeper | any | Notion matches repo | ongoing |
-| E-021 | Admin foundation: permission catalog, per-academy roles (templates incl. finance + support, custom roles), memberships with scope + expiry, user create/edit with full profile, account status, audit log, staff 2FA, no hard delete (ADR 006, Notion 11 §3) | tech-lead | — | admin creates a user with roles + scope; access checks read permissions from DB; tests for tenant isolation, scope, no escalation, four-eyes | review (branch `feature/admin-foundation`, handoff `handoffs/E-021.md`) |
+| E-021 | Admin foundation: permission catalog, per-academy roles (templates incl. finance + support, custom roles), memberships with scope + expiry, user create/edit with full profile, account status, audit log, staff 2FA, no hard delete (ADR 006, Notion 11 §3) | tech-lead | — | admin creates a user with roles + scope; access checks read permissions from DB; tests for tenant isolation, scope, no escalation, four-eyes | done (PR #11) |
 | E-022 | `/staff` desk shell: layout, role-based landing, tenant shown, access checks | ux-architect → ui-designer → tech-lead | E-021 | each staff role lands on its own desk; students get 403 | todo |
 | E-023 | Finance desk: overdue instalments, manual payment with four-eyes approval, refund flow, Excel export | product-manager → tech-lead | E-021, E-022, client Q9–Q11 | approval by a second person enforced in core + tested | todo |
 | E-024 | Student 360 page + manual enrollment + support tickets | ux-architect → tech-lead | E-022 | one screen shows orders, enrollments, leads, tickets, SMS | todo |
+| E-025 | Demo deploy on Railway: app + Railway Postgres, mock providers, seed, runbook incl. DB move-out | devops (`chat: devops`) | — | public Railway URL serves the demo tenant + /admin; `docs/runbooks/deploy-railway.md` | done (PR #10) |
 
 ## Done
 | ID | Task | Owner | Date |

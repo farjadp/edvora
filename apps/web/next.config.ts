@@ -6,6 +6,10 @@ import { fileURLToPath } from 'url'
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
+  // Self-contained server bundle for container deploys (Dockerfile). Traced from the monorepo root
+  // so workspace packages are included.
+  output: 'standalone',
+  outputFileTracingRoot: path.resolve(dirname, '../..'),
   transpilePackages: ['@edvora/core', '@edvora/integrations', '@edvora/ui'],
   images: {
     localPatterns: [{ pathname: '/api/media/file/**' }],

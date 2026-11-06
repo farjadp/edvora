@@ -299,13 +299,23 @@ async function seedAdmin(payload: Payload, tenantIds: number[]) {
   console.info(`Super admin: ${email} (password from SEED_ADMIN_PASSWORD)`)
 }
 
+/** SEED_TENANTS=demo seeds only the test academy (public demo environments must not show unconfirmed client content). */
+function tenantsToSeed(): Set<string> {
+  const raw = process.env.SEED_TENANTS?.trim()
+  const wanted = new Set((raw ? raw : 'iba,demo').split(',').map((s) => s.trim()).filter(Boolean))
+  for (const slug of wanted) if (slug !== 'iba' && slug !== 'demo') throw new Error(`Unknown tenant in SEED_TENANTS: ${slug}`)
+  return wanted
+}
+
 async function main() {
+  const wanted = tenantsToSeed()
   const payload = await getPayload({ config })
-  const iba = await seedIba(payload)
-  const demo = await seedDemo(payload)
-  for (const t of [iba, demo]) await seedRoleTemplates(payload, t)
-  await seedAdmin(payload, [iba, demo])
-  console.info('Seed complete: tenants iba + demo, role templates')
+  const ids: number[] = []
+  if (wanted.has('iba')) ids.push(await seedIba(payload))
+  if (wanted.has('demo')) ids.push(await seedDemo(payload))
+  for (const t of ids) await seedRoleTemplates(payload, t)
+  await seedAdmin(payload, ids)
+  console.info(`Seed complete: tenants ${[...wanted].join(' + ')}, role templates`)
   process.exit(0)
 }
 
