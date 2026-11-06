@@ -4,6 +4,7 @@ import { allow, allowCreate, anyOf, guard, nobody } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
 import { idOf } from '../lib/ids'
 import { throwFieldErrors } from '../lib/validation'
+import { richTextField } from '../lib/richText'
 
 const SCOPE = { course: 'course', cohort: 'cohort' }
 
@@ -75,7 +76,7 @@ export const Assignments: CollectionConfig = {
         },
       ],
     },
-    { name: 'description', type: 'textarea', label: { fa: 'شرح تکلیف', en: 'Description' } },
+    richTextField({ name: 'description', label: { fa: 'شرح تکلیف', en: 'Description' } }),
     {
       type: 'row',
       fields: [

@@ -140,7 +140,21 @@ export interface Tenant {
     enabled?: boolean | null;
     text?: string | null;
   };
-  manifesto?: string | null;
+  manifesto?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   services?:
     | {
         title: string;
@@ -240,7 +254,21 @@ export interface User {
   publicProfile?: {
     showOnSite?: boolean | null;
     title?: string | null;
-    bio?: string | null;
+    bio?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
   };
   status?: ('active' | 'suspended' | 'archived') | null;
   statusReason?: string | null;
@@ -458,7 +486,21 @@ export interface Course {
   syllabus?:
     | {
         title: string;
-        description?: string | null;
+        description?: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        } | null;
         hours?: number | null;
         id?: string | null;
       }[]
@@ -474,7 +516,21 @@ export interface Course {
   faq?:
     | {
         question: string;
-        answer: string;
+        answer: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
         id?: string | null;
       }[]
     | null;
@@ -558,7 +614,21 @@ export interface Lesson {
    * HLS URL from ArvanCloud VOD. Served signed + watermarked in production.
    */
   videoUrl?: string | null;
-  notes?: string | null;
+  notes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   resources?:
     | {
         title: string;
@@ -674,7 +744,21 @@ export interface Quiz {
    */
   lesson?: (number | null) | Lesson;
   status: 'draft' | 'published' | 'archived';
-  description?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   questions?:
     | {
         question: number | Question;
@@ -737,7 +821,21 @@ export interface Question {
   /**
    * Shown only when the quiz review setting is "full".
    */
-  explanation?: string | null;
+  explanation?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   archived?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -806,7 +904,21 @@ export interface Assignment {
    * Optional. A required assignment on a lesson also blocks that lesson’s completion and is locked with it.
    */
   lesson?: (number | null) | Lesson;
-  description?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   dueAt: string;
   dueAt_tz: SupportedTimezones;
   maxScore: number;
@@ -848,7 +960,21 @@ export interface Submission {
    */
   scoreInput?: string | null;
   score?: number | null;
-  feedback?: string | null;
+  feedback?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   gradedBy?: (number | null) | User;
   gradedAt?: string | null;
   updatedAt: string;
