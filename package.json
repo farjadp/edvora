@@ -15,9 +15,13 @@
     "lint": "turbo run lint",
     "seed": "pnpm --filter @edvora/web seed",
     "db:up": "docker compose -f infra/docker/compose.local.yml up -d",
-    "db:down": "docker compose -f infra/docker/compose.local.yml down"
+    "db:down": "docker compose -f infra/docker/compose.local.yml down",
+    "e2e": "playwright test -c e2e/playwright.config.ts",
+    "e2e:typecheck": "tsc -p e2e"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^24.19.2",
     "turbo": "^2.11.10",
     "typescript": "5.9.3"
   },

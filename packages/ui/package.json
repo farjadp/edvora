@@ -1,0 +1,28 @@
+{
+  "name": "@edvora/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Edvora design system: Tailwind 4 tokens and presentational React components. No app logic, no data fetching.",
+  "sideEffects": ["*.css"],
+  "exports": {
+    ".": "./src/index.ts",
+    "./classes": "./src/classes.ts",
+    "./color": "./src/color.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@edvora/config": "workspace:*",
+    "@types/react": "19.2.14",
+    "react": "19.2.6",
+    "typescript": "5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

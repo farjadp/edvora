@@ -1,4 +1,5 @@
 import { formatJalali, formatToman, rial } from '@edvora/core'
+import { CoverArt } from '@edvora/ui'
 import Link from 'next/link'
 import type { Cohort, Course, Media } from '../payload-types'
 
@@ -9,26 +10,18 @@ const KIND_LABEL: Record<Course['kind'], string> = {
   bundle: 'بسته',
 }
 
+/** Maps a Course record onto the shared CoverArt (picks the right image size). */
 export function CourseArt({ course, size = 'card' }: { course: Course; size?: 'card' | 'hero' }) {
   const img = typeof course.heroImage === 'object' ? (course.heroImage as Media | null) : null
   const src = img?.sizes?.[size]?.url ?? img?.url
-  if (src) return <img src={src} alt={img?.alt ?? course.title} className="size-full object-cover" />
-  return (
-    <div className="relative grid size-full place-items-center overflow-hidden bg-brand p-6 text-brand-ink">
-      <span className="absolute -start-6 -top-10 font-latin text-[9rem] font-bold leading-none opacity-15" aria-hidden>
-        {course.programCode ?? course.title.slice(0, 2)}
-      </span>
-      <span className="absolute inset-x-0 bottom-0 h-1.5 bg-accent" aria-hidden />
-      <span className={size === 'hero' ? 'relative text-4xl font-black md:text-6xl' : 'relative text-2xl font-black'}>{course.title}</span>
-    </div>
-  )
+  return <CoverArt title={course.title} mark={course.programCode} imageSrc={src} imageAlt={img?.alt} size={size} />
 }
 
 export function CourseCard({ course, cohort }: { course: Course; cohort?: Cohort }) {
   return (
     <Link
       href={`/courses/${course.slug}`}
-      className="group block w-72 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-surface transition-transform hover:-translate-y-1 md:w-80"
+      className="group block w-72 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-surface motion-safe:transition-transform motion-safe:hover:-translate-y-1 md:w-80"
     >
       <div className="aspect-video overflow-hidden">
         <CourseArt course={course} />
@@ -46,14 +39,5 @@ export function CourseCard({ course, cohort }: { course: Course; cohort?: Cohort
         </div>
       </div>
     </Link>
-  )
-}
-
-export function Row({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
-  return (
-    <section id={id} className="mx-auto max-w-7xl px-4 pt-14 md:px-8">
-      <h2 className="mb-5 text-xl font-black md:text-2xl">{title}</h2>
-      <div className="scrollbar-none -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 md:-mx-8 md:px-8">{children}</div>
-    </section>
   )
 }

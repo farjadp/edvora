@@ -1,6 +1,8 @@
 import { formatJalali, toPersianDigits } from '@edvora/core'
 import Link from 'next/link'
-import { CourseArt, CourseCard, Row } from '../../components/CourseCard'
+import { Row } from '@edvora/ui'
+import { inputClass } from '@edvora/ui/classes'
+import { CourseArt, CourseCard } from '../../components/CourseCard'
 import { LeadForm } from '../../components/LeadForm'
 import { getOpenCohorts, getPosts, getPublishedCourses, getTestimonials } from '../../lib/queries'
 import { getCurrentTenant } from '../../lib/tenant'
@@ -182,7 +184,7 @@ export default async function HomePage() {
               name="code"
               dir="ltr"
               placeholder={`${tenant.certificatePrefix}-MBA-181`}
-              className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-bg px-4 font-latin outline-none focus:border-brand"
+              className={inputClass({ tone: 'bg', className: 'min-w-0 flex-1 font-latin' })}
             />
             <button className="h-12 rounded-xl bg-ink px-5 font-bold text-bg">استعلام</button>
           </form>

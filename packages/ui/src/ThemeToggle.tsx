@@ -1,8 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { focusRing } from './classes'
+import { cx } from './cx'
 
-export function ThemeToggle() {
+export type ThemeToggleProps = {
+  /** Accessible label while the page is light (the button switches to dark). */
+  toDarkLabel?: string
+  /** Accessible label while the page is dark (the button switches to light). */
+  toLightLabel?: string
+}
+
+/** Flips `data-theme` on <html> and remembers the choice in localStorage. */
+export function ThemeToggle({ toDarkLabel = 'حالت تیره', toLightLabel = 'حالت روشن' }: ThemeToggleProps = {}) {
   const [theme, setTheme] = useState<'light' | 'dark' | null>(null)
 
   useEffect(() => {
@@ -24,8 +34,8 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label={theme === 'dark' ? 'حالت روشن' : 'حالت تیره'}
-      className="grid size-10 place-items-center rounded-full border border-line text-ink transition-colors hover:bg-sunken"
+      aria-label={theme === 'dark' ? toLightLabel : toDarkLabel}
+      className={cx('grid size-11 place-items-center rounded-full border border-line text-ink transition-colors hover:bg-sunken', focusRing)}
     >
       {theme === 'dark' ? (
         <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>

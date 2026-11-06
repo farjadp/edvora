@@ -1,6 +1,7 @@
 'use client'
 
 import { toPersianDigits } from '@edvora/core/digits'
+import { buttonClass, inputClass } from '@edvora/ui/classes'
 import { useActionState, useState } from 'react'
 import { startCheckout, type FormState } from '../app/(frontend)/actions'
 import { useRedirectTo } from './useRedirectTo'
@@ -60,7 +61,7 @@ export function EnrollCard(props: EnrollCardProps) {
                 {options.map((n) => (
                   <label
                     key={n}
-                    className="cursor-pointer rounded-xl border border-line px-3 py-2 text-sm has-checked:border-brand has-checked:bg-brand has-checked:text-brand-ink"
+                    className="cursor-pointer rounded-xl border border-line-strong px-3 py-2 text-sm has-checked:border-brand has-checked:bg-brand has-checked:text-brand-ink has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus"
                   >
                     <input type="radio" name="instalments" value={n} checked={count === n} onChange={() => setCount(n)} className="sr-only" />
                     {n === 1 ? 'یکجا' : `${toPersianDigits(n)} قسط`}
@@ -76,12 +77,12 @@ export function EnrollCard(props: EnrollCardProps) {
             name="coupon"
             placeholder="کد تخفیف (اختیاری)"
             dir="ltr"
-            className="h-11 rounded-xl border border-line bg-bg px-4 text-end font-latin text-sm outline-none focus:border-brand"
+            className={inputClass({ tone: 'bg', size: 'sm', className: 'text-end font-latin' })}
           />
           <button
             type="submit"
             disabled={pending}
-            className="h-12 rounded-xl bg-brand font-bold text-brand-ink transition-opacity hover:opacity-90 disabled:opacity-60"
+            className={buttonClass()}
           >
             {pending || state?.redirectTo ? 'در حال اتصال به درگاه…' : 'ثبت‌نام و پرداخت'}
           </button>
