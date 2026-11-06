@@ -44,4 +44,4 @@ transaction: if the audit row fails, the change rolls back.
 `20261106_xxxxxx_admin_foundation`: schema for the new collections/fields, then a data step: for each tenant create
 the template roles; for each user with legacy `admin/advisor/instructor` roles create a membership per tenant they
 belong to with the matching template. `company-manager` has no template (B2B portal, later). Seed upserts templates
-for iba and demo.
+for iba and demo; a tenant created later gets them from a `tenants` afterChange hook.
