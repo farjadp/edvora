@@ -142,7 +142,11 @@ export default async function CoursePage({ params }: Props) {
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {course.faculty.map((f) => (
                   <div key={f.id ?? f.name} className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
-                    <span className="grid size-14 shrink-0 place-items-center rounded-full bg-sunken text-xl font-black text-brand">{f.name.slice(0, 1)}</span>
+                    {typeof f.photo === 'object' && f.photo?.url ? (
+                      <img src={f.photo.url} alt={f.photo.alt} className="size-14 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <span className="grid size-14 shrink-0 place-items-center rounded-full bg-sunken text-xl font-black text-brand">{f.name.slice(0, 1)}</span>
+                    )}
                     <div>
                       <p className="font-bold">{f.name}</p>
                       {f.role ? <p className="text-sm text-muted">{f.role}</p> : null}
