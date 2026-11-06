@@ -8,7 +8,7 @@
  * Idempotent: re-running updates existing records by their natural key.
  *   pnpm seed
  */
-import { tomanToRial } from '@edvora/core'
+import { ROLE_TEMPLATES, tomanToRial } from '@edvora/core'
 import { getPayload, type CollectionSlug, type Payload, type Where } from 'payload'
 import config from '../payload.config'
 
@@ -270,6 +270,21 @@ async function seedDemo(payload: Payload) {
   return t
 }
 
+/** Role templates (ADR 006 §4) for one academy. Re-running resets the templates to the code definition. */
+async function seedRoleTemplates(payload: Payload, tenantId: number) {
+  for (const t of ROLE_TEMPLATES) {
+    await upsert(payload, 'roles', { and: [{ tenant: { equals: tenantId } }, { key: { equals: t.key } }] }, {
+      tenant: tenantId,
+      key: t.key,
+      template: t.key,
+      name: t.name.fa,
+      description: t.description,
+      permissions: [...t.permissions],
+      archived: false,
+    })
+  }
+}
+
 async function seedAdmin(payload: Payload, tenantIds: number[]) {
   const email = process.env.SEED_ADMIN_EMAIL
   const password = process.env.SEED_ADMIN_PASSWORD
@@ -288,8 +303,9 @@ async function main() {
   const payload = await getPayload({ config })
   const iba = await seedIba(payload)
   const demo = await seedDemo(payload)
+  for (const t of [iba, demo]) await seedRoleTemplates(payload, t)
   await seedAdmin(payload, [iba, demo])
-  console.info('Seed complete: tenants iba + demo')
+  console.info('Seed complete: tenants iba + demo, role templates')
   process.exit(0)
 }
 
