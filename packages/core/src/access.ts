@@ -235,3 +235,42 @@ export function checkFourEyes(input: { makerId: Id | null | undefined; checkerId
   if (!input.checkerAllowed) return { ok: false, reason: 'not-permitted' }
   return { ok: true }
 }
+
+// ---------------------------------------------------------------- 2FA reset (E-022)
+
+export type TwoFactorResetTarget = {
+  userId: Id
+  isPlatformAdmin: boolean
+  /** Academies the account belongs to (`users.tenants`). Used when the person has no staff membership. */
+  tenantIds: readonly Id[]
+  /** All memberships of the person (any status); only active staff ones count. */
+  memberships: readonly MembershipGrant[]
+}
+
+export type TwoFactorResetDecision =
+  | { ok: true; tenantIds: Id[] }
+  | { ok: false; reason: 'self' | 'platform-target' | 'not-permitted' | 'other-academy' | 'escalation' }
+
+/**
+ * Who may reset someone else's 2FA (UX §7.5). 2FA is per account, not per academy, so the actor needs
+ * `users.2fa.reset` in EVERY academy where the target is active staff (or, for non-staff, every academy the
+ * account belongs to), and must be able to grant each of the target's staff memberships (no escalation).
+ * Platform-admin accounts only by platform admins; never on yourself. Returns the academies to audit in.
+ */
+export function checkTwoFactorReset(ctx: AccessContext, target: TwoFactorResetTarget): TwoFactorResetDecision {
+  if (same(target.userId, ctx.userId)) return { ok: false, reason: 'self' }
+  const now = ctx.now ?? new Date()
+  const staff = target.memberships.filter((m) => m.status === 'active' && notExpired(m.expiresAt, now) && m.permissions.length > 0)
+  const tenants: Id[] = []
+  for (const t of staff.length > 0 ? staff.map((m) => m.tenantId) : target.tenantIds) if (!tenants.some((x) => same(x, t))) tenants.push(t)
+  if (isPlatformAdmin(ctx)) return { ok: true, tenantIds: tenants }
+  if (target.isPlatformAdmin) return { ok: false, reason: 'platform-target' }
+  if (tenants.length === 0) return { ok: false, reason: 'not-permitted' }
+  const allowed = tenants.filter((t) => can(ctx, t, 'users.2fa.reset'))
+  if (allowed.length === 0) return { ok: false, reason: 'not-permitted' }
+  if (allowed.length < tenants.length) return { ok: false, reason: 'other-academy' }
+  for (const m of staff) {
+    if (!checkGrant(ctx, m.tenantId, { permissions: m.permissions, scope: m.scope }, target.userId).ok) return { ok: false, reason: 'escalation' }
+  }
+  return { ok: true, tenantIds: tenants }
+}
