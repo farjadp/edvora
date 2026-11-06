@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { focusRing } from './classes'
+import { cx } from './cx'
 
 export type ThemeToggleProps = {
   /** Accessible label while the page is light (the button switches to dark). */
@@ -33,7 +35,7 @@ export function ThemeToggle({ toDarkLabel = 'حالت تیره', toLightLabel = 
       type="button"
       onClick={toggle}
       aria-label={theme === 'dark' ? toLightLabel : toDarkLabel}
-      className="grid size-10 place-items-center rounded-full border border-line text-ink transition-colors hover:bg-sunken"
+      className={cx('grid size-11 place-items-center rounded-full border border-line text-ink transition-colors hover:bg-sunken', focusRing)}
     >
       {theme === 'dark' ? (
         <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
