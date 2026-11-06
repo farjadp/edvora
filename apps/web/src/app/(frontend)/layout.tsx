@@ -12,6 +12,7 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { Footer } from '../../components/Footer'
 import { Header } from '../../components/Header'
+import { PublicChrome } from '../../components/PublicChrome'
 import { getCurrentTenant } from '../../lib/tenant'
 
 export const dynamic = 'force-dynamic'
@@ -41,10 +42,13 @@ export default async function FrontendLayout({ children }: { children: ReactNode
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-dvh bg-bg text-ink">
-        {tenant.notice?.enabled && tenant.notice.text ? <NoticeBar text={tenant.notice.text} /> : null}
-        <Header tenant={tenant} />
-        <main>{children}</main>
-        <Footer tenant={tenant} />
+        <PublicChrome
+          notice={tenant.notice?.enabled && tenant.notice.text ? <NoticeBar text={tenant.notice.text} /> : null}
+          header={<Header tenant={tenant} />}
+          footer={<Footer tenant={tenant} />}
+        >
+          {children}
+        </PublicChrome>
       </body>
     </html>
   )

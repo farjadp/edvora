@@ -33,7 +33,12 @@ export function TwoFactorStatusCard({ enabled: initial, required, enrol, onDisab
     e.preventDefault()
     if (locked || s.pending) return
     const out = await s.run(onDisable)
-    if (out === 'ok' || out === 'conflict') {
+    // 409 = the academy now requires 2FA: reload to show the server's view instead of claiming it is off.
+    if (out === 'conflict') {
+      window.location.reload()
+      return
+    }
+    if (out === 'ok') {
       setEnabled(false)
       setPanel('none')
       setNotice('تأیید دومرحله‌ای خاموش شد.')

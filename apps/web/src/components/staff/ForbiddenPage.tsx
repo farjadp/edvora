@@ -17,6 +17,8 @@ export type ForbiddenPageProps = {
   dashboardHref?: string
   /** C: missing permission key, Latin, e.g. `leads.view`. */
   permissionCode?: string
+  /** C: replaces the permission line (e.g. a client component that reads the desk from the URL). */
+  detail?: ReactNode
 }
 
 const copy: Record<ForbiddenVariant, { title: string; body: string }> = {
@@ -35,7 +37,7 @@ const copy: Record<ForbiddenVariant, { title: string; body: string }> = {
 }
 
 /** Presentational 403. The route must also answer with HTTP 403 and noindex. */
-export function ForbiddenPage({ variant, logoutHref, landingHref = '/staff', siteHref = '/', dashboardHref = '/dashboard', permissionCode }: ForbiddenPageProps) {
+export function ForbiddenPage({ variant, logoutHref, landingHref = '/staff', siteHref = '/', dashboardHref = '/dashboard', permissionCode, detail }: ForbiddenPageProps) {
   const { title, body } = copy[variant]
   let actions: ReactNode
   if (variant === 'A') {
@@ -67,7 +69,8 @@ export function ForbiddenPage({ variant, logoutHref, landingHref = '/staff', sit
       </p>
       <h1 className="text-2xl font-black leading-snug">{title}</h1>
       <p className="leading-8 text-muted">{body}</p>
-      {variant === 'C' && permissionCode ? (
+      {variant === 'C' && detail ? detail : null}
+      {variant === 'C' && !detail && permissionCode ? (
         <p className="text-sm text-muted">
           کد دسترسی: <span dir="ltr" className="inline-block font-latin">{permissionCode}</span>
         </p>

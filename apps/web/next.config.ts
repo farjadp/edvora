@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
   },
   // No external runtime dependencies: everything must work on Iran's national network.
   poweredByHeader: false,
+  // forbidden() + forbidden.tsx give the staff desk a real HTTP 403 (E-022).
+  experimental: { authInterrupts: true },
   webpack: (webpackConfig) => {
     webpackConfig.resolve.extensionAlias = {
       '.cjs': ['.cts', '.cjs'],
