@@ -68,6 +68,8 @@
   --animate-e-sweep: e-sweep 700ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
   --animate-e-rise: e-rise 180ms ease-out backwards;
   --animate-e-stamp: e-stamp 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  /* Certificate seal sheen (E-028): one pass, 1.2 s. */
+  --animate-e-sheen: e-sheen 1200ms ease-out 400ms 1 backwards;
 }
 
 /*
@@ -172,6 +174,14 @@
   from {
     opacity: 0;
     transform: scale(1.18);
+  }
+}
+@keyframes e-sheen {
+  from {
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(340%) skewX(-18deg);
   }
 }
 
