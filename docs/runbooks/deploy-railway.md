@@ -41,6 +41,8 @@ Read them in the dashboard: project `edvora-demo` → `web` → **Variables**, o
 | `SEED_TENANTS` | `demo` (seed skips `iba`) |
 | `SEED_ADMIN_EMAIL` | `admin@edvora.demo` |
 | `PRIVATE_UPLOADS_DIR` | `/data/submission-files` — student assignment files on the `web-volume` volume (ADR 009) |
+| `MEDIA_DIR` | not set yet — `/data/media` once the IBA preview is approved (keeps public media on `web-volume`) |
+| `PRIVATE_PREVIEW_HOSTS` / `_USER` / `_PASSWORD` | not set yet — IBA preview host gate (see *IBA client preview*) |
 | `RAILWAY_RUN_UID` | `0` — Railway volumes mount as root; the image's `nextjs` user can't write to them otherwise |
 | `STAFF_2FA_REQUIRED` | not set (= off). Keep off on the demo until Farjad says otherwise (ADR 007) |
 | `SEED_ADMIN_PASSWORD` | generated; read it from Railway |
@@ -96,6 +98,48 @@ railway tcp-proxy delete --service Postgres <id>
 is idempotent (upserts by natural key). It does **not** change an existing admin's password.
 
 Check: `psql -Atc "select name from payload_migrations order by id"` lists every migration file.
+
+## IBA client preview (E-030) — NOT DONE YET, needs Farjad's go-ahead
+
+Shows the `iba` tenant (content imported from iranbrandacademy.com) on the same `web` service, on its own host, for
+the client meeting. The default domain keeps serving `demo`. Nothing below has been run against Railway.
+
+How it works: tenants resolve by `Host` (`lib/tenant.ts`), so a second host mapped to `iba` is enough — no second
+service. `src/proxy.ts` marks hosts in `PRIVATE_PREVIEW_HOSTS` `X-Robots-Tag: noindex, nofollow` and, if
+`PRIVATE_PREVIEW_USER` + `PRIVATE_PREVIEW_PASSWORD` are set, puts them behind HTTP basic auth. Other hosts are untouched.
+
+1. **A second host for `web`.** Railway dashboard → `web` → Settings → Networking → *Generate Domain* (if Railway
+   offers a second generated domain), or *Custom Domain* `iba-demo.<a domain Farjad owns>` + the CNAME it shows.
+   Call it `<iba-host>` below.
+2. **Persistent media.** Public media are on the container disk and are lost on redeploy. Point them at the existing
+   volume and redeploy once:
+   ```bash
+   railway variables --service web --set MEDIA_DIR=/data/media
+   ```
+3. **Gate the preview host** (choose the password; send it to the client yourself):
+   ```bash
+   railway variables --service web --set PRIVATE_PREVIEW_HOSTS=<iba-host> \
+     --set PRIVATE_PREVIEW_USER=iba --set PRIVATE_PREVIEW_PASSWORD='<password>'
+   ```
+   Don't gate `<default-host>`: step 4 uploads images through it, and basic auth would reject those calls.
+4. **Deploy** this branch (migration `20261106_224247_e030_iba_import` applies on boot), then **import** from your
+   machine. Same TCP-proxy + backup steps as *Seed / migrate*; DB rows go in directly, images are uploaded through the
+   app's own API (on the **default** host, which is not gated) so they land on `/data/media`:
+   ```bash
+   cd apps/web
+   railway run --service web -- env NODE_ENV=production \
+     DATABASE_URL="postgresql://$PGUSER:$PGPASSWORD@<endpoint>/$PGDATABASE" \
+     IBA_EXTRA_DOMAINS=<iba-host> \
+     IBA_MEDIA_API_URL=https://<default-host> IBA_MEDIA_API_EMAIL=<super-admin email> IBA_MEDIA_API_PASSWORD='<its password>' \
+     node_modules/.bin/tsx src/seed/import-iba.ts
+   ```
+   `IBA_EXTRA_DOMAINS` adds `<iba-host>` to the `iba` tenant's domains. The import is idempotent; re-run it freely.
+   Don't run `src/seed/run.ts` with `SEED_TENANTS=iba` afterwards unless you then re-run the import (the seed
+   rewrites some tenant fields with the shorter Notion-02 copy).
+5. **Verify:** `curl -sI https://<iba-host>/` → `401`; with `-u iba:<password>` → `200` and `x-robots-tag: noindex`;
+   the page title is «آکادمی برند ایران». `https://<default-host>/` still shows the demo academy with no auth.
+6. **Undo after the meeting:** remove `<iba-host>` (dashboard), `railway variables --service web --remove PRIVATE_PREVIEW_HOSTS`
+   (and the user/password). The `iba` rows can stay; without a mapped host nobody reaches them.
 
 ## Deploy / redeploy
 
