@@ -6,11 +6,11 @@ import '@fontsource/space-grotesk/500.css'
 import '@fontsource/space-grotesk/700.css'
 import './styles.css'
 
+import { NoticeBar } from '@edvora/ui'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { Footer } from '../../components/Footer'
 import { Header } from '../../components/Header'
-import { NoticeBar } from '../../components/NoticeBar'
 import { getCurrentTenant } from '../../lib/tenant'
 
 export const dynamic = 'force-dynamic'

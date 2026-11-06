@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url'
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@edvora/core', '@edvora/integrations'],
+  transpilePackages: ['@edvora/core', '@edvora/integrations', '@edvora/ui'],
   images: {
     localPatterns: [{ pathname: '/api/media/file/**' }],
   },

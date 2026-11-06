@@ -1,3 +1,4 @@
+/** Thin site-wide announcement strip with an accent dot. */
 export function NoticeBar({ text }: { text: string }) {
   return (
     <div role="status" className="border-b border-line bg-sunken px-4 py-2 text-center text-sm text-muted">

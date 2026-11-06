@@ -1,11 +1,12 @@
 'use client'
 
+import { buttonClass, inputClass } from '@edvora/ui/classes'
 import { useActionState } from 'react'
 import { requestOtp, verifyOtp, type FormState } from '../app/(frontend)/actions'
 import { useRedirectTo } from './useRedirectTo'
 
-const input = 'h-12 w-full rounded-xl border border-line bg-bg px-4 outline-none focus:border-brand'
-const button = 'h-12 w-full rounded-xl bg-brand font-bold text-brand-ink transition-opacity hover:opacity-90 disabled:opacity-60'
+const input = inputClass({ tone: 'bg', block: true })
+const button = buttonClass({ block: true })
 
 export function LoginForm({ next }: { next: string }) {
   const [sent, request, requesting] = useActionState<FormState, FormData>(requestOtp, null)

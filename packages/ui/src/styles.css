@@ -1,0 +1,97 @@
+/*
+ * Edvora design tokens (@edvora/ui).
+ * Import AFTER tailwindcss in the app stylesheet:
+ *   @import 'tailwindcss';
+ *   @import '@edvora/ui/styles.css';
+ * Documented in docs/design/system.md.
+ */
+
+/* Generate classes used by the shared components in this package. */
+@source './';
+
+/* Dark mode follows data-theme on <html>, set by the theme toggle (light is the default). */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  --font-sans: 'Vazirmatn', ui-sans-serif, system-ui, sans-serif;
+  --font-latin: 'Space Grotesk', 'Vazirmatn', ui-sans-serif, sans-serif;
+
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-accent: var(--accent);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-ok: var(--ok);
+  --color-danger: var(--danger);
+}
+
+/* Per-academy brand colors are injected by the layout; these are Edvora defaults. */
+:root {
+  --brand: #1a56db;
+  --brand-ink: #ffffff;
+  --accent: #f59e0b;
+  --bg: #f6f6f3;
+  --surface: #ffffff;
+  --sunken: #eeeee9;
+  --ink: #111827;
+  --muted: #5b6372;
+  --line: #e3e3dc;
+  --ok: #0f7b4b;
+  --danger: #b42318;
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg: #0c0e12;
+  --surface: #151820;
+  --sunken: #1c2029;
+  --ink: #eef0f4;
+  --muted: #9aa2b1;
+  --line: #262b36;
+  --ok: #3ccf8e;
+  --danger: #f97066;
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--ink);
+  }
+  body {
+    @apply font-sans antialiased;
+    font-feature-settings: 'ss01';
+  }
+  ::selection {
+    background: var(--accent);
+    color: #111;
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(50%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-marquee {
+    animation: marquee 40s linear infinite;
+  }
+}

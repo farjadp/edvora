@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from 'react'
 
-export function ThemeToggle() {
+export type ThemeToggleProps = {
+  /** Accessible label while the page is light (the button switches to dark). */
+  toDarkLabel?: string
+  /** Accessible label while the page is dark (the button switches to light). */
+  toLightLabel?: string
+}
+
+/** Flips `data-theme` on <html> and remembers the choice in localStorage. */
+export function ThemeToggle({ toDarkLabel = 'حالت تیره', toLightLabel = 'حالت روشن' }: ThemeToggleProps = {}) {
   const [theme, setTheme] = useState<'light' | 'dark' | null>(null)
 
   useEffect(() => {
@@ -24,7 +32,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label={theme === 'dark' ? 'حالت روشن' : 'حالت تیره'}
+      aria-label={theme === 'dark' ? toLightLabel : toDarkLabel}
       className="grid size-10 place-items-center rounded-full border border-line text-ink transition-colors hover:bg-sunken"
     >
       {theme === 'dark' ? (

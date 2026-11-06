@@ -1,5 +1,6 @@
 'use client'
 
+import { buttonClass, inputClass } from '@edvora/ui/classes'
 import { useActionState } from 'react'
 import { submitLead, type FormState } from '../app/(frontend)/actions'
 
@@ -26,7 +27,7 @@ export function LeadForm({ courseId, page, compact = false }: { courseId?: numbe
         name="name"
         required
         placeholder="نام و نام خانوادگی"
-        className="h-12 rounded-xl border border-line bg-surface px-4 outline-none focus:border-brand"
+        className={inputClass()}
       />
       <label className="sr-only" htmlFor={`lead-phone-${page}`}>موبایل</label>
       <input
@@ -36,12 +37,12 @@ export function LeadForm({ courseId, page, compact = false }: { courseId?: numbe
         inputMode="tel"
         dir="ltr"
         placeholder="۰۹۱۲ ۱۲۳ ۴۵۶۷"
-        className="h-12 rounded-xl border border-line bg-surface px-4 text-end outline-none focus:border-brand"
+        className={inputClass({ className: 'text-end' })}
       />
       <button
         type="submit"
         disabled={pending}
-        className="h-12 rounded-xl bg-brand px-6 font-bold text-brand-ink transition-opacity hover:opacity-90 disabled:opacity-60"
+        className={buttonClass({ className: 'px-6' })}
       >
         {pending ? 'در حال ثبت…' : 'درخواست تماس مشاور'}
       </button>

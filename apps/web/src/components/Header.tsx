@@ -1,7 +1,7 @@
+import { ThemeToggle } from '@edvora/ui'
 import Link from 'next/link'
 import type { Media, Tenant } from '../payload-types'
 import { getCurrentUser } from '../lib/session'
-import { ThemeToggle } from './ThemeToggle'
 
 export async function Header({ tenant }: { tenant: Tenant }) {
   const user = await getCurrentUser()
