@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./digits": "./src/digits.ts",
-    "./money": "./src/money.ts"
+    "./money": "./src/money.ts",
+    "./staff": "./src/staff.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

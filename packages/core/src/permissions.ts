@@ -5,7 +5,7 @@
  */
 
 export const PERMISSION_GROUPS = {
-  users: ['users.view', 'users.create', 'users.edit', 'users.deactivate', 'users.view_sensitive', 'users.import', 'users.export'],
+  users: ['users.view', 'users.create', 'users.edit', 'users.deactivate', 'users.view_sensitive', 'users.import', 'users.export', 'users.2fa.reset'],
   roles: ['roles.view', 'roles.manage', 'roles.assign'],
   catalog: ['courses.view', 'courses.edit', 'courses.publish', 'cohorts.manage', 'lessons.edit', 'pricing.edit'],
   sales: ['leads.view.own', 'leads.view.all', 'leads.create', 'leads.assign', 'leads.export', 'orders.create_for_lead', 'discount.give'],
@@ -90,6 +90,11 @@ export const PERMISSION_GROUP_LABELS: Record<PermissionGroup, { fa: string; en: 
   reports: { fa: 'گزارش‌ها', en: 'Reports' },
   academy: { fa: 'آکادمی', en: 'Academy' },
   platform: { fa: 'پلتفرم ادورا', en: 'Platform' },
+}
+
+/** Human labels for keys whose meaning is not obvious from the key itself (role editor). */
+export const PERMISSION_LABELS: Partial<Record<Permission, { fa: string; en: string }>> = {
+  'users.2fa.reset': { fa: 'بازنشانی تأیید دومرحله‌ای', en: 'Reset two-factor authentication' },
 }
 
 // ---------------------------------------------------------------- Role templates

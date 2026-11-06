@@ -251,6 +251,12 @@ export const Users: CollectionConfig = {
               access: { create: () => false, update: () => false },
             },
             {
+              // Admin reset (E-022, UX §7.5). Shown only when the actor may reset this person and 2FA is on.
+              name: 'twoFactorReset',
+              type: 'ui',
+              admin: { components: { Field: '/components/admin/TwoFactorResetField#TwoFactorResetField' } },
+            },
+            {
               name: 'twoFactor',
               type: 'group',
               hidden: true,

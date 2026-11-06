@@ -45,3 +45,9 @@ transaction: if the audit row fails, the change rolls back.
 the template roles; for each user with legacy `admin/advisor/instructor` roles create a membership per tenant they
 belong to with the matching template. `company-manager` has no template (B2B portal, later). Seed upserts templates
 for iba and demo; a tenant created later gets them from a `tenants` afterChange hook.
+
+## Decisions (Farjad, 2026-11-06)
+- **Advisors and orders:** advisors see orders only if an admin grants `orders.view` (a custom role or an added
+  permission). The advisor template stays as is (no `orders.view`).
+- **Staff 2FA:** optional; `STAFF_2FA_REQUIRED` off by default; staff enable it themselves; an admin can require it
+  later via the flag (ADR 007, accepted).

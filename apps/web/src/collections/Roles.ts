@@ -2,6 +2,7 @@ import {
   ACADEMY_PERMISSIONS,
   PERMISSION_GROUPS,
   PERMISSION_GROUP_LABELS,
+  PERMISSION_LABELS,
   canEditRole,
   validateRolePermissions,
   type PermissionGroup,
@@ -92,7 +93,11 @@ export const Roles: CollectionConfig = {
       type: 'select',
       hasMany: true,
       label: { fa: 'دسترسی‌ها', en: 'Permissions' },
-      options: ACADEMY_PERMISSIONS.map((p) => ({ value: p, label: { fa: `${PERMISSION_GROUP_LABELS[groupOf(p)].fa} · ${p}`, en: `${PERMISSION_GROUP_LABELS[groupOf(p)].en} · ${p}` } })),
+      options: ACADEMY_PERMISSIONS.map((p) => {
+        const g = PERMISSION_GROUP_LABELS[groupOf(p)]
+        const l = PERMISSION_LABELS[p]
+        return { value: p, label: { fa: l ? `${g.fa} · ${l.fa} (${p})` : `${g.fa} · ${p}`, en: l ? `${g.en} · ${l.en} (${p})` : `${g.en} · ${p}` } }
+      }),
     },
     {
       type: 'row',
