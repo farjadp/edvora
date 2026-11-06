@@ -1,62 +1,54 @@
 # Edvora AI team
 
-The 7 core agents from Notion page 06, built as Claude Code agents in `.claude/agents/`.
-The other 13 agents on page 06 are added when their phase starts — more agents means more handoffs.
-
-| # | Agent | File | Model | Writes code? |
-| --- | --- | --- | --- | --- |
-| 00 | Orchestrator / PM | `orchestrator.md` | opus | no — plans, delegates, checks |
-| 01 | Product Manager | `product-manager.md` | sonnet | no — `docs/product/` |
-| 02 | Knowledge Keeper | `knowledge-keeper.md` | sonnet | no — Notion + docs |
-| 05 | UX Architect | `ux-architect.md` | sonnet | no — `docs/ux/` |
-| 06 | UI Designer | `ui-designer.md` | sonnet | yes — UI, tokens, components |
-| 10 | Tech Lead | `tech-lead.md` | opus | yes — everything else |
-| 15 | QA | `qa.md` | sonnet | tests only — `e2e/`, `docs/qa/` |
-
-## How orchestration works
-
-```
-             Farjad (approval gates)
-                    │
-            ┌───────▼────────┐        docs/agents/board.md  (shared task board)
-            │  Orchestrator  │◄──────►docs/agents/handoffs/ (results from separate chats)
-            └───────┬────────┘        Notion                (source of truth)
-     subagents      │  (parallel when independent)
-  ┌──────┬──────────┼──────────┬───────────┬──────┐
-  PM    UX         UI      Tech Lead       QA    Knowledge Keeper
-```
-
-Typical flow: **PM** story → **UX** flow/wireframe → **UI** screens → **Tech Lead** spec + build → **QA** tests →
-**Farjad** approves → **Knowledge Keeper** updates Notion.
-
-The orchestrator must be the **main session** — subagents can't start other subagents.
-
-## Running it
-
-**One session runs the whole team (recommended for small and medium tasks):**
+**You talk to one agent: the Head of Product.** Tell it what you want in plain words (Persian is fine). It clarifies,
+plans the work on the board, briefs the other agents, creates new agents when the team is missing a skill, opens
+separate chats for big work, checks the results, and reports back.
 
 ```bash
-claude --agent orchestrator
+claude --agent head-of-product          # CLI
+```
+In any session inside this repo (CLI or desktop app): **`/product <what you want>`**, `/product status`, `/product next`.
+
+## Team
+Full list with dates and planned agents: [`roster.md`](roster.md).
+
+| Agent | Job | Model |
+| --- | --- | --- |
+| `head-of-product` | Front desk + orchestration + creates agents | opus |
+| `product-manager` | User stories, acceptance criteria, PRDs | sonnet |
+| `knowledge-keeper` | Notion + decision log + docs | sonnet |
+| `ux-architect` | Flows, wireframes | sonnet |
+| `ui-designer` | Screens in code, design system | sonnet |
+| `tech-lead` | Architecture, code, review | opus |
+| `qa` | Tests, bugs, release GO/NO-GO | sonnet |
+
+## How it works
+
+```
+                 Farjad ──"what I want"──►  Head of Product  ──report + decisions──► Farjad
+                                               │   ▲
+                         briefs (parallel)     │   │ handoffs (checked against "done")
+       ┌───────────────┬──────────────┬────────┴───┴───┬──────────────┬───────────────┐
+  product-manager  ux-architect   ui-designer      tech-lead          qa      knowledge-keeper
+                                                                               (Notion)
+       + new agents it creates from agent-template.md when a skill is missing
+       + separate chats (own worktree/PR) for big tasks → docs/agents/handoffs/E-###.md
 ```
 
-Or, in any session inside this repo: `/orchestrate <goal>`, `/orchestrate next`, `/orchestrate status`.
+Shared state: [`board.md`](board.md) (tasks), [`handoffs/`](handoffs/), Notion (source of truth).
 
-**Separate chats (for big tasks or ones you want to steer yourself):**
+The Head of Product must be the **main session**: subagents can't start other subagents.
 
-```bash
-claude --agent tech-lead      # or product-manager, ux-architect, ui-designer, qa, knowledge-keeper
-```
+## Separate chats
+Big or long tasks run as their own session in their own git worktree, opening a PR into `develop`:
+- desktop app: the Head of Product proposes the session; you start it with one click;
+- CLI: `claude --agent <agent>` and paste the brief it gives you.
 
-In the desktop app: start a new session in this folder and say *"Use the tech-lead agent for task E-012"*.
-Each separate chat reads `board.md`, does its task, writes `docs/agents/handoffs/E-###.md`, and the orchestrator
-picks it up on its next run. Two chats that write code must not touch the same files at the same time —
-give each one its own git worktree/branch.
-
-## Human approval gates (agents stop and ask)
+## Human approval gates (agents stop and ask you)
 Architecture reversals · design direction and major screens · provider contracts/accounts/payments · anything sent to
-the client or published · public claims (credentials, prices, dates) · production releases and pushes to `main` ·
-deleting data.
+the client or published · public claims (credentials, prices, dates) · merging to `main` / releases ·
+deleting data, content or agents you approved.
 
 ## Handoff format
-1. **Task** 2. **Output** 3. **Decisions made** 4. **Open issues** 5. **Next owner** — template in
-`handoffs/_template.md`.
+**Task · Output · Decisions made · Open issues · Next owner** — template in [`handoffs/_template.md`](handoffs/_template.md).
+New agents: [`agent-template.md`](agent-template.md).
