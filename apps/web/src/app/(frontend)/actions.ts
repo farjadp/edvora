@@ -7,10 +7,14 @@ import { headers } from 'next/headers'
 import { z } from 'zod'
 import { env } from '../../env'
 import { CheckoutError, createOrder, startInstalmentPayment } from '../../lib/checkout'
+import { saveSubmission } from '../../lib/assignmentSubmissions'
 import { idOf } from '../../lib/ids'
+import { blockersFor, findEnrollment, loadCourseState } from '../../lib/learning'
 import { getPayloadClient } from '../../lib/payload'
 import { getSms, notify } from '../../lib/providers'
+import { QuizError, saveAnswers, startAttempt, submitAttempt } from '../../lib/quizAttempts'
 import { getCurrentUser, startSession } from '../../lib/session'
+import { studentAttempt, studentCourse, studentQuiz } from '../../lib/student'
 import { getCurrentTenant } from '../../lib/tenant'
 
 /**
@@ -214,25 +218,119 @@ export async function startCheckout(_prev: FormState, form: FormData): Promise<F
 // ---------------------------------------------------------------- Learning
 
 export async function markLessonComplete(form: FormData): Promise<void> {
-  const lessonId = Number(form.get('lessonId'))
-  const back = safeNext(form.get('back'))
+  const parsed = z.object({ lessonId: z.coerce.number().int().positive(), back: z.string().max(300) }).safeParse(Object.fromEntries(form))
+  if (!parsed.success) return
+  const back = safeNext(parsed.data.back)
   const user = await getCurrentUser()
   if (!user) return
 
-  const payload = await getPayloadClient()
-  const lesson = await payload.findByID({ collection: 'lessons', id: lessonId, depth: 0, overrideAccess: true })
-  const res = await payload.find({
-    collection: 'enrollments',
-    where: { and: [{ user: { equals: user.id } }, { course: { equals: idOf(lesson.course) } }, { status: { not_equals: 'cancelled' } }] },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const enrollment = res.docs[0]
-  if (enrollment) {
+  try {
+    const [payload, tenant] = await Promise.all([getPayloadClient(), getCurrentTenant()])
+    const lesson = await payload.findByID({ collection: 'lessons', id: parsed.data.lessonId, depth: 0, overrideAccess: true, disableErrors: true })
+    if (!lesson || idOf(lesson.tenant) !== tenant.id) return
+    const course = await payload.findByID({ collection: 'courses', id: idOf(lesson.course)!, depth: 0, overrideAccess: true })
+    const enrollment = await findEnrollment({ payload }, tenant.id, user.id, course.id)
+    if (!enrollment) return
+    // Server-side gates: drip (R3) and required quiz/assignment of this lesson (Q8).
+    const state = await loadCourseState({ payload }, { tenantId: tenant.id, course, enrollment })
+    if (state.locks.get(String(lesson.id))?.state !== 'open' || blockersFor(state, lesson.id).length > 0) return
     const done = new Set((enrollment.completedLessons ?? []).map((l) => idOf(l)!))
     done.add(lesson.id)
     await payload.update({ collection: 'enrollments', id: enrollment.id, overrideAccess: true, data: { completedLessons: [...done] } })
+  } catch (err) {
+    console.error('[markLessonComplete]', err)
   }
   revalidatePath(back)
+}
+
+// ---------------------------------------------------------------- Quizzes (phase-2 §Q)
+
+const QuizRef = z.object({ quizId: z.coerce.number().int().positive(), course: z.string().trim().min(1).max(200) })
+
+export async function startQuiz(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = QuizRef.safeParse(Object.fromEntries(form))
+  if (!parsed.success) return { ok: false, message: 'درخواست نامعتبر است.' }
+  try {
+    const ctx = await studentQuiz(parsed.data.course, parsed.data.quizId)
+    if (!ctx) return { ok: false, message: 'این آزمون در دسترس نیست.' }
+    if (!ctx.status.released) return { ok: false, message: 'این آزمون با باز شدن جلسه‌اش در دسترس قرار می‌گیرد.' }
+    const payload = await getPayloadClient()
+    await startAttempt({ payload }, { tenantId: ctx.tenant.id, quiz: ctx.quiz, enrollment: ctx.state.enrollment, attempts: ctx.status.attempts, extraAttempts: ctx.status.extraAttempts })
+    return { ok: true, message: 'آزمون شروع شد.', redirectTo: `/learn/${ctx.course.slug}/quiz/${ctx.quiz.id}` }
+  } catch (err) {
+    if (err instanceof QuizError) return { ok: false, message: err.message }
+    console.error('[startQuiz]', err)
+    return { ok: false, message: 'شروع آزمون انجام نشد. دوباره تلاش کنید.' }
+  }
+}
+
+const AnswerInput = z.record(
+  z.string().max(40),
+  z.object({ optionIds: z.array(z.string().max(80)).max(50).optional(), text: z.string().max(500).optional() }),
+)
+const AttemptInput = z.object({ attemptId: z.number().int().positive(), answers: AnswerInput })
+
+export type QuizSaveState = { ok: boolean; message: string; closed?: boolean; redirectTo?: string }
+
+const resultUrl = (courseSlug: string, quizId: number, attemptNo: number) => `/learn/${courseSlug}/quiz/${quizId}/attempt/${attemptNo}`
+
+/** Autosave (Q3). Called by the quiz screen; the server decides whether time is up. */
+export async function saveQuizAnswers(input: z.input<typeof AttemptInput>): Promise<QuizSaveState> {
+  const parsed = AttemptInput.safeParse(input)
+  if (!parsed.success) return { ok: false, message: 'پاسخ‌ها نامعتبرند.' }
+  try {
+    const ctx = await studentAttempt(parsed.data.attemptId)
+    if (!ctx) return { ok: false, message: 'این آزمون در دسترس نیست.', closed: true }
+    const url = resultUrl(ctx.course.slug, ctx.quiz.id, ctx.attempt.attemptNo)
+    if (ctx.attempt.status !== 'in_progress') return { ok: false, message: 'این تلاش ارسال شده است.', closed: true, redirectTo: url }
+    await saveAnswers({ payload: await getPayloadClient() }, ctx.attempt, ctx.quiz, parsed.data.answers)
+    return { ok: true, message: 'ذخیره شد' }
+  } catch (err) {
+    if (err instanceof QuizError) return { ok: false, message: err.message, closed: true }
+    console.error('[saveQuizAnswers]', err)
+    return { ok: false, message: 'ذخیره نشد' }
+  }
+}
+
+/** Submit (Q3, Q5). Idempotent: a second submit returns the same result page. */
+export async function submitQuiz(input: z.input<typeof AttemptInput>): Promise<QuizSaveState> {
+  const parsed = AttemptInput.safeParse(input)
+  if (!parsed.success) return { ok: false, message: 'پاسخ‌ها نامعتبرند.' }
+  try {
+    const ctx = await studentAttempt(parsed.data.attemptId)
+    if (!ctx) return { ok: false, message: 'این آزمون در دسترس نیست.' }
+    const done = await submitAttempt({ payload: await getPayloadClient() }, ctx.attempt, ctx.quiz, parsed.data.answers)
+    return { ok: true, message: 'ارسال شد.', closed: true, redirectTo: resultUrl(ctx.course.slug, ctx.quiz.id, done.attemptNo) }
+  } catch (err) {
+    console.error('[submitQuiz]', err)
+    return { ok: false, message: 'ارسال انجام نشد. پاسخ‌ها روی همین دستگاه نگه داشته شده‌اند؛ دوباره تلاش کنید.' }
+  }
+}
+
+// ---------------------------------------------------------------- Assignments (phase-2 §C2)
+
+const SubmissionInput = z.object({
+  assignmentId: z.coerce.number().int().positive(),
+  course: z.string().trim().min(1).max(200),
+  text: z.string().max(20_000).optional().default(''),
+})
+
+export async function submitAssignment(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = SubmissionInput.safeParse({ assignmentId: form.get('assignmentId'), course: form.get('course'), text: form.get('text') ?? '' })
+  if (!parsed.success) return { ok: false, message: 'اطلاعات فرم کامل نیست.' }
+  const files = form.getAll('files').filter((f): f is File => typeof f === 'object' && f !== null && 'arrayBuffer' in f && f.size > 0)
+  const remove = form
+    .getAll('removeFile')
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n > 0)
+  try {
+    const ctx = await studentCourse(parsed.data.course)
+    if (!ctx) return { ok: false, message: 'این تکلیف در دسترس نیست.' }
+    const result = await saveSubmission({ payload: await getPayloadClient() }, { ctx, assignmentId: parsed.data.assignmentId, text: parsed.data.text, files, removeFileIds: remove })
+    if (!result.ok) return { ok: false, message: result.message }
+    return { ok: true, message: result.message, redirectTo: `/learn/${ctx.course.slug}/assignment/${parsed.data.assignmentId}?saved=1` }
+  } catch (err) {
+    console.error('[submitAssignment]', err)
+    return { ok: false, message: 'ارسال انجام نشد. اتصال را بررسی کنید و دوباره تلاش کنید؛ تحویل قبلی شما دست نخورده است.' }
+  }
 }
