@@ -60,6 +60,9 @@ const bundleFor = (c: Pick<Conn, 'connectionId' | 'secret'>, tenant: string, rec
   writeBundle(site.manifest(c, tenant), records, secret)
 
 async function uploadSite(page: Page, records?: SourceRecord[]) {
+  // A connection is revoked once its import is done (QA-E032-08); this suite re-imports the same site several times
+  // with one connection, so it re-opens it first (test data only).
+  await sql('update import_connections set revoked_at = null where connection_id = $1', [conn.connectionId])
   return upload(page, DEMO, { name: `qa-${site.suffix}.edvora-bundle`, buffer: bundleFor(conn, 'demo', records) })
 }
 

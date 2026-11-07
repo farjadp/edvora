@@ -220,3 +220,19 @@ describe('plugin zip', () => {
     expect(zip.readUInt16LE(zip.length - 22 + 10)).toBe(1)
   })
 })
+
+// ---------------------------------------------------------------- held-user decisions (W8a)
+
+describe('withPhoneOverrides (admin decisions before planning)', () => {
+  it('injects the entered phone first and leaves skipped users out, keeping the manifest count consistent', async () => {
+    const { MemorySource, makeRecord } = await import('@edvora/integrations/wordpress')
+    const { withPhoneOverrides } = await import('./sources')
+    const manifest = { format: 'edvora-wp-export', formatVersion: 1, pluginVersion: '1', createdAtGmt: 'x', connectionId: 'c', tenantSlug: 'demo', site: { siteId: 's', homeUrl: 'https://x.ir' }, counts: { 'wp.user': 3 } } as const
+    const src = new MemorySource(manifest, [makeRecord('wp.user', 1, {}), makeRecord('wp.user', 2, {}, { meta: { mobile: 'x' } }), makeRecord('wp.user', 3, {})])
+    const patched = withPhoneOverrides(src, { '2': '09120000099' }, ['3'])
+    const page = await patched.read('wp.user', null, 10)
+    expect(page.records.map((r) => r.wpId)).toEqual(['1', '2'])
+    expect(page.records[1]?.meta).toMatchObject({ digits_phone: '09120000099', mobile: 'x' })
+    expect((await patched.manifest()).counts['wp.user']).toBe(2)
+  })
+})
