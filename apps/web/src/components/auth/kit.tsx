@@ -19,10 +19,13 @@ export const authPrimary = cx(
   focusRing,
 )
 
-export const authSecondary = cx(
-  'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border border-line-strong px-4 text-center font-medium text-ink transition-colors hover:bg-sunken disabled:opacity-60',
+const secondaryBase = cx(
+  'inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-line-strong px-4 text-center font-medium text-ink transition-colors hover:bg-sunken disabled:opacity-60',
   focusRing,
 )
+export const authSecondary = cx(secondaryBase, 'w-full')
+/** Same look, sized to its label (e.g. «کپی کلید» next to the key). */
+export const authSecondaryInline = secondaryBase
 
 /** Inline text link / button. Underlined in the brand colour; never colour-only. */
 export const authLink = cx(

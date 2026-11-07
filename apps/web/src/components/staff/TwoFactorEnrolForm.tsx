@@ -1,10 +1,9 @@
 'use client'
 
-import { cx } from '@edvora/ui'
 import { SealIcon } from '@edvora/ui/seal'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { CodeBoxes, LockCountdown, PrimaryButton, SecondaryButton, UnlockedStatus } from '../auth/fields'
-import { AuthAlert, AuthNotice, AuthPostButton, authPrimary, authSecondary } from '../auth/kit'
+import { AuthAlert, AuthNotice, AuthPostButton, authPrimary, authSecondary, authSecondaryInline } from '../auth/kit'
 import { requestSetup, submitCode, type CodeSubmit, type SetupSubmit, type TwoFactorSetupData } from './twoFactorClient'
 import { useCodeSubmit } from './useCodeSubmit'
 
@@ -202,7 +201,7 @@ export function TwoFactorEnrolForm({
                 <code dir="ltr" className="min-w-0 select-all break-all rounded-md bg-sunken px-3 py-2 font-latin text-sm font-bold tracking-wider text-ink">
                   {groupKey(setup.secret)}
                 </code>
-                <button type="button" onClick={copyKey} className={cx(authSecondary, 'w-auto')}>
+                <button type="button" onClick={copyKey} className={authSecondaryInline}>
                   {copied ? 'کپی شد' : 'کپی کلید'}
                 </button>
                 <span role="status" className="sr-only">
@@ -227,7 +226,7 @@ export function TwoFactorEnrolForm({
                 onChange={s.setCode}
                 disabled={locked || s.pending}
                 invalid={Boolean(s.error)}
-                hint={s.hint}
+                hint={locked ? null : s.hint}
                 describedBy="enrol-alert"
                 inputRef={codeRef}
               />

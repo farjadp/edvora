@@ -64,7 +64,7 @@ export function TwoFactorVerifyForm({ email, next, logoutHref, initialLockedUnti
           onChange={s.setCode}
           disabled={locked || s.pending || done.current}
           invalid={Boolean(s.error)}
-          hint={s.hint}
+          hint={locked ? null : s.hint}
           describedBy="verify-alert"
           inputRef={codeRef}
         />
