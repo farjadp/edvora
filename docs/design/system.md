@@ -246,3 +246,27 @@ Empty data means an empty state, never an invented number. Scope (`ConsoleScope`
 selection, the academies the person is staff in, or (platform admin only) the whole platform, named in the eyebrow.
 Nav (`lib/consoleNav.ts`): a module shows when its `read` rule (mirrors the collection's staff read rule) holds; in
 /admin also Payload's own read permission (`payloadAllows`, which accepts where-scoped `{ permission, where }`).
+
+## Student panel palette (2026-11-07): `/login`, `/dashboard`, `/learn`
+
+Farjad's decision ("Students too"): the student panel and student login use the same Edvora palette as the console. The
+public site (home, courses, verify) keeps the academy's own colours. Only colours change; the girih seal, Morabba +
+Vazirmatn, and the XP/streak/badge shapes stay as they are.
+
+How: `PublicChrome` wraps these routes (`lib/studentRoutes.ts`) in `[data-student]`. That scope in `console-tokens.css`
+re-maps the site tokens (`--bg`, `--brand`, `--milestone` ...) to the `--c-*` palette, so no component changed and there
+are no hard-coded colours.
+
+| Token | Light | Dark |
+| --- | --- | --- |
+| bg / surface | warm white `#f7f3e8` / `#fdfbf5` | petrol `#0a2231` / `#0f3047` |
+| brand (buttons, rings, seal) | petrol `#123c55`, text `#f7f3e8` | turquoise `#40b5ad`, text petrol |
+| brand-text (links) | `#0b6a65` | `#5cd0c8` |
+| accent | turquoise `#40b5ad`, text petrol | same |
+| milestone (XP, badges, certificate) | `#745715` (also used as text), ink `#fdfbf5` | matte gold `#c9a45c`, ink petrol |
+| e-tint (wash) | `#e1f1eb` | `#113c51` (darker than the console's so turquoise/gold keep 4.5:1) |
+| line-strong (control borders) | `#73848a` | `#6a8ca0` |
+
+Contrast (computed; `docs/design/students/contrast.mjs`): every text token (ink, muted, brand-text, brand, ok, danger,
+milestone) is ≥ 4.5:1 on bg, surface, sunken and e-tint in both themes. Lowest: light ok on e-tint 4.94, dark brand on
+e-tint 4.71. Button pairs ≥ 4.68. Focus and control borders ≥ 3:1 (lowest: light line-strong on sunken 3.21).
