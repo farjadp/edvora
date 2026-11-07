@@ -35,6 +35,9 @@ export interface Config {
     assignments: Assignment;
     submissions: Submission;
     'submission-files': SubmissionFile;
+    'live-sessions': LiveSession;
+    attendance: Attendance;
+    'live-events': LiveEvent;
     certificates: Certificate;
     leads: Lead;
     orders: Order;
@@ -65,6 +68,9 @@ export interface Config {
     assignments: AssignmentsSelect<false> | AssignmentsSelect<true>;
     submissions: SubmissionsSelect<false> | SubmissionsSelect<true>;
     'submission-files': SubmissionFilesSelect<false> | SubmissionFilesSelect<true>;
+    'live-sessions': LiveSessionsSelect<false> | LiveSessionsSelect<true>;
+    attendance: AttendanceSelect<false> | AttendanceSelect<true>;
+    'live-events': LiveEventsSelect<false> | LiveEventsSelect<true>;
     certificates: CertificatesSelect<false> | CertificatesSelect<true>;
     leads: LeadsSelect<false> | LeadsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
@@ -1007,6 +1013,86 @@ export interface SubmissionFile {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "live-sessions".
+ */
+export interface LiveSession {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  course: number | Course;
+  /**
+   * Empty = every active student of the course may join.
+   */
+  cohort?: (number | null) | Cohort;
+  instructor?: (number | null) | User;
+  /**
+   * Stored in UTC, shown in Tehran time on the site.
+   */
+  startsAt: string;
+  durationMin: number;
+  joinWindowMin?: number | null;
+  status?: ('scheduled' | 'live' | 'ended' | 'cancelled') | null;
+  record?: boolean | null;
+  waitingRoom?: boolean | null;
+  provider?: string | null;
+  providerRoomId?: string | null;
+  /**
+   * Changes each time the provider re-creates the room.
+   */
+  createTime?: string | null;
+  /**
+   * Added when the provider reports a recording. Copying to object storage and attaching a lesson is E-017.
+   */
+  recordings?:
+    | {
+        providerRecordingId: string;
+        format?: string | null;
+        durationSec?: number | null;
+        status?: ('ready' | 'copied' | 'failed') | null;
+        url?: string | null;
+        lesson?: (number | null) | Lesson;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "attendance".
+ */
+export interface Attendance {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  session: number | LiveSession;
+  user: number | User;
+  course?: (number | null) | Course;
+  cohort?: (number | null) | Cohort;
+  joinedAt?: string | null;
+  leftAt?: string | null;
+  minutes?: number | null;
+  openSince?: string | null;
+  source?: ('webhook' | 'summary' | 'manual' | 'import') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "live-events".
+ */
+export interface LiveEvent {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  provider: string;
+  eventId: string;
+  type: string;
+  session?: (number | null) | LiveSession;
+  occurredAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "certificates".
  */
 export interface Certificate {
@@ -1232,6 +1318,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'submission-files';
         value: number | SubmissionFile;
+      } | null)
+    | ({
+        relationTo: 'live-sessions';
+        value: number | LiveSession;
+      } | null)
+    | ({
+        relationTo: 'attendance';
+        value: number | Attendance;
+      } | null)
+    | ({
+        relationTo: 'live-events';
+        value: number | LiveEvent;
       } | null)
     | ({
         relationTo: 'certificates';
@@ -1778,6 +1876,71 @@ export interface SubmissionFilesSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "live-sessions_select".
+ */
+export interface LiveSessionsSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  course?: T;
+  cohort?: T;
+  instructor?: T;
+  startsAt?: T;
+  durationMin?: T;
+  joinWindowMin?: T;
+  status?: T;
+  record?: T;
+  waitingRoom?: T;
+  provider?: T;
+  providerRoomId?: T;
+  createTime?: T;
+  recordings?:
+    | T
+    | {
+        providerRecordingId?: T;
+        format?: T;
+        durationSec?: T;
+        status?: T;
+        url?: T;
+        lesson?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "attendance_select".
+ */
+export interface AttendanceSelect<T extends boolean = true> {
+  tenant?: T;
+  session?: T;
+  user?: T;
+  course?: T;
+  cohort?: T;
+  joinedAt?: T;
+  leftAt?: T;
+  minutes?: T;
+  openSince?: T;
+  source?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "live-events_select".
+ */
+export interface LiveEventsSelect<T extends boolean = true> {
+  tenant?: T;
+  provider?: T;
+  eventId?: T;
+  type?: T;
+  session?: T;
+  occurredAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

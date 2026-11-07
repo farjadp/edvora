@@ -20,6 +20,7 @@ import { Courses } from './collections/Courses'
 import { Enrollments } from './collections/Enrollments'
 import { Leads } from './collections/Leads'
 import { Lessons } from './collections/Lessons'
+import { Attendance, LiveEvents, LiveSessions } from './collections/LiveSessions'
 import { Media } from './collections/Media'
 import { Memberships } from './collections/Memberships'
 import { Orders } from './collections/Orders'
@@ -71,6 +72,9 @@ export default buildConfig({
     Assignments,
     Submissions,
     SubmissionFiles,
+    LiveSessions,
+    Attendance,
+    LiveEvents,
     Certificates,
     Leads,
     Orders,
@@ -119,6 +123,10 @@ export default buildConfig({
         assignments: {},
         submissions: {},
         'submission-files': {},
+        // E-033: live classes (ADR 012).
+        'live-sessions': {},
+        attendance: {},
+        'live-events': {},
       },
       // No hard delete: academies are never removed, so never cascade-delete their records.
       cleanupAfterTenantDelete: false,

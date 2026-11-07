@@ -16,6 +16,12 @@ const schema = z.object({
   KAVENEGAR_API_KEY: z.string().optional(),
   KAVENEGAR_SENDER: z.string().optional(),
   KAVENEGAR_OTP_TEMPLATE: z.string().default('verify'),
+  // E-033 live classes (ADR 012). One BBB server per Edvora instance, shared by its academies.
+  LIVE_CLASS_PROVIDER: z.enum(['mock', 'bigbluebutton']).default('mock'),
+  LIVE_CLASS_MOCK_SECRET: z.string().optional(),
+  BBB_URL: z.string().url().optional(),
+  BBB_SECRET: z.string().optional(),
+  BBB_CHECKSUM: z.enum(['sha1', 'sha256', 'sha512']).default('sha256'),
 })
 
 export type Env = z.infer<typeof schema>

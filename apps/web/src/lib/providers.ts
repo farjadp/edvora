@@ -1,5 +1,7 @@
 import 'server-only'
+import { createHash } from 'node:crypto'
 import { createPaymentProvider, createSmsProvider, type PaymentProvider, type SmsProvider } from '@edvora/integrations'
+import { createLiveClassProvider, type LiveClassProvider } from '@edvora/integrations/live-class'
 import { env } from '../env'
 import type { Tenant } from '../payload-types'
 
@@ -21,6 +23,22 @@ export function getPayment(tenant: Tenant, origin?: string): PaymentProvider {
     zarinpalMerchantId: tenant.zarinpalMerchantId || e.ZARINPAL_MERCHANT_ID,
     zarinpalSandbox: e.ZARINPAL_SANDBOX,
     mockGatewayUrl: `${origin ?? e.NEXT_PUBLIC_SITE_URL}/pay/mock`,
+  })
+}
+
+/**
+ * Live-class provider (ADR 012). One provider per Edvora instance (env), shared by its academies; the mock
+ * needs no server and opens `/live/mock` on the request's own origin.
+ */
+export function getLiveClass(origin?: string): LiveClassProvider {
+  const e = env()
+  if (e.LIVE_CLASS_PROVIDER === 'bigbluebutton') {
+    return createLiveClassProvider({ provider: 'bigbluebutton', baseUrl: e.BBB_URL ?? '', secret: e.BBB_SECRET ?? '', checksumAlgorithm: e.BBB_CHECKSUM })
+  }
+  return createLiveClassProvider({
+    provider: 'mock',
+    mockRoomUrl: `${origin ?? e.NEXT_PUBLIC_SITE_URL}/live/mock`,
+    mockSecret: e.LIVE_CLASS_MOCK_SECRET || createHash('sha256').update(`live:${e.SESSION_SECRET}`).digest('hex'),
   })
 }
 
