@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { DEMO, fakePhone } from './helpers'
 import { COURSE, activeStudent, dangerColoured, dashboardNumbers, enrolFresh, failQuiz, ledgerEvent, openLesson, passQuiz, patchOk, repoRoot, reseed, startQuiz } from './gamification-helpers'
+import { raiseDemoSeats } from '../global-setup'
 import { adminCreds, apiAs, tenantId } from './staff-helpers'
 
 /**
@@ -231,6 +232,8 @@ test.describe('4. gamification OFF layout', () => {
 
 test.describe('5. advisor daily goal moves only on a recorded outcome', () => {
   test.beforeAll(() => reseed())
+  // The seed resets the demo cohort to 30 seats; later specs need free seats.
+  test.afterAll(async () => raiseDemoSeats(admin))
 
   test('moving the date does not count; an outcome chip does', async ({ page, playwright }) => {
     test.setTimeout(180_000)

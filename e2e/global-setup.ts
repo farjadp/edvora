@@ -1,4 +1,4 @@
-import { request } from '@playwright/test'
+import { request, type APIRequestContext } from '@playwright/test'
 import { adminCreds, tenantId } from './tests/staff-helpers'
 
 /**
@@ -14,11 +14,16 @@ export default async function globalSetup(): Promise<void> {
   try {
     const login = await api.post('/api/users/login', { data: { email, password } })
     if (!login.ok()) return
-    const tid = await tenantId(api, 'demo')
-    const res = await api.get(`/api/cohorts?where[tenant][equals]=${tid}&limit=50&depth=0`)
-    const docs = ((await res.json()) as { docs?: { id: number; seats?: number | null }[] }).docs ?? []
-    for (const c of docs) if ((c.seats ?? 0) < 500) await api.patch(`/api/cohorts/${c.id}`, { data: { seats: 500 } })
+    await raiseDemoSeats(api)
   } finally {
     await api.dispose()
   }
+}
+
+/** `api` must be logged in as the super admin. Also used after a re-seed, which resets the seats. */
+export async function raiseDemoSeats(api: APIRequestContext): Promise<void> {
+  const tid = await tenantId(api, 'demo')
+  const res = await api.get(`/api/cohorts?where[tenant][equals]=${tid}&limit=50&depth=0`)
+  const docs = ((await res.json()) as { docs?: { id: number; seats?: number | null }[] }).docs ?? []
+  for (const c of docs) if ((c.seats ?? 0) < 500) await api.patch(`/api/cohorts/${c.id}`, { data: { seats: 500 } })
 }
