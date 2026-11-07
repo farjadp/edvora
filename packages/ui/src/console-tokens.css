@@ -122,3 +122,42 @@
   --e-tint: var(--c-brand-wash);
   --e-track: var(--c-chart-track);
 }
+
+/*
+ * Student panel + student login (Farjad, 2026-11-07: "Students too"). Same palette as the console, same Seal shapes:
+ * only colours change. Put data-student on the page root (PublicChrome does this for /login, /dashboard, /learn).
+ * Light: petrol buttons on warm white, turquoise for links/ticks. Dark: turquoise buttons with petrol text on a petrol
+ * base. Gold stays the only achievement colour; in light it uses the darker tone so it also works as text.
+ * Every text pair >= 4.5:1 and every control/graphic edge >= 3:1 in both themes (docs/design/system.md).
+ */
+[data-student] {
+  --bg: var(--c-bg);
+  --surface: var(--c-surface);
+  --sunken: var(--c-sunken);
+  --ink: var(--c-ink);
+  --muted: var(--c-muted);
+  --line: var(--c-line);
+  /* A touch darker than the console's so input borders keep 3:1 on the sunken ground too. */
+  --line-strong: #73848a;
+  --brand: var(--c-primary);
+  --brand-ink: var(--c-primary-ink);
+  --brand-text: var(--c-brand-text);
+  --accent: var(--c-brand);
+  --accent-ink: var(--c-brand-ink);
+  --focus: var(--c-focus);
+  --ok: var(--c-ok);
+  --danger: var(--c-danger);
+  --milestone: var(--c-milestone-text);
+  --milestone-ink: var(--c-surface);
+  --e-tint: var(--c-brand-wash);
+  --e-track: var(--c-chart-track);
+}
+
+[data-theme='dark'] [data-student],
+[data-theme='dark'][data-student] {
+  --line-strong: var(--c-line-strong);
+  --milestone: var(--c-milestone);
+  --milestone-ink: var(--c-milestone-ink);
+  /* Darker wash than the console's so turquoise and gold on it keep 4.5:1. */
+  --e-tint: #113c51;
+}
