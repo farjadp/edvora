@@ -20,6 +20,8 @@
  *   IBA_IMPORT_RESET_STATUS 1 = recompute course published/draft (default: keep what an admin set after the first run)
  *   IBA_MEDIA_API_URL   upload images through this deployed app's REST API instead of the local disk (Railway: the
  *                       app's own domain), signing in with IBA_MEDIA_API_EMAIL / IBA_MEDIA_API_PASSWORD (super admin).
+ *   IBA_MEDIA_API_BASIC user:password for a host behind the private-preview basic auth (src/proxy.ts). The Payload
+ *                       token then travels as the payload-token cookie, since Authorization carries Basic.
  *                       Needed when the import runs on your machine against a remote database.
  */
 import { toLatinDigits } from '@edvora/core/digits'
@@ -370,7 +372,9 @@ async function remoteMediaUploader() {
   const email = process.env.IBA_MEDIA_API_EMAIL
   const password = process.env.IBA_MEDIA_API_PASSWORD
   if (!email || !password) throw new Error('IBA_MEDIA_API_URL needs IBA_MEDIA_API_EMAIL and IBA_MEDIA_API_PASSWORD (a super admin).')
-  const login = await fetch(`${base}/api/users/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password }) })
+  const basic = process.env.IBA_MEDIA_API_BASIC
+  const gate: Record<string, string> = basic ? { authorization: `Basic ${Buffer.from(basic, 'utf8').toString('base64')}` } : {}
+  const login = await fetch(`${base}/api/users/login`, { method: 'POST', headers: { 'content-type': 'application/json', ...gate }, body: JSON.stringify({ email, password }) })
   if (!login.ok) throw new Error(`Media API login failed: ${login.status} ${await login.text()}`)
   const { token } = (await login.json()) as { token?: string }
   if (!token) throw new Error('Media API login returned no token')
@@ -380,7 +384,8 @@ async function remoteMediaUploader() {
     const name = decodeURIComponent(new URL(sourceUrl).pathname.split('/').pop() ?? 'file')
     form.append('file', new Blob([await readFile(filePath)], { type: mimeType }), name)
     form.append('_payload', JSON.stringify(data))
-    const res = await fetch(`${base}/api/media`, { method: 'POST', headers: { authorization: `JWT ${token}` }, body: form })
+    const auth: Record<string, string> = basic ? { ...gate, cookie: `payload-token=${token}` } : { authorization: `JWT ${token}` }
+    const res = await fetch(`${base}/api/media`, { method: 'POST', headers: auth, body: form })
     if (!res.ok) throw new Error(`POST /api/media ${res.status}: ${(await res.text()).slice(0, 300)}`)
     const json = (await res.json()) as { doc?: { id: number } }
     if (!json.doc?.id) throw new Error('POST /api/media returned no id')

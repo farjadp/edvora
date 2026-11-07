@@ -7,6 +7,7 @@ import { checkPreviewGate, parsePreviewGate } from '@edvora/core/previewGate'
  *   PRIVATE_PREVIEW_HOSTS     comma list of hosts, or * for every host
  *   PRIVATE_PREVIEW_USER      basic-auth user     } both set → basic auth on those hosts
  *   PRIVATE_PREVIEW_PASSWORD  basic-auth password }
+ * A user without a password locks the hosts (fail closed) until the password is set.
  * Hosts not listed are untouched.
  */
 const gate = parsePreviewGate(process.env)

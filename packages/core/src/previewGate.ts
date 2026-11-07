@@ -2,7 +2,8 @@
 
 export interface PreviewGate {
   hosts: Set<string> | 'all'
-  credentials: string | null
+  /** user:password; 'locked' = user set but no password yet (fail closed: nobody gets in). */
+  credentials: string | 'locked' | null
 }
 
 export function parsePreviewGate(env: Record<string, string | undefined>): PreviewGate {
@@ -10,7 +11,7 @@ export function parsePreviewGate(env: Record<string, string | undefined>): Previ
   const hosts: PreviewGate['hosts'] = raw === '*' ? 'all' : new Set(raw.split(',').map((h) => h.trim().toLowerCase()).filter(Boolean))
   const user = env.PRIVATE_PREVIEW_USER?.trim()
   const password = env.PRIVATE_PREVIEW_PASSWORD
-  return { hosts, credentials: user && password ? `${user}:${password}` : null }
+  return { hosts, credentials: user && password ? `${user}:${password}` : user ? 'locked' : null }
 }
 
 const normalizeHost = (host: string | null) => (host ?? '').toLowerCase().split(':')[0]!.replace(/^www\./, '')
@@ -32,6 +33,7 @@ export function checkPreviewGate(gate: PreviewGate, host: string | null, authori
   const isPrivate = gate.hosts === 'all' || gate.hosts.has(h)
   if (!isPrivate) return 'pass'
   if (!gate.credentials) return 'noindex'
+  if (gate.credentials === 'locked') return 'challenge'
   const m = /^Basic\s+(.+)$/i.exec(authorization ?? '')
   if (!m) return 'challenge'
   let decoded = ''
