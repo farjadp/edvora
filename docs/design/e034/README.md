@@ -1,5 +1,12 @@
 # E-034 · Login in the Seal direction: three options
 
+> **Status (2026-11-06): option B (Seal card) chosen and built.** The dev-only preview route
+> (`/design-preview/e034`) and its capture script were removed once the real pages shipped; the screenshots below are a
+> historical record of the three options. Real code: `apps/web/src/components/auth/*` (AuthFrame, kit, fields,
+> StudentLoginForm), `packages/ui/src/seal.tsx` (seal, guilloche, star rule, icons), `components/staff/*` forms, and
+> `components/admin/LoginSkin.tsx` + `custom.scss` for `/admin/login`. Sections «Run» and the PublicChrome note below
+> describe the removed preview.
+
 Dev-only preview (404 in production, `noindex`). Spec: `docs/ux/E-034-login.md`. All data is a neutral sample tenant («آکادمی نمونه»); nothing is saved, no auth code is touched.
 No gold anywhere (reserved for milestones). Morabba for headings, Vazirmatn for text, tenant `--brand` drives fills, accents and focus.
 
