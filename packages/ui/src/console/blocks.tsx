@@ -348,7 +348,7 @@ export function Pagination({ summary, pages, prev, next, prevLabel = 'قبلی',
               {prevLabel}
             </a>
           ) : (
-            <span className={cx(item, 'border-line text-muted opacity-60')}>{prevLabel}</span>
+            <span aria-disabled="true" className={cx(item, 'border-line bg-sunken text-muted')}>{prevLabel}</span>
           )}
         </li>
         {pages.map((p) => (
@@ -368,7 +368,7 @@ export function Pagination({ summary, pages, prev, next, prevLabel = 'قبلی',
               {nextLabel}
             </a>
           ) : (
-            <span className={cx(item, 'border-line text-muted opacity-60')}>{nextLabel}</span>
+            <span aria-disabled="true" className={cx(item, 'border-line bg-sunken text-muted')}>{nextLabel}</span>
           )}
         </li>
       </ul>
