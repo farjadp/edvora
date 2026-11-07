@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 import { allow, allowCreate, anyOf, fieldAllow, guard, nobody, requireForFields } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
 import { richTextField } from '../lib/richText'
+import { isPageSlugShape, isReservedPageSlug } from '../lib/pageSlugs'
 import { sourceUrlField } from './fields'
 
 export const Testimonials: CollectionConfig = {
@@ -54,10 +55,8 @@ export const Posts: CollectionConfig = {
   ],
 }
 
-/** Top-level routes a page slug would collide with (static routes win, so the page would never show). */
-const RESERVED_PAGE_SLUGS = new Set(['admin', 'api', 'courses', 'dashboard', 'design-preview', 'faculty', 'files', 'journal', 'learn', 'login', 'logout', 'pay', 'payments', 'staff', 'verify'])
-
-/** Simple content pages per academy (about, FAQ, regulations, contact…). Shown at /<slug> when published. */
+/** Simple content pages per academy (about, FAQ, regulations, contact…). Shown at /<slug> when published, via the
+ * catch-all route `app/(frontend)/[...wpPath]` (which also serves imported WordPress redirects). */
 export const Pages: CollectionConfig = {
   slug: 'pages',
   labels: { singular: { fa: 'صفحه', en: 'Page' }, plural: { fa: 'صفحه‌ها', en: 'Pages' } },
@@ -79,9 +78,10 @@ export const Pages: CollectionConfig = {
       required: true,
       index: true,
       validate: (v: unknown) =>
-        typeof v !== 'string' || !/^[a-z0-9-]+$/.test(v)
-          ? 'lowercase latin letters, digits and dashes'
-          : RESERVED_PAGE_SLUGS.has(v)
+        // Persian slugs are allowed (WordPress pages often have them); the catch-all route serves /<slug>.
+        typeof v !== 'string' || !isPageSlugShape(v)
+          ? 'lowercase letters (any script), digits and dashes'
+          : isReservedPageSlug(v)
             ? `"${v}" is already a site address`
             : true,
     },

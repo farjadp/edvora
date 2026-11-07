@@ -2,7 +2,7 @@
  * Pure adapters between planner drafts and Payload documents (ADR 011 §Idempotency). No Payload import, unit-tested.
  *
  * - `toDocData` turns a draft's `fields` into Payload `data`: `{ $ref }`/`{ $id }` → ids, WordPress HTML → Lexical,
- *   fields Edvora has no column for yet (`sourceUrl`, until E-030) are dropped.
+ *   fields Edvora has no column for are dropped, and a few are renamed (`pages.excerpt` → `intro`).
  * - `docValues` reads a stored doc back into the draft's field names, so `fieldsChecksum(docValues(doc), fields)` is
  *   computed the same way when a draft is written (`writtenChecksum`) and when a re-run checks for edits.
  */
@@ -19,7 +19,7 @@ export function parseRefKey(refKey: string): RefKeyParts | null {
   return { siteId: refKey.slice(0, a), kind: refKey.slice(a + 1, b), wpId: refKey.slice(b + 1) }
 }
 
-/** Collections that exist in Edvora today. `pages` arrives with E-030; its drafts are reported, not written. */
+/** Collections the importer writes. `pages` came with E-030. */
 export const WRITABLE: ReadonlySet<EdvoraCollection> = new Set<EdvoraCollection>([
   'users',
   'media',
@@ -32,6 +32,7 @@ export const WRITABLE: ReadonlySet<EdvoraCollection> = new Set<EdvoraCollection>
   'enrollments',
   'certificates',
   'posts',
+  'pages',
   'redirects',
 ])
 
@@ -42,17 +43,22 @@ export const WRITABLE: ReadonlySet<EdvoraCollection> = new Set<EdvoraCollection>
  */
 const RICH_HTML: Partial<Record<EdvoraCollection, Readonly<Record<string, string>>>> = {
   posts: { bodyHtml: 'body' },
+  pages: { bodyHtml: 'body' },
   lessons: { notesHtml: 'notes' },
   quizzes: { descriptionHtml: 'description' },
   questions: { explanationHtml: 'explanation' },
 }
 
-/** Draft fields never written as columns (kept on `import-refs` instead). TODO(E-030): write `sourceUrl` once it exists. */
+/** Draft fields never written as columns (kept on `import-refs` instead). `sourceUrl` is a column since E-030. */
 const DROPPED: Partial<Record<EdvoraCollection, readonly string[]>> = {
-  courses: ['sourceUrl'],
-  posts: ['sourceUrl', 'bodyHtml'],
-  media: ['sourceUrl', 'filename', 'mimeType'],
+  posts: ['bodyHtml'],
+  media: ['filename', 'mimeType'],
   redirects: ['target'],
+}
+
+/** Draft field → Edvora field, where the names differ. */
+const RENAMED: Partial<Record<EdvoraCollection, Readonly<Record<string, string>>>> = {
+  pages: { excerpt: 'intro' },
 }
 
 export type Resolve = (refKey: string) => number | string | null
@@ -111,6 +117,12 @@ export function toDocData(
     // `price` is required; an LMS course without a price is imported as a 0-rial draft (warned in the dry run).
     data.price = 0
   }
+  for (const [from, to] of Object.entries(RENAMED[collection] ?? {})) {
+    if (from in data) {
+      data[to] = data[from]
+      delete data[from]
+    }
+  }
   for (const f of DROPPED[collection] ?? []) delete data[f]
   for (const [k, v] of Object.entries(data)) if (v === undefined) delete data[k]
   return data
@@ -135,6 +147,7 @@ export function docValues(collection: EdvoraCollection, doc: Record<string, unkn
   const out: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(doc)) out[k] = stripRowIds(v)
   for (const [htmlKey, field] of Object.entries(RICH_HTML[collection] ?? {})) out[htmlKey] = out[field] ?? null
+  for (const [from, to] of Object.entries(RENAMED[collection] ?? {})) out[from] = out[to] ?? null
   return out
 }
 

@@ -100,12 +100,24 @@ describe('docValues / toDocData (planner ctx adapters)', () => {
     }
   })
 
-  it('posts: bodyHtml → Lexical body, sourceUrl dropped (E-030 adds it), courses get a 0 price when none', () => {
+  it('posts: bodyHtml → Lexical body, sourceUrl kept (E-030 column), courses get a 0 price when none', () => {
     const post = toDocData('posts', { title: 'T', bodyHtml: '<p>سلام</p>', sourceUrl: 'https://x.ir/t/' }, { resolve: () => null, dependsOn: [] })
-    expect(post).not.toHaveProperty('sourceUrl')
+    expect(post.sourceUrl).toBe('https://x.ir/t/')
     expect(post).not.toHaveProperty('bodyHtml')
     expect((post.body as { root: { children: unknown[] } }).root.children).toHaveLength(1)
-    expect(toDocData('courses', { title: 'c', price: null, sourceUrl: 'x' }, { resolve: () => null, dependsOn: [] })).toEqual({ title: 'c', price: 0 })
+    expect(toDocData('courses', { title: 'c', price: null, sourceUrl: 'x' }, { resolve: () => null, dependsOn: [] })).toEqual({ title: 'c', price: 0, sourceUrl: 'x' })
+    expect(toDocData('media', { alt: 'a', filename: 'f.png', mimeType: 'image/png', sourceUrl: 'https://x.ir/f.png' }, { resolve: () => null, dependsOn: [] })).toEqual({ alt: 'a', sourceUrl: 'https://x.ir/f.png' })
+  })
+
+  it('pages (E-030): bodyHtml → Lexical body, excerpt → intro, round-trips through docValues for the checksum', () => {
+    const fields = { title: 'درباره ما', slug: 'درباره-ما', excerpt: 'معرفی', bodyHtml: '<p>متن</p>', status: 'published', sourceUrl: 'https://x.ir/about/' }
+    const page = toDocData('pages', fields, { resolve: () => null, dependsOn: [] })
+    expect(page).toMatchObject({ title: 'درباره ما', slug: 'درباره-ما', intro: 'معرفی', status: 'published', sourceUrl: 'https://x.ir/about/' })
+    expect(page).not.toHaveProperty('excerpt')
+    expect(page).not.toHaveProperty('bodyHtml')
+    const back = docValues('pages', page)
+    expect(back.excerpt).toBe('معرفی')
+    expect(back.bodyHtml).toEqual(page.body)
   })
 
   it('quiz rows whose question was not imported are dropped', () => {

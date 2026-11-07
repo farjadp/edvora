@@ -1,33 +1,9 @@
 import { toPersianDigits } from '@edvora/core'
-import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
-import { RichText } from '../../../components/RichText'
-import type { Media } from '../../../payload-types'
-import { getPageBySlug } from '../../../lib/queries'
-import { getCurrentTenant } from '../../../lib/tenant'
+import type { Media, Page, Tenant } from '../payload-types'
+import { RichText } from './RichText'
 
-type Props = { params: Promise<{ page: string }> }
-
-// Only latin slugs are valid page slugs (see the Pages collection); anything else is a 404 without a query.
-const slugOf = async (params: Props['params']) => {
-  const s = (await params).page
-  return /^[a-z0-9-]+$/.test(s) ? s : null
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const slug = await slugOf(params)
-  if (!slug) return {}
-  const tenant = await getCurrentTenant()
-  const page = await getPageBySlug(tenant.id, slug)
-  return page ? { title: page.title, description: page.intro ?? undefined } : {}
-}
-
-export default async function ContentPage({ params }: Props) {
-  const slug = await slugOf(params)
-  if (!slug) notFound()
-  const tenant = await getCurrentTenant()
-  const page = await getPageBySlug(tenant.id, slug)
-  if (!page) notFound()
+/** A published content page (about, FAQ, regulations…). Rendered by the catch-all route `app/(frontend)/[...wpPath]`. */
+export function ContentPage({ page, tenant }: { page: Page; tenant: Tenant }) {
   const cover = typeof page.cover === 'object' ? (page.cover as Media | null) : null
   const src = cover?.sizes?.hero?.url ?? cover?.url
 

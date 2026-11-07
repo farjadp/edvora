@@ -225,7 +225,7 @@ test('old Persian WordPress URLs redirect on the demo host only', async ({ reque
 
   const byId = await request.get(`${DEMO}/?p=1`, { maxRedirects: 0 })
   expect([301, 307, 308]).toContain(byId.status())
-  expect(byId.headers().location).toContain('/blog/hello-world')
+  expect(byId.headers().location).toContain('/journal/hello-world')
 
   expect((await request.get(`${IBA}${old}`, { maxRedirects: 0 })).status()).toBe(404)
   expect((await request.get(`${DEMO}/this-never-existed-${randomBytes(3).toString('hex')}`, { maxRedirects: 0 })).status()).toBe(404)
