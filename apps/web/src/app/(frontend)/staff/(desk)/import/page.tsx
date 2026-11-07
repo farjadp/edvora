@@ -40,7 +40,7 @@ export default async function ImportHome() {
         <>
           <Card className="grid gap-4">
             <h2 className="text-lg font-black">۱. افزونهٔ Edvora Migrator (پیشنهادی)</h2>
-            <ol className="grid list-decimal gap-2 ps-5 leading-8">
+            <ol className="grid list-[persian] gap-2 ps-5 leading-8">
               <li>
                 <a href="/staff/import/plugin" className={linkClass}>
                   فایل افزونه را دریافت کنید
@@ -113,8 +113,8 @@ export default async function ImportHome() {
           <ul className="grid gap-3" data-testid="import-jobs">
             {jobs.docs.map((j) => (
               <li key={j.id}>
-                <a href={`/staff/import/${j.id}`} className={`${btnSecondary(true)} h-auto min-h-12 justify-between py-3`}>
-                  <span className="min-w-0 truncate text-start">
+                <a href={`/staff/import/${j.id}`} className={`${btnSecondary(true)} h-auto min-h-12 flex-col items-start justify-between py-3 sm:flex-row sm:items-center`}>
+                  <span className="min-w-0 max-w-full truncate text-start">
                     {j.label ?? `انتقال ${toPersianDigits(j.id)}`} <span className="font-normal text-muted">· {MODE_LABELS[j.mode] ?? j.mode}</span>
                   </span>
                   <span className="shrink-0 text-sm font-normal text-muted">

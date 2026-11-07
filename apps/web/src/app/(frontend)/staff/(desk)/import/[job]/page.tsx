@@ -341,7 +341,7 @@ function Summary({ jobId, summary, finishedAt, purgeAfter, purgedAt, run }: { jo
       ) : null}
 
       <Section title="قدم‌های بعدی">
-        <ol className="grid list-decimal gap-1 ps-5 leading-8">
+        <ol className="grid list-[persian] gap-1 ps-5 leading-8">
           <li>دوره‌های منتقل‌شده پیش‌نویس‌اند؛ قیمت و محتوا را بررسی و سپس منتشر کنید.</li>
           <li>به مدیران و مدرسان نقش بدهید.</li>
           <li>برای کاربران نگه‌داشته شماره جمع کنید و انتقال را دوباره اجرا کنید.</li>

@@ -151,7 +151,8 @@ export async function saveChoicesAction(_prev: ImportActionState, form: FormData
   const overrides: Record<string, { course: string } | { courseId: number } | 'standalone' | 'skip'> = {}
   for (const link of report.productCourseMap ?? []) {
     const raw = form.get(`product:${link.productWpId}`)
-    if (typeof raw !== 'string' || raw === '') continue
+    // Unchanged automatic proposals are not pinned: they follow the plan (e.g. after switching the LMS).
+    if (typeof raw !== 'string' || raw === '' || raw === form.get(`auto:${link.productWpId}`)) continue
     if (raw === 'standalone' || raw === 'skip') overrides[link.productWpId] = raw
     else if (raw.startsWith('ref:') && courseRefs.has(raw.slice(4))) overrides[link.productWpId] = { course: raw.slice(4) }
     // An existing Edvora course must belong to this academy (listed in the report for this tenant only).
@@ -164,12 +165,15 @@ export async function saveChoicesAction(_prev: ImportActionState, form: FormData
     tenant: tenantOf(s),
     actor: actorOf(s),
     jobId: job.id,
-    patch: (c) => ({
-      ...c,
-      enabledMappers: lmsChoice ? MAPPERS.filter((m) => m === 'woocommerce' || m === lmsChoice) : c.enabledMappers,
-      productCourseOverrides: { ...(c.productCourseOverrides ?? {}), ...overrides },
-      approvedHosts: hosts,
-    }),
+    patch: (c) => {
+      const enabledMappers = lmsChoice ? MAPPERS.filter((m) => m === 'woocommerce' || m === lmsChoice) : c.enabledMappers
+      // Overrides pointing at courses of an LMS that is no longer imported are dropped.
+      const off = MAPPERS.filter((m) => m !== 'woocommerce' && enabledMappers && !enabledMappers.includes(m))
+      const kept = Object.fromEntries(
+        Object.entries({ ...(c.productCourseOverrides ?? {}), ...overrides }).filter(([, v]) => !(typeof v === 'object' && 'course' in v && off.some((m) => v.course.includes(`:${m}.`)))),
+      )
+      return { ...c, enabledMappers, productCourseOverrides: kept, approvedHosts: hosts }
+    },
   })
   if ('ok' in result && result.ok === false) return { ok: false, message: result.message }
   return { ok: true, message: 'انتخاب‌ها ذخیره و گزارش دوباره ساخته شد.', redirectTo: jobPath(job.id) }

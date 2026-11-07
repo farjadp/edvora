@@ -253,6 +253,7 @@ export function ChoicesForm({
                     {toPersianDigits(p.usage)} سفارش یا عضویت · {p.method === 'unmapped' ? <strong className="text-danger">نامشخص</strong> : 'مشخص'}
                   </p>
                 </div>
+                <input type="hidden" name={`auto:${p.productWpId}`} value={valueOf(p)} />
                 <label className="grid gap-1 text-sm">
                   <span className="sr-only">دورهٔ محصول {p.productTitle}</span>
                   <select name={`product:${p.productWpId}`} defaultValue={valueOf(p)} disabled={disabled} className={fieldInput} data-testid={`product-${p.productWpId}`}>
