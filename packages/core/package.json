@@ -14,7 +14,10 @@
     "./assignments": "./src/assignments.ts",
     "./progress": "./src/progress.ts",
     "./jalali": "./src/jalali.ts",
-    "./richtext": "./src/richtext.ts"
+    "./richtext": "./src/richtext.ts",
+    "./gamification": "./src/gamification/index.ts",
+    "./staff-goals": "./src/staffGoals.ts",
+    "./names": "./src/names.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

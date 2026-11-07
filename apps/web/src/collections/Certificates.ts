@@ -3,6 +3,7 @@ import { APIError } from 'payload'
 import { buildCertificateCode, parseCertificateCode } from '@edvora/core'
 import { allow, allowCreate, anyOf, guard, nobody, requireForFields } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
+import { refreshAfterCertificateChange } from '../lib/gamification'
 import { idOf as relId } from '../lib/ids'
 import { findEnrollment, loadCourseState } from '../lib/learning'
 
@@ -21,7 +22,7 @@ export const Certificates: CollectionConfig = {
     delete: nobody,
   },
   hooks: {
-    afterChange: [auditChange('certificates')],
+    afterChange: [auditChange('certificates'), refreshAfterCertificateChange],
     beforeChange: [
       guard({ create: ['certificates.issue'], update: ['certificates.issue', 'certificates.revoke'], fields: SCOPE }),
       requireForFields(['status'], 'certificates.revoke', (a, b) => (a ?? 'valid') !== (b ?? 'valid')),

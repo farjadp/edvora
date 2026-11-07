@@ -48,7 +48,7 @@ export function LessonList({ courseSlug, lessons, locks, completed, currentId, b
                   <Link
                     href={`/learn/${courseSlug}/${l.id}`}
                     aria-current={current ? 'page' : undefined}
-                    className={cx('flex items-start gap-3 px-5 py-3 text-sm hover:bg-sunken', current && 'bg-sunken font-bold text-brand', locked && 'text-muted')}
+                    className={cx('flex items-start gap-3 px-5 py-3 text-sm hover:bg-sunken', current && 'bg-sunken font-bold text-brand-text', locked && 'text-muted')}
                   >
                     <span className="mt-0.5 grid w-5 shrink-0 place-items-center text-center">
                       {done ? <span className="text-ok">✓</span> : locked ? <LockIcon /> : fa(l.order)}

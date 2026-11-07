@@ -15,6 +15,7 @@ const isCI = Boolean(process.env.CI)
 
 export default defineConfig({
   testDir: './tests',
+  globalSetup: './global-setup.ts',
   outputDir: '../test-results',
   // Next dev compiles each route on first hit; give cold pages room.
   timeout: 90_000,

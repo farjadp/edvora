@@ -1,6 +1,6 @@
 'use server'
 
-import { generateOtp, hashOtp, normalizeIranMobile, safeEqual, toLatinDigits } from '@edvora/core'
+import { LEAD_OUTCOMES, canTransitionLead, generateOtp, hashOtp, LEAD_STATUSES, nextFollowUpAt as defaultFollowUpAt, normalizeIranMobile, safeEqual, toLatinDigits, type LeadStatus } from '@edvora/core'
 import { randomBytes } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
@@ -9,11 +9,15 @@ import { env } from '../../env'
 import { CheckoutError, createOrder, startInstalmentPayment } from '../../lib/checkout'
 import { saveSubmission } from '../../lib/assignmentSubmissions'
 import { idOf } from '../../lib/ids'
+import { FOLLOW_UP_CONTEXT } from '../../collections/Leads'
+import { canIn } from '../../access/permissions'
+import { onLessonMarked, onLessonWatched, safely, type WatchResult } from '../../lib/gamification'
 import { blockersFor, findEnrollment, loadCourseState } from '../../lib/learning'
 import { getPayloadClient } from '../../lib/payload'
 import { getSms, notify } from '../../lib/providers'
 import { QuizError, saveAnswers, startAttempt, submitAttempt } from '../../lib/quizAttempts'
 import { getCurrentUser, startSession } from '../../lib/session'
+import { getStaffSession } from '../../lib/staff'
 import { studentAttempt, studentCourse, studentQuiz } from '../../lib/student'
 import { getCurrentTenant } from '../../lib/tenant'
 
@@ -236,11 +240,111 @@ export async function markLessonComplete(form: FormData): Promise<void> {
     if (state.locks.get(String(lesson.id))?.state !== 'open' || blockersFor(state, lesson.id).length > 0) return
     const done = new Set((enrollment.completedLessons ?? []).map((l) => idOf(l)!))
     done.add(lesson.id)
-    await payload.update({ collection: 'enrollments', id: enrollment.id, overrideAccess: true, data: { completedLessons: [...done] } })
+    const updated = await payload.update({ collection: 'enrollments', id: enrollment.id, overrideAccess: true, data: { completedLessons: [...done] } })
+    // E-028: progress only. XP needs a server-confirmed completion (watched ≥ threshold or the lesson's quiz/assignment).
+    await safely('mark complete', () => onLessonMarked({ payload }, { tenant, enrollment: updated, lesson, state }))
   } catch (err) {
     console.error('[markLessonComplete]', err)
   }
   revalidatePath(back)
+}
+
+const WatchInput = z.object({
+  lessonId: z.number().int().positive(),
+  /** Seconds actually played since the previous beat (the server caps it by wall-clock time). */
+  playedSeconds: z.number().min(0).max(600),
+  /** The player's media duration; used only when the lesson has no staff-entered duration. */
+  durationSeconds: z.number().positive().max(24 * 60 * 60).nullable().optional(),
+})
+
+export type WatchBeaconState = ({ ok: true } & WatchResult) | { ok: false; message: string }
+
+/**
+ * Player progress beacon (E-028 T3). Call every ~15–30 s while the video is PLAYING (not paused/hidden) with the
+ * seconds played since the last call. At ≥ the academy's threshold (default 90 %) the lesson is completed and its
+ * XP is paid once. Server-checked: tenant, signed-in student, live enrollment, drip.
+ */
+export async function reportLessonWatch(input: z.input<typeof WatchInput>): Promise<WatchBeaconState> {
+  const parsed = WatchInput.safeParse(input)
+  if (!parsed.success) return { ok: false, message: 'درخواست نامعتبر است.' }
+  const user = await getCurrentUser()
+  if (!user) return { ok: false, message: 'وارد نشده‌اید.' }
+  try {
+    const [payload, tenant] = await Promise.all([getPayloadClient(), getCurrentTenant()])
+    const lesson = await payload.findByID({ collection: 'lessons', id: parsed.data.lessonId, depth: 0, overrideAccess: true, disableErrors: true })
+    if (!lesson || idOf(lesson.tenant) !== tenant.id) return { ok: false, message: 'این جلسه در دسترس نیست.' }
+    const course = await payload.findByID({ collection: 'courses', id: idOf(lesson.course)!, depth: 0, overrideAccess: true })
+    const enrollment = await findEnrollment({ payload }, tenant.id, user.id, course.id)
+    if (!enrollment) return { ok: false, message: 'این جلسه در دسترس نیست.' }
+    const state = await loadCourseState({ payload }, { tenantId: tenant.id, course, enrollment })
+    if (state.locks.get(String(lesson.id))?.state !== 'open') return { ok: false, message: 'این جلسه هنوز باز نشده است.' }
+    const result = await onLessonWatched({ payload }, { tenant, enrollment, lesson, state, playedSeconds: parsed.data.playedSeconds, durationSeconds: parsed.data.durationSeconds ?? null })
+    return { ok: true, ...result }
+  } catch (err) {
+    console.error('[reportLessonWatch]', err)
+    return { ok: false, message: 'ثبت پیشرفت انجام نشد.' }
+  }
+}
+
+// ---------------------------------------------------------------- Advisor follow-ups (E-028 T6)
+
+const FollowUpInput = z.object({
+  leadId: z.coerce.number().int().positive(),
+  outcome: z.enum(LEAD_OUTCOMES),
+  note: z.string().trim().max(1000).optional(),
+  /** Next follow-up (ISO, UTC). Omitted = the stage default; null = none. */
+  nextFollowUpAt: z.iso.datetime({ offset: true }).nullable().optional(),
+  status: z.enum(LEAD_STATUSES).optional(),
+})
+
+export type FollowUpState = { ok: boolean; message: string }
+
+/**
+ * Records a follow-up outcome on a lead (the only thing the advisor goal counts). Staff session (E-022), the lead
+ * must be in this academy and inside the actor's `leads.view` scope (own leads for advisors, G8.5). Runs as the
+ * staff user, so collection access, the lead guard and the audit log all apply.
+ */
+export async function recordFollowUpOutcome(input: z.input<typeof FollowUpInput>): Promise<FollowUpState> {
+  const parsed = FollowUpInput.safeParse(input)
+  if (!parsed.success) return { ok: false, message: 'اطلاعات پیگیری کامل نیست.' }
+  const data = parsed.data
+  try {
+    const s = await getStaffSession()
+    if (s.state !== 'ok' || !s.req || !s.user) return { ok: false, message: 'دسترسی ندارید.' }
+    const payload = s.req.payload
+    const lead = await payload.findByID({ collection: 'leads', id: data.leadId, depth: 0, overrideAccess: true, disableErrors: true })
+    // Another academy's lead: same answer as "not found" (no existence leak).
+    if (!lead || idOf(lead.tenant) !== s.tenant.id) return { ok: false, message: 'این مورد پیدا نشد.' }
+    if (!(await canIn(s.req, s.tenant.id, 'leads.view', { ownerId: idOf(lead.advisor), courseId: idOf(lead.course) }))) return { ok: false, message: 'این مورد پیدا نشد.' }
+    const from = (lead.status ?? 'new') as LeadStatus
+    const to = data.status ?? from
+    if (!canTransitionLead(from, to)) return { ok: false, message: 'این تغییر وضعیت مجاز نیست.' }
+    const now = new Date()
+    const next = data.nextFollowUpAt === undefined ? (defaultFollowUpAt(to, now)?.toISOString() ?? null) : data.nextFollowUpAt
+    await payload.update({
+      collection: 'leads',
+      id: lead.id,
+      req: s.req,
+      overrideAccess: false,
+      context: { [FOLLOW_UP_CONTEXT]: true },
+      data: {
+        status: to,
+        nextFollowUpAt: to === 'enrolled' ? null : next,
+        lastOutcome: data.outcome,
+        lastOutcomeAt: now.toISOString(),
+        lastOutcomeBy: s.user.id,
+        followUps: [
+          ...(lead.followUps ?? []).map((f) => ({ ...f, by: idOf(f.by) })),
+          { at: now.toISOString(), outcome: data.outcome, by: s.user.id, dueAt: lead.nextFollowUpAt ?? null, note: data.note ?? null },
+        ],
+      },
+    })
+    revalidatePath('/staff/leads')
+    return { ok: true, message: 'نتیجهٔ پیگیری ثبت شد.' }
+  } catch (err) {
+    console.error('[recordFollowUpOutcome]', err)
+    return { ok: false, message: 'ثبت انجام نشد. دوباره تلاش کنید.' }
+  }
 }
 
 // ---------------------------------------------------------------- Quizzes (phase-2 §Q)

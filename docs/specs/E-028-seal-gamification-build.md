@@ -1,6 +1,7 @@
 # E-028 — Build the Seal direction + gamification (plan)
 
-Builds what E-027 designed. **Plan only; nothing is built yet.**
+Builds what E-027 designed. **Status (2026-11-06):** tech-lead T1–T7 and U1 (tokens) built on
+`myca/seal-gamification-f4e48b` — see ADR 014 and the tech-lead handoff; ui-designer U2–U6 and qa next.
 Sources: `docs/product/gamification.md` (stories G1–G11), `docs/ux/E-027-panel-soul.md`, `docs/design/e027/README.md`.
 Decision (Farjad, 2026-11-06): **A · Seal**, with B's girih star as the certificate seal.
 

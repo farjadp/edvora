@@ -36,6 +36,7 @@ export interface Config {
     submissions: Submission;
     'submission-files': SubmissionFile;
     certificates: Certificate;
+    'learning-events': LearningEvent;
     leads: Lead;
     orders: Order;
     coupons: Coupon;
@@ -66,6 +67,7 @@ export interface Config {
     submissions: SubmissionsSelect<false> | SubmissionsSelect<true>;
     'submission-files': SubmissionFilesSelect<false> | SubmissionFilesSelect<true>;
     certificates: CertificatesSelect<false> | CertificatesSelect<true>;
+    'learning-events': LearningEventsSelect<false> | LearningEventsSelect<true>;
     leads: LeadsSelect<false> | LeadsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     coupons: CouponsSelect<false> | CouponsSelect<true>;
@@ -179,6 +181,52 @@ export interface Tenant {
   contact?: {
     phone?: string | null;
     email?: string | null;
+  };
+  /**
+   * Turning it off hides XP, levels, streaks, badges and celebrations; history is kept, so turning it back on restores everything.
+   */
+  gamification?: {
+    enabled?: boolean | null;
+    audience?: ('both' | 'students' | 'staff') | null;
+    xp?: boolean | null;
+    streak?: boolean | null;
+    badges?: boolean | null;
+    celebrations?: boolean | null;
+    /**
+     * Off by default; students opt in one by one.
+     */
+    leaderboard?: boolean | null;
+    staffGoals?: boolean | null;
+    financeInbox?: boolean | null;
+    weeklyGoalDays?: number | null;
+    weekStart?: ('saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday') | null;
+    freezeEveryWeeks?: number | null;
+    freezeMax?: number | null;
+    dailyXpCap?: number | null;
+    completionThresholdPct?: number | null;
+    leaderboardSize?: number | null;
+    leaderboardMinimum?: number | null;
+    weekendDays?: ('saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday')[] | null;
+    /**
+     * Empty = every follow-up due this week.
+     */
+    teamWeeklyGoal?: number | null;
+    /**
+     * Academy-wide (e.g. Nowruz). Student weeks and staff days that touch a break are neutral.
+     */
+    breaks?:
+      | {
+          /**
+           * e.g. نوروز
+           */
+          label?: string | null;
+          startsAt: string;
+          startsAt_tz: SupportedTimezones;
+          endsAt: string;
+          endsAt_tz: SupportedTimezones;
+          id?: string | null;
+        }[]
+      | null;
   };
   /**
    * Certificate codes look like PREFIX-PROGRAM-001 (IBA: BA-MBA-181).
@@ -562,6 +610,22 @@ export interface Cohort {
    * Rials. Leave empty to use course price.
    */
   priceOverride?: number | null;
+  /**
+   * Cohort breaks (E-028): weeks that touch one are neutral for this cohort’s weekly rhythm.
+   */
+  breaks?:
+    | {
+        /**
+         * e.g. نوروز
+         */
+        label?: string | null;
+        startsAt: string;
+        startsAt_tz: SupportedTimezones;
+        endsAt: string;
+        endsAt_tz: SupportedTimezones;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -684,6 +748,38 @@ export interface Enrollment {
       }[]
     | null;
   defensePassed?: boolean | null;
+  /**
+   * Cache of the learning ledger. Rebuilt automatically.
+   */
+  gamification?: {
+    xp?: number | null;
+    level?: number | null;
+    streakWeeks?: number | null;
+    computedAt?: string | null;
+    /**
+     * Derived summary (levels, rhythm, badges).
+     */
+    summary?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    leaderboardOptIn?: boolean | null;
+    nickname?: string | null;
+  };
+  lessonWatch?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1028,6 +1124,63 @@ export interface Certificate {
   createdAt: string;
 }
 /**
+ * Append-only. Corrections are reversal rows.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "learning-events".
+ */
+export interface LearningEvent {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  user: number | User;
+  enrollment?: (number | null) | Enrollment;
+  course?: (number | null) | Course;
+  cohort?: (number | null) | Cohort;
+  type:
+    | 'lesson.completed'
+    | 'quiz.passed'
+    | 'assignment.submitted'
+    | 'live.attended'
+    | 'assignment.passed'
+    | 'lesson.marked'
+    | 'course.completed'
+    | 'defense.passed'
+    | 'weekly.goal'
+    | 'badge.earned'
+    | 'reversal';
+  /**
+   * Lesson / quiz / assignment id, badge key, week key.
+   */
+  sourceId?: string | null;
+  /**
+   * Granted (after the daily cap). Negative on reversals.
+   */
+  xp: number;
+  requestedXp?: number | null;
+  occurredAt: string;
+  idempotencyKey: string;
+  /**
+   * Idempotency key of the event this reversal cancels.
+   */
+  reverses?: string | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Staff who caused it (grade, reversal); empty for the student’s own actions.
+   */
+  actor?: (number | null) | User;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "leads".
  */
@@ -1041,6 +1194,26 @@ export interface Lead {
   status: 'new' | 'contacted' | 'follow_up' | 'enrolled' | 'lost';
   advisor?: (number | null) | User;
   nextFollowUpAt?: string | null;
+  lastOutcome?: ('reached' | 'no_answer' | 'callback' | 'wrong_number' | 'not_interested') | null;
+  lastOutcomeAt?: string | null;
+  lastOutcomeBy?: (number | null) | User;
+  /**
+   * Append-only. Written by «ثبت نتیجهٔ پیگیری»; a moved date without an outcome is logged as date_moved.
+   */
+  followUps?:
+    | {
+        at: string;
+        outcome:
+          'reached' | 'no_answer' | 'callback' | 'wrong_number' | 'not_interested' | 'status_changed' | 'date_moved';
+        by?: (number | null) | User;
+        /**
+         * The follow-up date this entry resolved.
+         */
+        dueAt?: string | null;
+        note?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   source?: {
     page?: string | null;
     utmSource?: string | null;
@@ -1238,6 +1411,10 @@ export interface PayloadLockedDocument {
         value: number | Certificate;
       } | null)
     | ({
+        relationTo: 'learning-events';
+        value: number | LearningEvent;
+      } | null)
+    | ({
         relationTo: 'leads';
         value: number | Lead;
       } | null)
@@ -1360,6 +1537,39 @@ export interface TenantsSelect<T extends boolean = true> {
     | {
         phone?: T;
         email?: T;
+      };
+  gamification?:
+    | T
+    | {
+        enabled?: T;
+        audience?: T;
+        xp?: T;
+        streak?: T;
+        badges?: T;
+        celebrations?: T;
+        leaderboard?: T;
+        staffGoals?: T;
+        financeInbox?: T;
+        weeklyGoalDays?: T;
+        weekStart?: T;
+        freezeEveryWeeks?: T;
+        freezeMax?: T;
+        dailyXpCap?: T;
+        completionThresholdPct?: T;
+        leaderboardSize?: T;
+        leaderboardMinimum?: T;
+        weekendDays?: T;
+        teamWeeklyGoal?: T;
+        breaks?:
+          | T
+          | {
+              label?: T;
+              startsAt?: T;
+              startsAt_tz?: T;
+              endsAt?: T;
+              endsAt_tz?: T;
+              id?: T;
+            };
       };
   certificatePrefix?: T;
   zarinpalMerchantId?: T;
@@ -1566,6 +1776,16 @@ export interface CohortsSelect<T extends boolean = true> {
   mode?: T;
   status?: T;
   priceOverride?: T;
+  breaks?:
+    | T
+    | {
+        label?: T;
+        startsAt?: T;
+        startsAt_tz?: T;
+        endsAt?: T;
+        endsAt_tz?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1624,6 +1844,18 @@ export interface EnrollmentsSelect<T extends boolean = true> {
         id?: T;
       };
   defensePassed?: T;
+  gamification?:
+    | T
+    | {
+        xp?: T;
+        level?: T;
+        streakWeeks?: T;
+        computedAt?: T;
+        summary?: T;
+        leaderboardOptIn?: T;
+        nickname?: T;
+      };
+  lessonWatch?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1799,6 +2031,29 @@ export interface CertificatesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "learning-events_select".
+ */
+export interface LearningEventsSelect<T extends boolean = true> {
+  tenant?: T;
+  user?: T;
+  enrollment?: T;
+  course?: T;
+  cohort?: T;
+  type?: T;
+  sourceId?: T;
+  xp?: T;
+  requestedXp?: T;
+  occurredAt?: T;
+  idempotencyKey?: T;
+  reverses?: T;
+  meta?: T;
+  actor?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "leads_select".
  */
 export interface LeadsSelect<T extends boolean = true> {
@@ -1810,6 +2065,19 @@ export interface LeadsSelect<T extends boolean = true> {
   status?: T;
   advisor?: T;
   nextFollowUpAt?: T;
+  lastOutcome?: T;
+  lastOutcomeAt?: T;
+  lastOutcomeBy?: T;
+  followUps?:
+    | T
+    | {
+        at?: T;
+        outcome?: T;
+        by?: T;
+        dueAt?: T;
+        note?: T;
+        id?: T;
+      };
   source?:
     | T
     | {

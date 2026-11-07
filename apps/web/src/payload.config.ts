@@ -18,6 +18,7 @@ import { OtpCodes, Posts, Testimonials } from './collections/Content'
 import { Coupons } from './collections/Coupons'
 import { Courses } from './collections/Courses'
 import { Enrollments } from './collections/Enrollments'
+import { LearningEvents } from './collections/LearningEvents'
 import { Leads } from './collections/Leads'
 import { Lessons } from './collections/Lessons'
 import { Media } from './collections/Media'
@@ -72,6 +73,7 @@ export default buildConfig({
     Submissions,
     SubmissionFiles,
     Certificates,
+    LearningEvents,
     Leads,
     Orders,
     Coupons,
@@ -119,6 +121,8 @@ export default buildConfig({
         assignments: {},
         submissions: {},
         'submission-files': {},
+        // E-028: gamification ledger (append-only).
+        'learning-events': {},
       },
       // No hard delete: academies are never removed, so never cascade-delete their records.
       cleanupAfterTenantDelete: false,
