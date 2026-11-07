@@ -109,7 +109,7 @@ export const LiveSessions: CollectionConfig = {
           name: 'recordings',
           type: 'array',
           label: { fa: 'ضبط‌ها', en: 'Recordings' },
-          admin: { readOnly: true, description: 'Added when the provider reports a recording. Copying to object storage and attaching a lesson is E-017.' },
+          admin: { readOnly: true, description: 'Added when the provider reports a recording, then copied to our object storage (E-017). Students of the session watch it from the course page.' },
           fields: [
             {
               type: 'row',
@@ -123,13 +123,24 @@ export const LiveSessions: CollectionConfig = {
                   defaultValue: 'ready',
                   options: [
                     { value: 'ready', label: { fa: 'آماده نزد سرویس', en: 'Ready at provider' } },
-                    { value: 'copied', label: { fa: 'کپی شد', en: 'Copied' } },
+                    { value: 'waiting', label: { fa: 'در انتظار فایل MP4', en: 'Waiting for MP4' } },
+                    { value: 'copying', label: { fa: 'در حال کپی', en: 'Copying' } },
+                    { value: 'copied', label: { fa: 'آماده تماشا', en: 'Copied' } },
                     { value: 'failed', label: { fa: 'خطا', en: 'Failed' } },
                   ],
                 },
               ],
             },
-            { name: 'url', type: 'text' },
+            {
+              type: 'row',
+              fields: [
+                { name: 'storageKey', type: 'text', admin: { description: 'Key in our private bucket. Played only through /live/<id>/recording/<rid>.' } },
+                { name: 'sizeBytes', type: 'number' },
+                { name: 'copiedAt', type: 'date', admin: { date: { pickerAppearance: 'dayAndTime' } } },
+              ],
+            },
+            { name: 'error', type: 'text' },
+            { name: 'url', type: 'text', admin: { description: 'Provider URL (may expire). Not shown to students.' } },
             { name: 'lesson', type: 'relationship', relationTo: 'lessons' },
           ],
         },

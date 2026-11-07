@@ -3,7 +3,7 @@ import { formatJalali } from '@edvora/core/jalali'
 import { toPersianDigits } from '@edvora/core/digits'
 import type { LiveSession } from '../../payload-types'
 import { btnDanger, btnPrimary, Card, linkClass, Notice } from '../staff/ui'
-import { LIVE_MESSAGE, STATUS_LABEL } from './copy'
+import { LIVE_MESSAGE, RECORDING_STATUS, STATUS_LABEL } from './copy'
 
 type Row = { session: LiveSession; courseTitle: string; cohortTitle: string | null; attendees: number }
 type Props = { rows: Row[]; message?: string | null; now?: Date }
@@ -44,6 +44,22 @@ export function HostLivePanel({ rows, message, now = new Date() }: Props) {
                     <p className="text-sm leading-7 text-muted">
                       {STATUS_LABEL[s.status ?? 'scheduled']} · حضور ثبت‌شده: {toPersianDigits(attendees)} نفر
                     </p>
+                    {(s.recordings ?? []).map((r) => (
+                      <div key={r.providerRecordingId} className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted">
+                        <span>ضبط: {RECORDING_STATUS[r.status ?? 'ready']}</span>
+                        {r.status === 'copied' ? (
+                          <a href={`/live/${s.id}/recording/${encodeURIComponent(r.providerRecordingId)}`} className={linkClass}>
+                            تماشا
+                          </a>
+                        ) : r.status === 'waiting' || r.status === 'failed' || r.status === 'ready' ? (
+                          <form method="post" action={`/live/${s.id}/recording/${encodeURIComponent(r.providerRecordingId)}/copy`}>
+                            <button type="submit" className={linkClass}>
+                              کپی دوباره
+                            </button>
+                          </form>
+                        ) : null}
+                      </div>
+                    ))}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {canStart ? (

@@ -2,6 +2,7 @@ import 'server-only'
 import { createHash } from 'node:crypto'
 import { createPaymentProvider, createSmsProvider, type PaymentProvider, type SmsProvider } from '@edvora/integrations'
 import { createLiveClassProvider, type LiveClassProvider } from '@edvora/integrations/live-class'
+import { createObjectStorage, type ObjectStorage } from '@edvora/integrations/storage'
 import { env } from '../env'
 import type { Tenant } from '../payload-types'
 
@@ -40,6 +41,27 @@ export function getLiveClass(origin?: string): LiveClassProvider {
     mockRoomUrl: `${origin ?? e.NEXT_PUBLIC_SITE_URL}/live/mock`,
     mockSecret: e.LIVE_CLASS_MOCK_SECRET || createHash('sha256').update(`live:${e.SESSION_SECRET}`).digest('hex'),
   })
+}
+
+let storage: ObjectStorage | undefined
+
+/** Private object storage (E-017). One bucket per instance; keys start with the tenant id. */
+export function getStorage(): ObjectStorage {
+  if (!storage) {
+    const e = env()
+    storage =
+      e.STORAGE_PROVIDER === 's3'
+        ? createObjectStorage({
+            provider: 's3',
+            endpoint: e.S3_ENDPOINT ?? '',
+            bucket: e.S3_BUCKET ?? '',
+            accessKeyId: e.S3_ACCESS_KEY_ID ?? '',
+            secretAccessKey: e.S3_SECRET_ACCESS_KEY ?? '',
+            region: e.S3_REGION,
+          })
+        : createObjectStorage({ provider: 'mock', mockBaseUrl: `${e.NEXT_PUBLIC_SITE_URL}/mock-storage` })
+  }
+  return storage
 }
 
 /** Notifications never break the main flow: failures are logged, not thrown. */

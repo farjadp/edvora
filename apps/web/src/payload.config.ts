@@ -1,5 +1,6 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
+import { s3Storage } from '@payloadcms/storage-s3'
 import { en } from '@payloadcms/translations/languages/en'
 import { fa } from '@payloadcms/translations/languages/fa'
 import path from 'path'
@@ -97,6 +98,21 @@ export default buildConfig({
   }),
   sharp,
   plugins: [
+    // E-017: Media files in the private S3 bucket (ArvanCloud in production) when S3_MEDIA=true; else local disk.
+    // Payload keeps serving them through its own access-controlled URLs, so nothing becomes public.
+    s3Storage({
+      enabled: process.env.STORAGE_PROVIDER === 's3' && process.env.S3_MEDIA === 'true',
+      collections: { media: { prefix: 'media' } },
+      bucket: process.env.S3_BUCKET ?? '',
+      config: {
+        endpoint: process.env.S3_ENDPOINT,
+        region: process.env.S3_REGION || 'default',
+        forcePathStyle: true,
+        credentials: { accessKeyId: process.env.S3_ACCESS_KEY_ID ?? '', secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? '' },
+        requestChecksumCalculation: 'WHEN_REQUIRED',
+        responseChecksumValidation: 'WHEN_REQUIRED',
+      },
+    }),
     multiTenantPlugin<Config>({
       tenantsSlug: 'tenants',
       // Every record below belongs to exactly one academy, with strict isolation.

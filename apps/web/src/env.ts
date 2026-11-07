@@ -22,6 +22,18 @@ const schema = z.object({
   BBB_URL: z.string().url().optional(),
   BBB_SECRET: z.string().optional(),
   BBB_CHECKSUM: z.enum(['sha1', 'sha256', 'sha512']).default('sha256'),
+  // E-017 object storage: mock (memory) or any S3-compatible service (ArvanCloud in production, SeaweedFS locally).
+  STORAGE_PROVIDER: z.enum(['mock', 's3']).default('mock'),
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_BUCKET: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
+  S3_REGION: z.string().default('default'),
+  /** Media (images, PDFs) in S3 too. Off = local disk as before. */
+  S3_MEDIA: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
 })
 
 export type Env = z.infer<typeof schema>

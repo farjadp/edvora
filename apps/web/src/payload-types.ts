@@ -205,6 +205,8 @@ export interface Media {
   id: number;
   tenant?: (number | null) | Tenant;
   alt: string;
+  prefix?: string | null;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -1041,14 +1043,24 @@ export interface LiveSession {
    */
   createTime?: string | null;
   /**
-   * Added when the provider reports a recording. Copying to object storage and attaching a lesson is E-017.
+   * Added when the provider reports a recording, then copied to our object storage (E-017). Students of the session watch it from the course page.
    */
   recordings?:
     | {
         providerRecordingId: string;
         format?: string | null;
         durationSec?: number | null;
-        status?: ('ready' | 'copied' | 'failed') | null;
+        status?: ('ready' | 'waiting' | 'copying' | 'copied' | 'failed') | null;
+        /**
+         * Key in our private bucket. Played only through /live/<id>/recording/<rid>.
+         */
+        storageKey?: string | null;
+        sizeBytes?: number | null;
+        copiedAt?: string | null;
+        error?: string | null;
+        /**
+         * Provider URL (may expire). Not shown to students.
+         */
         url?: string | null;
         lesson?: (number | null) | Lesson;
         id?: string | null;
@@ -1903,6 +1915,10 @@ export interface LiveSessionsSelect<T extends boolean = true> {
         format?: T;
         durationSec?: T;
         status?: T;
+        storageKey?: T;
+        sizeBytes?: T;
+        copiedAt?: T;
+        error?: T;
         url?: T;
         lesson?: T;
         id?: T;
@@ -2087,6 +2103,8 @@ export interface PostsSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   tenant?: T;
   alt?: T;
+  prefix?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
