@@ -45,8 +45,11 @@ export default buildConfig({
     importMap: { baseDir: path.resolve(dirname) },
     meta: { titleSuffix: ' · Edvora' },
     // E-031 (Seal): brand marks, the selected academy's accent colour, a permission-aware landing block.
+    // E-034: the login page wears the Seal card (academy seal as Logo, title before and the staff-door link after the form).
     components: {
-      graphics: { Logo: '/components/admin/Brand#Logo', Icon: '/components/admin/Brand#Icon' },
+      graphics: { Logo: '/components/admin/LoginSkin#LoginLogo', Icon: '/components/admin/Brand#Icon' },
+      beforeLogin: ['/components/admin/LoginSkin#BeforeLogin'],
+      afterLogin: ['/components/admin/LoginSkin#AfterLogin'],
       header: ['/components/admin/TenantAccent#TenantAccent'],
       beforeDashboard: ['/components/admin/DashboardHome#DashboardHome'],
     },

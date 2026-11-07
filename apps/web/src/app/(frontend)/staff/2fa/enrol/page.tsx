@@ -1,9 +1,11 @@
 import { safeStaffNext } from '@edvora/core/staff'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { BareAuthLayout } from '../../../../../components/staff/BareAuthLayout'
+import { AuthFrame } from '../../../../../components/auth/AuthFrame'
+import { AuthHeading } from '../../../../../components/auth/kit'
 import { TwoFactorEnrolForm } from '../../../../../components/staff/TwoFactorEnrolForm'
-import { STAFF_LOGOUT, getStaffSession, settledRedirect, tenantLogo } from '../../../../../lib/staff'
+import { authBrand } from '../../../../../lib/authBrand'
+import { STAFF_LOGOUT, getStaffSession, settledRedirect } from '../../../../../lib/staff'
 
 export const metadata: Metadata = { title: 'فعال‌سازی تأیید دومرحله‌ای' }
 
@@ -18,10 +20,12 @@ export default async function EnrolPage({ searchParams }: Props) {
   const s = await getStaffSession()
   if (s.state === 'anonymous') redirect(`/staff/login?next=${encodeURIComponent(next)}`)
   if (s.state !== 'needs-enrol') redirect(settledRedirect(s, next) ?? '/staff')
-  const logo = tenantLogo(s.tenant)
   return (
-    <BareAuthLayout tenantName={s.tenant.name} logoUrl={logo.url} logoAlt={logo.alt} title="فعال‌سازی تأیید دومرحله‌ای">
-      <TwoFactorEnrolForm mode="forced" next={next} logoutHref={STAFF_LOGOUT} />
-    </BareAuthLayout>
+    <AuthFrame brand={authBrand(s.tenant)}>
+      <AuthHeading title="فعال‌سازی تأیید دومرحله‌ای" />
+      <div className="mt-7">
+        <TwoFactorEnrolForm mode="forced" next={next} logoutHref={STAFF_LOGOUT} />
+      </div>
+    </AuthFrame>
   )
 }
