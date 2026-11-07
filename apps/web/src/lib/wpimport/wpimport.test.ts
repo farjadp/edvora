@@ -84,6 +84,22 @@ describe('docValues / toDocData (planner ctx adapters)', () => {
     expect(() => resolveRelations({ user: { $ref: 'x' } }, resolve, new Set(['x']))).toThrow(UnresolvedRef)
   })
 
+  it('lessons, quizzes and questions: WordPress HTML → the E-031 Lexical field, readable back for checksums', () => {
+    const cases = [
+      ['lessons', 'notesHtml', 'notes'],
+      ['quizzes', 'descriptionHtml', 'description'],
+      ['questions', 'explanationHtml', 'explanation'],
+    ] as const
+    for (const [collection, htmlKey, field] of cases) {
+      const data = toDocData(collection, { title: 'T', [htmlKey]: '<p>اول</p><ul><li>یک</li></ul>' }, { resolve: () => null, dependsOn: [] })
+      expect(data).not.toHaveProperty(htmlKey)
+      const doc = data[field] as { root: { children: { type: string }[] } }
+      expect(doc.root.children.map((c) => c.type)).toEqual(['paragraph', 'list'])
+      expect(docValues(collection, { [field]: doc })[htmlKey]).toEqual(doc)
+      expect(toDocData(collection, { title: 'T' }, { resolve: () => null, dependsOn: [] })).not.toHaveProperty(field)
+    }
+  })
+
   it('posts: bodyHtml → Lexical body, sourceUrl dropped (E-030 adds it), courses get a 0 price when none', () => {
     const post = toDocData('posts', { title: 'T', bodyHtml: '<p>سلام</p>', sourceUrl: 'https://x.ir/t/' }, { resolve: () => null, dependsOn: [] })
     expect(post).not.toHaveProperty('sourceUrl')

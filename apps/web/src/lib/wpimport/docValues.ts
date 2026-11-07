@@ -35,6 +35,18 @@ export const WRITABLE: ReadonlySet<EdvoraCollection> = new Set<EdvoraCollection>
   'redirects',
 ])
 
+/**
+ * Draft fields carrying sanitised WordPress HTML → the E-031 rich-text (Lexical) field they are written to.
+ * Covers every rich-text field the importer fills; the other E-031 fields (assignments, syllabus/FAQ, feedback, bio,
+ * manifesto) have no WordPress source.
+ */
+const RICH_HTML: Partial<Record<EdvoraCollection, Readonly<Record<string, string>>>> = {
+  posts: { bodyHtml: 'body' },
+  lessons: { notesHtml: 'notes' },
+  quizzes: { descriptionHtml: 'description' },
+  questions: { explanationHtml: 'explanation' },
+}
+
 /** Draft fields never written as columns (kept on `import-refs` instead). TODO(E-030): write `sourceUrl` once it exists. */
 const DROPPED: Partial<Record<EdvoraCollection, readonly string[]>> = {
   courses: ['sourceUrl'],
@@ -86,10 +98,11 @@ export function toDocData(
   opts: { resolve: Resolve; dependsOn: readonly string[]; resolveMedia?: MediaResolver },
 ): Record<string, unknown> {
   const data = resolveRelations(fields, opts.resolve, new Set(opts.dependsOn)) as Record<string, unknown>
-  if (collection === 'posts') {
-    const html = typeof fields.bodyHtml === 'string' ? fields.bodyHtml : null
-    const body = htmlToLexical(html, opts.resolveMedia)
-    if (body) data.body = body
+  for (const [htmlKey, field] of Object.entries(RICH_HTML[collection] ?? {})) {
+    const html = typeof fields[htmlKey] === 'string' ? (fields[htmlKey] as string) : null
+    delete data[htmlKey]
+    const doc = htmlToLexical(html, opts.resolveMedia)
+    if (doc) data[field] = doc
   }
   if (collection === 'quizzes' && Array.isArray(data.questions)) {
     data.questions = (data.questions as Record<string, unknown>[]).filter((row) => row.question !== undefined && row.question !== null)
@@ -121,7 +134,7 @@ function stripRowIds(value: unknown): unknown {
 export function docValues(collection: EdvoraCollection, doc: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(doc)) out[k] = stripRowIds(v)
-  if (collection === 'posts') out.bodyHtml = out.body ?? null
+  for (const [htmlKey, field] of Object.entries(RICH_HTML[collection] ?? {})) out[htmlKey] = out[field] ?? null
   return out
 }
 

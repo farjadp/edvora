@@ -6,7 +6,7 @@
 import { sha256Hex } from './signature'
 
 /** Bump when a mapper change should turn "unchanged" into "update" on the next run. */
-export const MAPPING_VERSION = 1
+export const MAPPING_VERSION = 2
 
 export function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== 'object') {

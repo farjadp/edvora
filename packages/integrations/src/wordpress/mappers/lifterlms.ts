@@ -11,7 +11,7 @@ import type { DraftRef, EdvoraDraft, MapContext, StackMapper } from '../types'
 import { courseDraft, hasWooPrice, isTrueLabel, lessonDraft, questionDraft, quizDraft } from './lms'
 import { enrollmentDraft, hasPlugin } from './woocommerce'
 import { decodeMetaJson } from '../format'
-import { isYes, meta, metaDate, metaNum, numId, rialOf, sortBy, str, stripTags, text, userDisplayName, wpDate } from './util'
+import { isYes, meta, metaDate, metaNum, numId, rialOf, sanitiseWpHtml, sortBy, str, stripTags, text, userDisplayName, wpDate } from './util'
 
 const COUNTED_ONLY = ['lifterlms.coupon', 'lifterlms.order', 'lifterlms.transaction', 'lifterlms.membership'] as const
 
@@ -176,7 +176,7 @@ function mapQuizzes(ctx: MapContext, courses: Map<string, { ref: DraftRef }>, dr
         options: opts.map((o) => ({ text: o.text, isCorrect: o.correct })),
         correctAnswer,
         acceptedAnswers,
-        explanation: stripTags(meta(q, '_llms_clarifications')),
+        explanation: sanitiseWpHtml(meta(q, '_llms_clarifications')).html,
         mapper: 'lifterlms',
       })
       if (d) {

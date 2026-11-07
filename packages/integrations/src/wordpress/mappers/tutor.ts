@@ -8,7 +8,7 @@ import type { SourceRecord } from '../format'
 import type { DraftRef, EdvoraDraft, MapContext, StackMapper } from '../types'
 import { courseDraft, hasWooPrice, isTrueLabel, lessonDraft, questionDraft, quizDraft } from './lms'
 import { enrollmentDraft, hasPlugin } from './woocommerce'
-import { meta, metaJson, numId, rialOf, sortBy, str, stripTags, text, wpDate } from './util'
+import { meta, metaJson, numId, rialOf, sanitiseWpHtml, sortBy, str, stripTags, text, wpDate } from './util'
 
 const TUTOR_TYPES: Readonly<Record<string, QuestionType>> = {
   single_choice: 'single',
@@ -154,7 +154,7 @@ function mapQuizzes(ctx: MapContext, courses: Map<string, { ref: DraftRef }>, dr
         options,
         correctAnswer,
         acceptedAnswers: type === 'short' ? options.filter((o) => o.isCorrect).map((o) => o.text) : [],
-        explanation: stripTags(str(q, 'answer_explanation')),
+        explanation: sanitiseWpHtml(str(q, 'answer_explanation')).html,
         mapper: 'tutor',
       })
       if (d) {

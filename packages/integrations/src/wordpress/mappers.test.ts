@@ -309,6 +309,11 @@ describe('lifterlms mapper', () => {
     expect(redirects[0]?.fields.target).toEqual(R('lifterlms.course', 1101))
   })
 
+  it('keeps lesson HTML for the rich-text notes field (no stripping to plain text)', () => {
+    expect(r.find('lessons', '1200').fields.notesHtml).toBe('<p>متن جلسه</p>')
+    expect(r.find('lessons', '1200').fields).not.toHaveProperty('notes')
+  })
+
   it('maps earned certificates with the legacy id', () => {
     expect(r.find('certificates', '1600').fields).toEqual({
       holderName: 'سارا کریمی',
