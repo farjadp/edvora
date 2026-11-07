@@ -57,6 +57,7 @@ export const Leads: CollectionConfig = {
   slug: 'leads',
   labels: { singular: { fa: 'سرنخ', en: 'Lead' }, plural: { fa: 'سرنخ‌ها (CRM)', en: 'Leads (CRM)' } },
   admin: {
+    components: { beforeListTable: ['/components/admin/ListKpis#ListKpis'] },
     useAsTitle: 'name',
     defaultColumns: ['name', 'phone', 'course', 'status', 'advisor', 'nextFollowUpAt'],
     group: { fa: 'فروش', en: 'Sales' },

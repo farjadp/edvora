@@ -16,7 +16,8 @@ export const COURSE_KINDS = [
 export const Courses: CollectionConfig = {
   slug: 'courses',
   labels: { singular: { fa: 'دوره', en: 'Course' }, plural: { fa: 'دوره‌ها', en: 'Courses' } },
-  admin: { useAsTitle: 'title', defaultColumns: ['title', 'kind', 'price', 'status'], group: { fa: 'آموزش', en: 'Learning' } },
+  admin: {
+    components: { beforeListTable: ['/components/admin/ListKpis#ListKpis'] }, useAsTitle: 'title', defaultColumns: ['title', 'kind', 'price', 'status'], group: { fa: 'آموزش', en: 'Learning' } },
   access: {
     // Public pages query through the server with explicit tenant + status filters.
     read: anyone,

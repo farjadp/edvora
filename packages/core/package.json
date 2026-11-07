@@ -22,6 +22,7 @@
     "./staff-goals": "./src/staffGoals.ts",
     "./names": "./src/names.ts",
     "./richtext": "./src/richtext.ts",
+    "./console": "./src/console.ts",
     "./live": "./src/live.ts",
     "./wpimport": "./src/wpimport.ts",
     "./phone": "./src/phone.ts"

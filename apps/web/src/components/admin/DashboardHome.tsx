@@ -1,121 +1,87 @@
 import { toPersianDigits } from '@edvora/core/digits'
-import Link from 'next/link'
-import type { CollectionSlug, ServerProps, Where } from 'payload'
-import { getAdminTenantContext } from '../../lib/adminTenant'
+import type { ServerProps } from 'payload'
+import { PERIOD_DAYS, getOverview, scopeLabel, staffAccess, type CollAccess } from '../../lib/consoleData'
+import { getAdminConsoleContext } from '../../lib/adminTenant'
+import { payloadAllows } from '../../lib/consoleNav'
+import { Activity, Alerts, BarsBlock, DonutBlock, Empty, Kpis, Panel, Quick, SummaryBlock } from './console'
 
 /**
- * Admin landing (E-031): a greeting, a few counts and quick links, above Payload's own collection directory.
- * Everything is permission-driven and read-only: a count or link appears only when Payload's permission data
- * for this user says `read` (resp. `create`) is allowed, and counts run with `overrideAccess: false` so the
- * collection's own access rules apply. Counts are scoped to the academy selected in the nav, if any.
+ * Admin landing (E-035): greeting, 4 KPIs, alerts, recent events, charts, quick actions, financial summary, all from
+ * real data (`getOverview`, shared with /staff/overview). What shows is driven by Payload's own `permissions` for this
+ * user and their membership permissions; every query runs with the collection's access rules (`overrideAccess: false`).
+ * Scope (`ConsoleScope`, labelled in the eyebrow): the academy picked in the nav selector; else the academies the
+ * person is staff in; else, for an Edvora platform admin only, the whole platform.
  */
-
-type Lang = 'fa' | 'en'
-type Text = Record<Lang, string>
-
-const T = {
-  hello: { fa: 'سلام', en: 'Hello' },
-  scopeAll: { fa: 'همهٔ آکادمی‌هایی که به آن‌ها دسترسی دارید', en: 'All academies you can access' },
-  today: { fa: 'یک نگاه سریع', en: 'At a glance' },
-  quick: { fa: 'میان‌بُرها', en: 'Quick links' },
-  all: { fa: 'همهٔ بخش‌ها', en: 'Everything' },
-  empty: { fa: 'برای حساب شما هنوز بخشی فعال نشده است. با مدیر آکادمی تماس بگیرید.', en: 'No sections are enabled for your account yet. Ask your academy admin.' },
-} as const satisfies Record<string, Text>
-
-type Stat = { slug: CollectionSlug; label: Text; where?: Where; filter?: string }
-const STATS: Stat[] = [
-  { slug: 'courses', label: { fa: 'دورهٔ منتشرشده', en: 'Published courses' }, where: { status: { equals: 'published' } }, filter: 'where[status][equals]=published' },
-  { slug: 'leads', label: { fa: 'سرنخ جدید', en: 'New leads' }, where: { status: { equals: 'new' } }, filter: 'where[status][equals]=new' },
-  { slug: 'enrollments', label: { fa: 'ثبت‌نام فعال', en: 'Active enrolments' }, where: { status: { equals: 'active' } }, filter: 'where[status][equals]=active' },
-  { slug: 'submissions', label: { fa: 'تکلیف در انتظار نمره', en: 'Submissions to grade' }, where: { status: { equals: 'submitted' } }, filter: 'where[status][equals]=submitted' },
-]
-
-type Link_ = { slug: CollectionSlug; label: Text; create?: Text }
-const LINKS: Link_[] = [
-  { slug: 'courses', label: { fa: 'دوره‌ها', en: 'Courses' }, create: { fa: 'دورهٔ تازه', en: 'New course' } },
-  { slug: 'leads', label: { fa: 'سرنخ‌ها', en: 'Leads' } },
-  { slug: 'orders', label: { fa: 'سفارش‌ها', en: 'Orders' } },
-  { slug: 'submissions', label: { fa: 'تحویل تکالیف', en: 'Submissions' } },
-  { slug: 'posts', label: { fa: 'مجله', en: 'Posts' }, create: { fa: 'مقالهٔ تازه', en: 'New post' } },
-  { slug: 'users', label: { fa: 'کاربران', en: 'Users' }, create: { fa: 'کاربر تازه', en: 'New user' } },
-  { slug: 'memberships', label: { fa: 'عضویت‌ها', en: 'Memberships' } },
-  { slug: 'tenants', label: { fa: 'آکادمی‌ها', en: 'Academies' } },
-]
-
-export async function DashboardHome({ payload, permissions, i18n }: ServerProps) {
-  const lang: Lang = i18n?.language === 'en' ? 'en' : 'fa'
-  const fa = lang === 'fa'
-  const { user, tenant } = await getAdminTenantContext(payload)
-  if (!user) return null
-
-  const adminRoute = payload.config.routes.admin
-  const can = (slug: string, action: 'read' | 'create') => permissions?.collections?.[slug]?.[action] === true
-  const num = (n: number) => (fa ? toPersianDigits(String(n)) : String(n))
-
-  const counted = await Promise.all(
-    STATS.filter((s) => can(s.slug, 'read')).map(async (s) => {
-      // Tenants are not counted here; every stat collection is tenant-owned, so scope by the selected academy.
-      const where: Where = { and: [...(s.where ? [s.where] : []), ...(tenant ? [{ tenant: { equals: tenant.id } }] : [])] }
-      try {
-        const { totalDocs } = await payload.count({ collection: s.slug, where, user, overrideAccess: false })
-        return { ...s, total: totalDocs }
-      } catch {
-        return null
-      }
-    }),
-  )
-  const stats = counted.filter((s): s is NonNullable<typeof s> => s !== null)
-  const links = LINKS.filter((l) => can(l.slug, 'read'))
-  const name = (user as { name?: string | null }).name?.trim() || user.email
+export async function DashboardHome({ payload, permissions, user: serverUser }: ServerProps) {
+  const ctx = await getAdminConsoleContext(payload)
+  if (!ctx) return null
+  const { user, tenant, scope } = ctx
+  // Both gates: Payload's own permission for the collection AND the staff permission behind the number.
+  const can = (slug: string, action: 'read' | 'create') => payloadAllows(permissions, slug, action)
+  const staff = staffAccess(ctx.who)
+  const access: CollAccess = {
+    orders: staff.orders && can('orders', 'read'),
+    enrollments: staff.enrollments && can('enrollments', 'read'),
+    leads: staff.leads && can('leads', 'read'),
+    submissions: staff.submissions && can('submissions', 'read'),
+    create: { courses: can('courses', 'create'), coupons: can('coupons', 'create'), posts: can('posts', 'create'), users: can('users', 'create') },
+  }
+  const data = await getOverview({ payload, user, scope, req: ctx.req }, access)
+  const name = (serverUser as { name?: string | null } | undefined)?.name?.trim() || user.email
 
   return (
-    <section className="ed-dash" aria-labelledby="ed-dash-title">
-      <header className="ed-dash__head">
-        <p className="ed-dash__eyebrow">{tenant ? tenant.name : T.scopeAll[lang]}</p>
-        <h1 id="ed-dash-title" className="ed-dash__title">
-          {T.hello[lang]}، {name}
-        </h1>
+    <section className="c-dash" aria-labelledby="c-dash-title">
+      <header className="c-dash__head">
+        <div>
+          <p className="c-eyebrow" data-scope={scope.kind}>{scopeLabel(scope, tenant?.name)}</p>
+          <h1 id="c-dash-title" className="c-dash__title">
+            سلام، {name}
+          </h1>
+          <p className="c-muted">
+            آمار {toPersianDigits(String(PERIOD_DAYS))} روز گذشته در برابر {toPersianDigits(String(PERIOD_DAYS))} روز پیش از آن؛ همه از داده‌های واقعی.
+          </p>
+        </div>
+        {access.create.courses ? (
+          <a className="c-btn c-btn--primary" href={`${payload.config.routes.admin}/collections/courses/create`}>
+            + دورهٔ تازه
+          </a>
+        ) : null}
       </header>
 
-      {stats.length > 0 && (
-        <div className="ed-dash__block">
-          <h2 className="ed-dash__label">{T.today[lang]}</h2>
-          <ul className="ed-dash__stats">
-            {stats.map((s) => (
-              <li key={s.slug} className="ed-dash__stat">
-                <Link className="ed-dash__stat-link" href={`${adminRoute}/collections/${s.slug}${s.filter ? `?${s.filter}` : ''}`}>
-                  <span className="ed-dash__num">{num(s.total)}</span>
-                  <span className="ed-dash__stat-label">{s.label[lang]}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+      {data.kpis.length ? <Kpis items={data.kpis} /> : <Empty icon="chart" title="برای حساب شما هنوز آماری فعال نشده است." text="با مدیر آکادمی تماس بگیرید." />}
+
+      <div className="c-grid">
+        <div className="c-col">
+          <div id="alerts">
+            <Panel title="هشدارها" id="c-h-alerts" chip={data.alerts.length ? `${toPersianDigits(String(data.alerts.length))} مورد` : undefined}>
+              <Alerts items={data.alerts} />
+            </Panel>
+          </div>
+          <Panel title="رویدادهای اخیر" id="c-h-activity">
+            <Activity items={data.activity} />
+          </Panel>
         </div>
-      )}
-
-      <div className="ed-dash__block">
-        <h2 className="ed-dash__label">{T.quick[lang]}</h2>
-        {links.length === 0 ? (
-          <p className="ed-dash__empty">{T.empty[lang]}</p>
-        ) : (
-          <ul className="ed-dash__links">
-            {links.map((l) => (
-              <li key={l.slug} className="ed-dash__link-row">
-                <Link className="ed-dash__link" href={`${adminRoute}/collections/${l.slug}`}>
-                  {l.label[lang]}
-                </Link>
-                {l.create && can(l.slug, 'create') && (
-                  <Link className="ed-dash__create" href={`${adminRoute}/collections/${l.slug}/create`}>
-                    <span aria-hidden="true">+</span> {l.create[lang]}
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="c-col">
+          {data.donut ? (
+            <Panel title="ثبت‌نام فعال به تفکیک دوره" id="c-h-donut">
+              <DonutBlock donut={data.donut} />
+            </Panel>
+          ) : null}
+          {data.bars ? (
+            <Panel title={`${data.bars.what} در ۷ روز اخیر`} chip="هفتهٔ قبل در مقایسه" id="c-h-bars">
+              <BarsBlock bars={data.bars} />
+            </Panel>
+          ) : null}
+          <Panel title="میان‌برها" id="c-h-quick">
+            <Quick items={data.quick} />
+          </Panel>
+          {data.summary ? (
+            <Panel title="سفارش‌های ۳۰ روز اخیر" id="c-h-summary">
+              <SummaryBlock s={data.summary} />
+            </Panel>
+          ) : null}
+        </div>
       </div>
-
-      <h2 className="ed-dash__label ed-dash__label--all">{T.all[lang]}</h2>
     </section>
   )
 }
