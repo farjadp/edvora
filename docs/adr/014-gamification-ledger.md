@@ -1,4 +1,4 @@
-# ADR 011 — Gamification ledger, derived totals and deferred hooks
+# ADR 014 — Gamification ledger, derived totals and deferred hooks
 
 **Status:** proposed (2026-11-06, E-028) — needs Farjad's review
 
