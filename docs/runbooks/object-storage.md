@@ -21,7 +21,12 @@ Edvora has checked their enrollment and cohort. Media is served through Payload'
 3. Check: `curl -s -o /dev/null -w '%{http_code}' https://s3.ir-thr-at1.arvanstorage.ir/edvora-iba/` must answer 403.
 4. Cost (App. D §3.1 of the live-class research): the Growth plan (۱٫۸ میلیون تومان a month) covers 500 GB and
    2 TB of downloads. One year of recordings for a 200-student academy is about 0.6 TB.
-5. Turning on `S3_MEDIA` doesn't move files that are already on local disk. Copy `apps/web/media/*` to `media/`
+5. **Turning on `S3_MEDIA` changes the schema.** Payload's S3 plugin adds two columns to `media` (`prefix`,
+   `_objectKey`), and only while it is enabled. Committed migrations are made with it **off**, which is the default
+   and what CI runs. Before the first deploy with `S3_MEDIA=true`, decide whether Media lives in S3 permanently. If
+   yes, set `S3_MEDIA=true` in the dev `.env`, run `payload migrate:create media_s3`, commit it, and keep it on from
+   then on, in CI too. Toggling it back and forth makes migrations add and drop those columns.
+6. Turning on `S3_MEDIA` doesn't move files that are already on local disk. Copy `apps/web/media/*` to `media/`
    in the bucket before switching.
 
 ## Local

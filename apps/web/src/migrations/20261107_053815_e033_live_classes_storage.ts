@@ -69,8 +69,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
   
-  ALTER TABLE "media" ADD COLUMN "prefix" varchar DEFAULT 'media';
-  ALTER TABLE "media" ADD COLUMN "_objectkey" varchar;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "live_sessions_id" integer;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "attendance_id" integer;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "live_events_id" integer;
@@ -139,8 +137,6 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP INDEX "payload_locked_documents_rels_live_sessions_id_idx";
   DROP INDEX "payload_locked_documents_rels_attendance_id_idx";
   DROP INDEX "payload_locked_documents_rels_live_events_id_idx";
-  ALTER TABLE "media" DROP COLUMN "prefix";
-  ALTER TABLE "media" DROP COLUMN "_objectkey";
   ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "live_sessions_id";
   ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "attendance_id";
   ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "live_events_id";
