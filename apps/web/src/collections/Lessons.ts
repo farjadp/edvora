@@ -4,6 +4,7 @@ import { allow, allowCreate, anyone, fieldAllow, guard, nobody } from '../access
 import { auditChange } from '../hooks/audit'
 import { idOf } from '../lib/ids'
 import { throwFieldErrors } from '../lib/validation'
+import { richTextField } from '../lib/richText'
 
 /**
  * Paid content (video, notes, resources) is never readable through the REST/GraphQL API by visitors or students:
@@ -92,7 +93,7 @@ export const Lessons: CollectionConfig = {
       access: { read: contentRead },
       admin: { description: 'HLS URL from ArvanCloud VOD. Served signed + watermarked in production.' },
     },
-    { name: 'notes', type: 'textarea', label: { fa: 'یادداشت جلسه', en: 'Lesson notes' }, access: { read: contentRead } },
+    richTextField({ name: 'notes', label: { fa: 'یادداشت جلسه', en: 'Lesson notes' }, access: { read: contentRead } }),
     {
       name: 'resources',
       type: 'array',

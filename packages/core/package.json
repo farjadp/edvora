@@ -13,7 +13,8 @@
     "./drip": "./src/drip.ts",
     "./assignments": "./src/assignments.ts",
     "./progress": "./src/progress.ts",
-    "./jalali": "./src/jalali.ts"
+    "./jalali": "./src/jalali.ts",
+    "./richtext": "./src/richtext.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

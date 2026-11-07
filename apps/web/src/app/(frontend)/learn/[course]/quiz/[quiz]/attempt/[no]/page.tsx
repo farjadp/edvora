@@ -6,6 +6,9 @@ import { fa, faScore, jalaliDateTime } from '../../../../../../../../components/
 import { resultView } from '../../../../../../../../lib/quizAttempts'
 import { getCurrentUser } from '../../../../../../../../lib/session'
 import { studentQuiz } from '../../../../../../../../lib/student'
+import { hasRichText } from '@edvora/core/richtext'
+import { RichText } from '../../../../../../../../components/RichText'
+import { idOf } from '../../../../../../../../lib/ids'
 
 type Props = { params: Promise<{ course: string; quiz: string; no: string }> }
 
@@ -97,7 +100,7 @@ export default async function AttemptResultPage({ params }: Props) {
                 </ul>
               )}
               {q.type === 'short' && q.acceptedAnswers?.length ? <p className="mt-2 text-sm text-ok">پاسخ درست: {q.acceptedAnswers.join(' / ')}</p> : null}
-              {q.explanation ? <p className="mt-3 rounded-xl bg-sunken p-3 text-sm leading-7">{q.explanation}</p> : null}
+              {hasRichText(q.explanation) ? <RichText data={q.explanation} tenantId={idOf(course.tenant) ?? 0} className="mt-3 rounded-xl bg-sunken p-3 text-sm leading-7" /> : null}
             </li>
           ))}
         </ol>

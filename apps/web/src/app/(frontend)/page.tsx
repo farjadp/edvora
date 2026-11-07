@@ -6,6 +6,8 @@ import { CourseArt, CourseCard } from '../../components/CourseCard'
 import { LeadForm } from '../../components/LeadForm'
 import { getOpenCohorts, getPosts, getPublishedCourses, getTestimonials } from '../../lib/queries'
 import { getCurrentTenant } from '../../lib/tenant'
+import { hasRichText } from '@edvora/core/richtext'
+import { RichText } from '../../components/RichText'
 
 export default async function HomePage() {
   const tenant = await getCurrentTenant()
@@ -154,9 +156,9 @@ export default async function HomePage() {
       ) : null}
 
       {/* 5 · Manifesto */}
-      {tenant.manifesto ? (
+      {hasRichText(tenant.manifesto) ? (
         <section className="mx-auto max-w-4xl px-4 pt-20 text-center md:px-8">
-          <p className="whitespace-pre-line text-2xl font-bold leading-[1.9] md:text-3xl">{tenant.manifesto}</p>
+          <RichText data={tenant.manifesto} tenantId={tenant.id} className="text-2xl font-bold leading-[1.9] md:text-3xl" />
         </section>
       ) : null}
 

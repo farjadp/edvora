@@ -1,9 +1,10 @@
-import { parseScore } from '@edvora/core'
+import { lexicalToPlainText, parseScore } from '@edvora/core'
 import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
 import { allow, allowCreate, anyOf, fieldAllow, guard, isSystemWrite, nobody, ownRecords } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
 import { idOf } from '../lib/ids'
 import { throwFieldErrors } from '../lib/validation'
+import { richTextField } from '../lib/richText'
 
 const SCOPE = { course: 'course', cohort: 'cohort' }
 const gradeField = fieldAllow('submissions.grade')
@@ -24,7 +25,7 @@ const applyGrade: CollectionBeforeChangeHook = async ({ data, originalDoc, req, 
     data.tenant = idOf(assignment.tenant)
     if (operation === 'create' && !merged.cohort) data.cohort = idOf(assignment.cohort)
     const rawChanged = 'scoreInput' in data && String(data.scoreInput ?? '') !== String(originalDoc?.scoreInput ?? '')
-    const feedbackChanged = 'feedback' in data && (data.feedback ?? '') !== (originalDoc?.feedback ?? '')
+    const feedbackChanged = 'feedback' in data && lexicalToPlainText(data.feedback) !== lexicalToPlainText(originalDoc?.feedback)
     if (rawChanged) {
       const raw = String(data.scoreInput ?? '').trim()
       if (raw === '') {
@@ -137,7 +138,7 @@ export const Submissions: CollectionConfig = {
             { name: 'score', type: 'number', label: { fa: 'نمرهٔ ثبت‌شده', en: 'Stored score' }, access: { update: () => false, create: () => false }, admin: { readOnly: true } },
           ],
         },
-        { name: 'feedback', type: 'textarea', label: { fa: 'بازخورد', en: 'Feedback' }, access: { update: gradeField, create: gradeField } },
+        richTextField({ name: 'feedback', label: { fa: 'بازخورد', en: 'Feedback' }, access: { update: gradeField, create: gradeField } }),
         {
           type: 'row',
           fields: [

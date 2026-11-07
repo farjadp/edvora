@@ -6,6 +6,7 @@
  *
  * Prints the updated submission as JSON. Refuses anything but the demo tenant.
  */
+import { lexicalToPlainText, plainTextToLexical } from '@edvora/core/richtext'
 import { getPayload } from 'payload'
 import config from '../payload.config'
 
@@ -35,11 +36,11 @@ async function main() {
   const updated = await payload.update({
     collection: 'submissions',
     id: submission.id,
-    data: { scoreInput, feedback },
+    data: { scoreInput, feedback: plainTextToLexical(feedback) },
     user: { ...grader, collection: 'users' },
     overrideAccess: false,
   })
-  console.log(JSON.stringify({ id: updated.id, score: updated.score, status: updated.status, gradedBy: updated.gradedBy, feedback: updated.feedback }))
+  console.log(JSON.stringify({ id: updated.id, score: updated.score, status: updated.status, gradedBy: updated.gradedBy, feedback: lexicalToPlainText(updated.feedback) }))
   process.exit(0)
 }
 

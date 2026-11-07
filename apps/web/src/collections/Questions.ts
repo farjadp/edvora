@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { allow, allowCreate, anyOf, guard, nobody } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
 import { throwFieldErrors } from '../lib/validation'
+import { richTextField } from '../lib/richText'
 
 const SCOPE = { course: 'course' }
 
@@ -88,7 +89,7 @@ export const Questions: CollectionConfig = {
       },
       fields: [{ name: 'answer', type: 'text', required: true }],
     },
-    { name: 'explanation', type: 'textarea', label: { fa: 'توضیح پاسخ', en: 'Explanation' }, admin: { description: 'Shown only when the quiz review setting is "full".' } },
+    richTextField({ name: 'explanation', label: { fa: 'توضیح پاسخ', en: 'Explanation' }, admin: { description: 'Shown only when the quiz review setting is "full".' } }),
     { name: 'archived', type: 'checkbox', defaultValue: false, index: true, label: { fa: 'بایگانی', en: 'Archived' }, admin: { position: 'sidebar' } },
   ],
 }
