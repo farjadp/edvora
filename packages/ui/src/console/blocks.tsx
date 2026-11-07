@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { focusRing } from '../classes'
 import { cx } from '../cx'
-import { Donut, Sparkline, type ChartTone, type DonutSegment } from './charts'
+import { Donut, SPARK_THIN_HINT, Sparkline, type ChartTone, type DonutSegment } from './charts'
+import { sparkShape } from './spark'
 import { ConsoleIcon, type ConsoleIconName } from './icons'
 
 /**
@@ -162,7 +163,7 @@ export function KpiCard({ label, value, icon, delta, progress, spark, href, hint
               label
             )}
           </p>
-          <p data-testid={testId} className={cx('mt-1 font-display font-black leading-none', value.length > 8 ? 'text-3xl' : 'text-4xl')}>{value}</p>
+          <p data-testid={testId} className={cx('mt-1 font-sans font-bold leading-none tabular-nums', value.length > 8 ? 'text-3xl' : 'text-4xl')}>{value}</p>
         </div>
         <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-wash text-brand-text">
           <ConsoleIcon name={icon} />
@@ -184,6 +185,8 @@ export function KpiCard({ label, value, icon, delta, progress, spark, href, hint
               <MiniBar pct={progress.pct} tone={progress.tone} label={progress.text} />
               <p className="mt-1 truncate text-xs text-muted">{progress.text}</p>
             </div>
+          ) : spark && sparkShape(spark.values).kind === 'flat' ? (
+            <p className="min-w-0 flex-1 truncate text-xs text-muted">{SPARK_THIN_HINT}</p>
           ) : (
             <span className="flex-1" />
           )}
@@ -463,7 +466,7 @@ export function SummaryCard({ totalLabel, totalValue, totalNote, rows, footer }:
     <div className="grid gap-4">
       <div className="rounded-xl bg-wash p-4">
         <p className="text-xs text-muted">{totalLabel}</p>
-        <p className="mt-1 font-display text-3xl font-black text-brand-text">{totalValue}</p>
+        <p className="mt-1 font-sans text-3xl font-bold tabular-nums text-brand-text">{totalValue}</p>
         {totalNote ? <p className="mt-1 text-xs text-muted">{totalNote}</p> : null}
       </div>
       <ul className="grid gap-3">

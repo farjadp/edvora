@@ -1,4 +1,4 @@
-import { BarCompare, ConsoleIcon, Donut, MiniBar, Sparkline, type ActivityItem, type AlertItem, type KpiCardProps, type QuickAction, type Tone } from '@edvora/ui/console'
+import { BarCompare, ConsoleIcon, Donut, MiniBar, SPARK_THIN_HINT, Sparkline, sparkShape, type ActivityItem, type AlertItem, type KpiCardProps, type QuickAction, type Tone } from '@edvora/ui/console'
 import type { ReactNode } from 'react'
 import type { OverviewData } from '../../lib/consoleData'
 
@@ -33,6 +33,8 @@ export const Kpi = ({ label, value, icon, delta, progress, spark, href, hint }: 
             <MiniBar pct={progress.pct} tone={progress.tone} label={progress.text} />
             <p className="c-kpi__hint">{progress.text}</p>
           </div>
+        ) : spark && sparkShape(spark.values).kind === 'flat' ? (
+          <p className="c-kpi__bar c-kpi__hint">{SPARK_THIN_HINT}</p>
         ) : (
           <span className="c-kpi__bar" />
         )}

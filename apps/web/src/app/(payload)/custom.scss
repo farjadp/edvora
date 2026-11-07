@@ -1133,9 +1133,11 @@ h2.LexicalEditorTheme__h {
 
 .c-kpi__value {
   margin-block-start: 4px !important;
-  font-family: var(--ed-display);
+  /* Numerals: Vazirmatn, never the display face (Persian digits in Morabba misread, E-035). */
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
   font-size: 36px;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.1;
   color: var(--c-ink);
 }
@@ -1481,9 +1483,11 @@ h2.LexicalEditorTheme__h {
   background: var(--c-brand-wash);
 }
 .c-summary__value {
-  font-family: var(--ed-display);
+  /* Numerals: Vazirmatn, never the display face (Persian digits in Morabba misread, E-035). */
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
   font-size: 28px;
-  font-weight: 900;
+  font-weight: 700;
   color: var(--c-brand-text);
 }
 .c-summary__row {

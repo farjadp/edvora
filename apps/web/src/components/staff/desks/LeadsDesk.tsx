@@ -140,7 +140,7 @@ export function LeadsDesk({ name, desk, filter, q, mix, newLeads, adminLink }: L
                   </>
                 ) : (
                   <div>
-                    <p data-testid="goal-count" className="font-display text-2xl font-black">
+                    <p data-testid="goal-count" className="font-sans text-2xl font-bold tabular-nums">
                       {fa(daily.done)} از {fa(daily.due)} <span className="text-base font-normal text-muted">پیگیری انجام شد</span>
                     </p>
                     <progress
