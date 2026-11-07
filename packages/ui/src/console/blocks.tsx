@@ -153,7 +153,7 @@ export function KpiCard({ label, value, icon, delta, progress, spark, href, hint
   return (
     <div className="relative grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3 rounded-2xl border border-line bg-surface p-5 shadow-card">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1 [container-type:inline-size]">
           <p className="truncate text-sm text-muted">
             {href ? (
               <a href={href} className={cx('rounded-sm after:absolute after:inset-0 after:rounded-2xl hover:text-ink', focusRing)}>
@@ -163,7 +163,7 @@ export function KpiCard({ label, value, icon, delta, progress, spark, href, hint
               label
             )}
           </p>
-          <p data-testid={testId} className={cx('mt-1 font-sans font-bold leading-none tabular-nums', value.length > 8 ? 'text-3xl' : 'text-4xl')}>{value}</p>
+          <p data-testid={testId} className={cx('mt-1 font-sans font-bold leading-none tabular-nums', value.length > 8 ? 'text-[length:min(1.875rem,13cqi)]' : 'text-4xl')}>{value}</p>
         </div>
         <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-wash text-brand-text">
           <ConsoleIcon name={icon} />
