@@ -30,6 +30,9 @@ export const authLink = cx(
   focusRing,
 )
 
+/** Link inside a sentence (hints): no min height, wraps with the text. */
+export const authInlineLink = cx('rounded-sm font-medium text-ink underline decoration-brand decoration-2 underline-offset-4 hover:decoration-4', focusRing)
+
 /** Title block of a login card: optional tag, Morabba heading, sub line. */
 export function AuthHeading({ title, sub, tag, headingRef, as: Tag = 'h1' }: { title: string; sub?: ReactNode; tag?: string; headingRef?: Ref<HTMLHeadingElement>; as?: 'h1' | 'h2' }) {
   return (

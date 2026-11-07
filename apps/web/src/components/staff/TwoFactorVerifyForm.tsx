@@ -1,14 +1,14 @@
 'use client'
 
-import { useRef } from 'react'
-import { CodeField } from './CodeField'
+import { useCallback, useRef, useState } from 'react'
+import { CodeBoxes, LockCountdown, PrimaryButton, UnlockedStatus } from '../auth/fields'
+import { AuthAlert, AuthPostButton } from '../auth/kit'
 import { submitCode } from './twoFactorClient'
 import type { CodeSubmit } from './twoFactorClient'
-import { TwoFactorLockout } from './TwoFactorLockout'
 import { useCodeSubmit } from './useCodeSubmit'
-import { btnPrimary, Notice, PostButton } from './ui'
 
 const verifyCode = submitCode('verify')
+const LOCK_TEXT = 'چند بار کد اشتباه وارد شد. تا ۱۵ دقیقهٔ دیگر امکان ورود ندارید.'
 
 export type TwoFactorVerifyFormProps = {
   /** Account email shown as context. */
@@ -23,44 +23,67 @@ export type TwoFactorVerifyFormProps = {
   onSubmit?: CodeSubmit
 }
 
+/** Per-session TOTP step (V1–V9). The page renders the heading; this is the card body. */
 export function TwoFactorVerifyForm({ email, next, logoutHref, initialLockedUntil = null, onSubmit = verifyCode }: TwoFactorVerifyFormProps) {
   const s = useCodeSubmit(initialLockedUntil)
   const done = useRef(false)
+  const codeRef = useRef<HTMLInputElement>(null)
+  const [unlocked, setUnlocked] = useState(false)
   const locked = s.lockedUntil !== null
+  const { clearLock } = s
+  const onExpire = useCallback(() => {
+    clearLock()
+    setUnlocked(true)
+  }, [clearLock])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (locked || s.pending || done.current) return
+    setUnlocked(false)
     const out = await s.run(onSubmit)
     if (out === 'ok') {
       done.current = true
       window.location.assign(next)
+      return
     }
+    codeRef.current?.focus()
   }
 
   return (
-    <div className="grid gap-5">
-      <p className="text-sm leading-7">
-        کد ۶‌رقمی را از برنامهٔ احراز هویت گوشی خود وارد کنید.
-        <span className="mt-1 block break-all font-latin text-muted" dir="ltr">
-          {email}
-        </span>
+    <>
+      <p dir="ltr" className="mb-5 block truncate text-center font-latin text-sm font-bold">
+        {email}
       </p>
-      <form onSubmit={submit} className="grid gap-4" noValidate>
-        {s.lockedUntil !== null ? <TwoFactorLockout lockedUntil={s.lockedUntil} onExpire={s.clearLock} /> : null}
-        <CodeField label="کد تأیید" value={s.code} onChange={s.setCode} disabled={locked || s.pending} error={s.error} />
-        {s.hint ? <Notice>{s.hint}</Notice> : null}
-        <button type="submit" disabled={locked || s.pending} className={btnPrimary(true)}>
-          {s.pending ? 'در حال بررسی…' : 'تأیید و ادامه'}
-        </button>
+      {s.lockedUntil !== null ? <LockCountdown text={LOCK_TEXT} lockedUntil={s.lockedUntil} onExpire={onExpire} /> : null}
+      {unlocked && !locked ? <UnlockedStatus /> : null}
+      <form onSubmit={submit} aria-busy={s.pending || undefined} noValidate>
+        <CodeBoxes
+          label="کد تأیید"
+          length={6}
+          value={s.code}
+          onChange={s.setCode}
+          disabled={locked || s.pending || done.current}
+          invalid={Boolean(s.error)}
+          hint={s.hint}
+          describedBy="verify-alert"
+          inputRef={codeRef}
+        />
+        <div className="mt-5">
+          <AuthAlert id="verify-alert">{locked ? null : s.error}</AuthAlert>
+        </div>
+        <PrimaryButton busy={s.pending || done.current} disabled={locked}>
+          {s.pending || done.current ? 'در حال بررسی…' : 'تأیید و ادامه'}
+        </PrimaryButton>
       </form>
-      <details className="rounded-xl border border-line px-4 py-3 text-sm leading-7">
-        <summary className="min-h-11 cursor-pointer py-2.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+      <details className="mt-5 border-b border-line pb-3 text-sm">
+        <summary className="flex min-h-11 cursor-pointer items-center rounded-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           گوشی خود را ندارید؟
         </summary>
-        <p className="pb-2 text-muted">از مدیر آکادمی بخواهید تأیید دومرحله‌ای حساب شما را بازنشانی کند.</p>
+        <p className="leading-7 text-muted">از مدیر آکادمی بخواهید تأیید دومرحله‌ای حساب شما را بازنشانی کند.</p>
       </details>
-      <PostButton action={logoutHref}>خروج از حساب</PostButton>
-    </div>
+      <div className="mt-6">
+        <AuthPostButton action={logoutHref}>خروج از حساب</AuthPostButton>
+      </div>
+    </>
   )
 }
