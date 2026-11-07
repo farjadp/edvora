@@ -1,6 +1,7 @@
 import 'server-only'
 import {
   canOpenDesk,
+  meets,
   deskDef,
   landingDesk,
   safeStaffNext,
@@ -103,6 +104,8 @@ export function navItems(s: StaffGate): { items: StaffNavItem[]; secondaryItems:
   const items: StaffNavItem[] = nav.desks.map((d) => ({ key: d.key, label: d.label, href: d.href, icon: d.key }))
   const secondaryItems: StaffNavItem[] = []
   if (nav.setup) secondaryItems.push({ key: 'settings', label: 'تنظیمات و راه‌اندازی', href: '/admin', icon: 'settings', external: true })
+  // E-032: WordPress import, for people who may read import reports in this academy.
+  if (meets(s, { any: ['import.view'] })) secondaryItems.push({ key: 'import', label: 'انتقال از وردپرس', href: '/staff/import', icon: 'import' })
   secondaryItems.push({ key: 'security', label: 'امنیت حساب', href: '/staff/security', icon: 'security' })
   return { items, secondaryItems }
 }

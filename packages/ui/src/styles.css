@@ -6,54 +6,23 @@
  * Documented in docs/design/system.md.
  */
 
-/* Operator-console palette (E-035); re-maps the tokens below inside [data-console]. */
-@import './console-tokens.css';
-
 /* Generate classes used by the shared components in this package. */
 @source './';
 
 /* Dark mode follows data-theme on <html>, set by the theme toggle (light is the default). */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
-/*
- * Display face (E-027 "Seal"): Morabba, self-hosted from apps/web/public/fonts/morabba (web licence confirmed by
- * Farjad, 2026-11-06). Headings/milestones only; body text stays Vazirmatn. No external font requests.
- */
-@font-face {
-  font-family: 'Morabba';
-  src: url('/fonts/morabba/400.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Morabba';
-  src: url('/fonts/morabba/700.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Morabba';
-  src: url('/fonts/morabba/900.woff2') format('woff2');
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
-}
-
 @theme inline {
   --font-sans: 'Vazirmatn', ui-sans-serif, system-ui, sans-serif;
   --font-latin: 'Space Grotesk', 'Vazirmatn', ui-sans-serif, sans-serif;
-  /* `font-display` utility (E-027). */
-  --font-display: 'Morabba', 'Vazirmatn', ui-serif, serif;
+  /* Display face for page titles (Morabba, self-hosted by the app; licence confirmed 2026-11-06). Falls back to Vazirmatn. */
+  --font-display: 'Morabba', 'Vazirmatn', ui-sans-serif, system-ui, sans-serif;
 
   --color-brand: var(--brand);
   --color-brand-ink: var(--brand-ink);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-focus: var(--focus);
-  /* Brand-coloured text: use `text-brand-text`, not `text-brand`, for links and small text (AA in both themes). */
-  --color-brand-text: var(--brand-text);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-sunken: var(--sunken);
@@ -63,47 +32,6 @@
   --color-line-strong: var(--line-strong);
   --color-ok: var(--ok);
   --color-danger: var(--danger);
-  /* Console (E-035) semantic tones, charts and sidebar. Light/dark values live in console-tokens.css. */
-  --color-tenant: var(--c-tenant);
-  --color-tenant-ink: var(--c-tenant-ink);
-  --color-primary: var(--c-primary);
-  --color-primary-ink: var(--c-primary-ink);
-  --color-wash: var(--c-brand-wash);
-  --color-teal: var(--c-brand);
-  --color-teal-ink: var(--c-brand-ink);
-  --color-ok-wash: var(--c-ok-wash);
-  --color-warn: var(--c-warn);
-  --color-warn-wash: var(--c-warn-wash);
-  --color-danger-wash: var(--c-danger-wash);
-  --color-info: var(--c-info);
-  --color-info-wash: var(--c-info-wash);
-  --color-gold: var(--c-milestone);
-  --color-gold-ink: var(--c-milestone-ink);
-  --color-gold-text: var(--c-milestone-text);
-  --color-side: var(--c-side);
-  --color-side-ink: var(--c-side-ink);
-  --color-side-muted: var(--c-side-muted);
-  --color-side-line: var(--c-side-line);
-  --color-side-hover: var(--c-side-hover);
-  --color-chart-1: var(--c-chart-1);
-  --color-chart-2: var(--c-chart-2);
-  --color-chart-3: var(--c-chart-3);
-  --color-chart-4: var(--c-chart-4);
-  --color-chart-5: var(--c-chart-5);
-  --color-chart-track: var(--c-chart-track);
-  --shadow-card: var(--c-shadow);
-  /* E-027 milestone gold (the only "achievement" colour) and brand-derived tint/track for rings and cards. */
-  --color-milestone: var(--milestone);
-  --color-milestone-ink: var(--milestone-ink);
-  --color-e-tint: var(--e-tint);
-  --color-e-track: var(--e-track);
-
-  /* Motion: ease-out only, no bounce. Use with `motion-safe:` (e.g. `motion-safe:animate-e-rise`). */
-  --animate-e-sweep: e-sweep 700ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
-  --animate-e-rise: e-rise 180ms ease-out backwards;
-  --animate-e-stamp: e-stamp 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
-  /* Certificate seal sheen (E-028): one pass, 1.2 s. */
-  --animate-e-sheen: e-sheen 1200ms ease-out 400ms 1 backwards;
 }
 
 /*
@@ -117,7 +45,6 @@
   --accent-ink: #111827;
   /* Focus ring/border: ≥3:1 on every surface (WCAG 1.4.11). */
   --focus: #1a56db;
-  --brand-text: var(--brand);
   --bg: #f6f6f3;
   --surface: #ffffff;
   --sunken: #eeeee9;
@@ -128,11 +55,6 @@
   --line-strong: #888884;
   --ok: #0f7b4b;
   --danger: #b42318;
-  /* Gold: ≥3:1 on every surface; text on it ≥4.5:1. Platform token (tenant may override later). */
-  --milestone: #8f6200;
-  --milestone-ink: #ffffff;
-  --e-tint: color-mix(in oklab, var(--brand) 7%, var(--surface));
-  --e-track: color-mix(in oklab, var(--brand) 16%, var(--sunken));
   color-scheme: light;
 }
 
@@ -145,14 +67,8 @@
   --line: #262b36;
   --line-strong: #676b72;
   --focus: #3167df;
-  /* Fallback; the layout injects a computed ≥4.5:1 value per tenant (tenantPaletteCss). */
-  --brand-text: color-mix(in oklab, var(--brand) 55%, #ffffff);
   --ok: #3ccf8e;
   --danger: #f97066;
-  --milestone: #e0b040;
-  --milestone-ink: #1b1400;
-  --e-tint: color-mix(in oklab, var(--brand) 14%, var(--surface));
-  --e-track: color-mix(in oklab, var(--brand) 32%, var(--sunken));
   color-scheme: dark;
 }
 
@@ -189,49 +105,30 @@
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .animate-marquee {
-    animation: marquee 40s linear infinite;
-  }
-}
-
-/* ---- E-027 motion (ported from design-preview/e027/preview.css). Off under prefers-reduced-motion. ---- */
-@keyframes e-sweep {
+/* Seal login family (E-034): the seal stamps once on load and the form fades up; nothing else moves. */
+/* Scale only, never opacity: a paused animation (background tab, throttled frame, screenshot) must not leave the seal faint. */
+@keyframes seal-stamp {
   from {
-    stroke-dasharray: 0 100;
+    transform: scale(1.14);
   }
 }
-@keyframes e-rise {
+@keyframes seal-rise {
   from {
     opacity: 0;
     transform: translateY(6px);
   }
 }
-@keyframes e-stamp {
-  from {
-    opacity: 0;
-    transform: scale(1.18);
-  }
-}
-@keyframes e-sheen {
-  from {
-    transform: translateX(-140%) skewX(-18deg);
-  }
-  to {
-    transform: translateX(340%) skewX(-18deg);
-  }
-}
 
 @media (prefers-reduced-motion: no-preference) {
-  .e-sweep {
-    animation: e-sweep 700ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
-  }
-  .e-rise {
-    animation: e-rise 180ms ease-out backwards;
-  }
-  .e-stamp {
-    animation: e-stamp 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  .seal-stamp {
+    animation: seal-stamp 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
     transform-box: fill-box;
     transform-origin: center;
+  }
+  .seal-rise {
+    animation: seal-rise 200ms ease-out backwards;
+  }
+  .animate-marquee {
+    animation: marquee 40s linear infinite;
   }
 }

@@ -5,6 +5,7 @@ import type { Where } from 'payload'
 import Link from 'next/link'
 import { ContinueCard, Header, LevelSection, NoCourses, PathBlock, Section, WeekSection, WelcomeCard, mergeBadges, type LearnItem } from '../../../components/panel/dashboard'
 import { greetingName } from '@edvora/core/names'
+import { ImportClaimForm } from '../../../components/ImportClaimForm'
 import { docOf, idOf } from '../../../lib/ids'
 import { getStudentDashboardGamification } from '../../../lib/gamificationQueries'
 import { getPayloadClient } from '../../../lib/payload'
@@ -41,6 +42,12 @@ export default async function DashboardPage() {
     payload.find({ collection: 'orders', where: mine, depth: 1, sort: '-createdAt', limit: 20, overrideAccess: true }),
     payload.find({ collection: 'certificates', where: mine, depth: 1, limit: 20, overrideAccess: true }),
   ])
+
+  // W23: after a WordPress import, a student with nothing here may have bought on the old site under another phone.
+  const imported =
+    enrollments.totalDocs === 0 && orders.totalDocs === 0 && user.source !== 'import'
+      ? (await payload.count({ collection: 'import-jobs', where: { and: [{ tenant: { equals: tenant.id } }, { status: { equals: 'done' } }] }, overrideAccess: true })).totalDocs > 0
+      : false
 
   const gam = await getStudentDashboardGamification().catch((err) => {
     console.error('[dashboard gamification]', err)
@@ -107,6 +114,18 @@ export default async function DashboardPage() {
       <Header name={name} line={line}>
         {logout}
       </Header>
+
+      {imported ? (
+        <section className="mt-8 grid gap-3 rounded-2xl border border-line bg-surface p-5" aria-labelledby="old-site-title" data-testid="import-claim">
+          <h2 id="old-site-title" className="text-lg font-black">
+            قبلاً در سایت قدیمی ما دوره خریده‌اید؟
+          </h2>
+          <p className="text-sm leading-7 text-muted">
+            دوره‌ها و پیشرفت دانشجویان از سایت قبلی منتقل شده است، اما با این شماره چیزی پیدا نکردیم. شاید آنجا با شمارهٔ دیگری ثبت‌نام کرده بودید. مشخصات قبلی‌تان را بنویسید تا پشتیبانی سابقه‌تان را به همین حساب وصل کند.
+          </p>
+          <ImportClaimForm />
+        </section>
+      ) : null}
 
       {items.length === 0 ? (
         <div className="pt-10">

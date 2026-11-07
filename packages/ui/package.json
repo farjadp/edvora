@@ -10,6 +10,7 @@
     "./classes": "./src/classes.ts",
     "./color": "./src/color.ts",
     "./console": "./src/console/index.ts",
+    "./seal": "./src/seal.tsx",
     "./styles.css": "./src/styles.css",
     "./console-tokens.css": "./src/console-tokens.css"
   },

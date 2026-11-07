@@ -6,7 +6,8 @@ import { toLatinDigits } from './digits'
  * Returns null when the input is not a valid Iranian mobile number.
  */
 export function normalizeIranMobile(input: string): string | null {
-  let d = toLatinDigits(input).replace(/[\s\-()]/g, '')
+  // Invisible marks copied from chat apps / RTL inputs: ZW*, LRM/RLM, LRE…RLO, LRI…PDI, BOM.
+  let d = toLatinDigits(input).replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '').replace(/[\s\-()]/g, '')
   if (d.startsWith('+')) d = d.slice(1)
   if (d.startsWith('0098')) d = d.slice(4)
   else if (d.startsWith('98') && d.length === 12) d = d.slice(2)

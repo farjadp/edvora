@@ -36,7 +36,8 @@ test('public pages keep their header and footer', async ({ page }) => {
 
 test('wrong password shows one generic error', async ({ page }) => {
   await staffLogin(page, DEMO, { email: 'nobody@example.test', password: 'wrong-password' })
-  await expect(page.getByRole('alert').filter({ hasText: 'ایمیل' })).toHaveText('ایمیل یا رمز عبور درست نیست.')
+  // The Seal alert prefixes «خطا.» (E-034: errors are not colour-only).
+  await expect(page.getByRole('alert').filter({ hasText: 'ایمیل' })).toHaveText('خطا. ایمیل یا رمز عبور درست نیست.')
 })
 
 test('student account → 403 variant B with HTTP 403', async ({ page }) => {

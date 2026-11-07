@@ -13,7 +13,10 @@ import { SecurityPromoCard } from '../../../../../components/staff/SecurityPromo
 import { getAdvisorDesk, isDeskFilter } from '../../../../../lib/advisorDesk'
 import { count, deltaOf, fa, one, staffCtx, trend } from '../../../../../lib/consoleData'
 import { LEAD_STATUS } from '../../../../../lib/consoleLabels'
+import { HostLivePanel } from '../../../../../components/live/HostLivePanel'
+import { hostRows } from '../../../../../lib/liveAccess'
 import { requireStaff } from '../../../../../lib/staff'
+import { tenantHasFeature } from '../../../../../lib/tenant'
 import { deskCopy } from '../../../../../lib/staffDesks'
 
 type Sp = Record<string, string | string[] | undefined>
@@ -75,9 +78,17 @@ export default async function DeskPage({ params, searchParams }: Props) {
     case 'students':
       body = <StudentsDesk s={s} sp={sp} />
       break
-    case 'teaching':
-      body = <TeachingDesk s={s} sp={sp} />
+    case 'teaching': {
+      // E-033: the Teaching desk lists the classes this person may host (D3).
+      const live = tenantHasFeature(s.tenant, 'live') ? await hostRows(s) : null
+      body = (
+        <>
+          {live ? <HostLivePanel rows={live} message={one(sp.live) || null} /> : null}
+          <TeachingDesk s={s} sp={sp} />
+        </>
+      )
       break
+    }
     case 'content':
       body = <ContentDesk s={s} sp={sp} />
       break

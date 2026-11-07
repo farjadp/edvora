@@ -1,0 +1,28 @@
+.edvora-migrator .edvora-summary,
+.edvora-migrator .edvora-counts {
+	max-width: 720px;
+}
+
+.edvora-migrator .edvora-summary th {
+	width: 220px;
+}
+
+.edvora-migrator .edvora-actions .button {
+	margin-inline-end: 8px;
+}
+
+.edvora-migrator .edvora-progress {
+	max-width: 720px;
+	margin-top: 12px;
+}
+
+.edvora-migrator .edvora-progress progress {
+	display: block;
+	width: 100%;
+	height: 18px;
+	margin: 6px 0;
+}
+
+.edvora-migrator .edvora-result {
+	margin-inline-start: 8px;
+}

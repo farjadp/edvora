@@ -27,12 +27,15 @@ import { AssignTenantFieldTrigger as AssignTenantFieldTrigger_1d0591e3cf4f332c83
 import { ListKpis as ListKpis_7c81f9263c65eadb96fd80525db7e6fd } from '../../../components/admin/ListKpis'
 import { Nav as Nav_231477f0faa4368be46fd47ffb9da4d9 } from '../../../components/admin/AdminNav'
 import { Icon as Icon_81fda60f3e3709e861f40982a767707d } from '../../../components/admin/Brand'
-import { Logo as Logo_81fda60f3e3709e861f40982a767707d } from '../../../components/admin/Brand'
+import { LoginLogo as LoginLogo_f54936618bb42a105f1e4f7049b2245f } from '../../../components/admin/LoginSkin'
 import { HeaderTools as HeaderTools_9414d29c2c9756e59a8d46abe37d7bbd } from '../../../components/admin/HeaderTools'
+import { AfterLogin as AfterLogin_f54936618bb42a105f1e4f7049b2245f } from '../../../components/admin/LoginSkin'
 import { DashboardHome as DashboardHome_84cd845a8766cfd3c2cceae49d5dee3d } from '../../../components/admin/DashboardHome'
+import { BeforeLogin as BeforeLogin_f54936618bb42a105f1e4f7049b2245f } from '../../../components/admin/LoginSkin'
 import { TenantSelector as TenantSelector_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 import { TenantSelectionProvider as TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
@@ -65,10 +68,13 @@ export const importMap = {
   "/components/admin/ListKpis#ListKpis": ListKpis_7c81f9263c65eadb96fd80525db7e6fd,
   "/components/admin/AdminNav#Nav": Nav_231477f0faa4368be46fd47ffb9da4d9,
   "/components/admin/Brand#Icon": Icon_81fda60f3e3709e861f40982a767707d,
-  "/components/admin/Brand#Logo": Logo_81fda60f3e3709e861f40982a767707d,
+  "/components/admin/LoginSkin#LoginLogo": LoginLogo_f54936618bb42a105f1e4f7049b2245f,
   "/components/admin/HeaderTools#HeaderTools": HeaderTools_9414d29c2c9756e59a8d46abe37d7bbd,
+  "/components/admin/LoginSkin#AfterLogin": AfterLogin_f54936618bb42a105f1e4f7049b2245f,
   "/components/admin/DashboardHome#DashboardHome": DashboardHome_84cd845a8766cfd3c2cceae49d5dee3d,
+  "/components/admin/LoginSkin#BeforeLogin": BeforeLogin_f54936618bb42a105f1e4f7049b2245f,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelector": TenantSelector_d6d5f193a167989e2ee7d14202901e62,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelectionProvider": TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62,
-  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
+  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24
 }

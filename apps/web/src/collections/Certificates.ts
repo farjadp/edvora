@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { APIError } from 'payload'
 import { buildCertificateCode, parseCertificateCode } from '@edvora/core'
-import { allow, allowCreate, anyOf, guard, nobody, requireForFields } from '../access/permissions'
+import { allow, allowCreate, anyOf, guard, isSystemWrite, nobody, requireForFields } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
 import { refreshAfterCertificateChange } from '../lib/gamification'
 import { idOf as relId } from '../lib/ids'
@@ -29,7 +29,8 @@ export const Certificates: CollectionConfig = {
       // E-026: a certificate for an enrolled student needs every required quiz and assignment passed (Q8, C6).
       // Progress/defense are not enforced here yet (imported historic certificates); the issuing flow (E) will.
       async ({ data, req, operation }) => {
-        if (operation !== 'create' || !data) return data
+        // Historic certificates written by the WordPress import (server code) are not re-checked.
+        if (operation !== 'create' || !data || isSystemWrite(req)) return data
         const tenantId = relId(data.tenant)
         const userId = relId(data.user)
         const courseId = relId(data.course)
@@ -111,5 +112,16 @@ export const Certificates: CollectionConfig = {
       ],
     },
     { name: 'pdf', type: 'upload', relationTo: 'media' },
+    {
+      // E-032 (W13): a certificate brought in from WordPress keeps its old id/number/URL so /verify can resolve it.
+      type: 'collapsible',
+      label: { fa: 'گواهی منتقل‌شده', en: 'Imported certificate' },
+      admin: { initCollapsed: true },
+      fields: [
+        { name: 'legacyId', type: 'text', index: true, admin: { readOnly: true } },
+        { name: 'legacyCode', type: 'text', index: true, admin: { readOnly: true } },
+        { name: 'legacyUrl', type: 'text', admin: { readOnly: true } },
+      ],
+    },
   ],
 }
