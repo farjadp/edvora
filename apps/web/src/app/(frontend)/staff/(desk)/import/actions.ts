@@ -6,6 +6,7 @@
  * instead of calling redirect() (AGENTS.md, ADR 005).
  */
 import { normalizeIranMobile, toLatinDigits } from '@edvora/core'
+import { checkPublicHost } from '@edvora/integrations/wordpress'
 import { after } from 'next/server'
 import { z } from 'zod'
 import { getPayloadClient } from '../../../../../lib/payload'
@@ -103,7 +104,8 @@ const RestInput = z
     llmsKey: optionalSecret,
     llmsSecret: optionalSecret,
   })
-  .refine((v) => /^https:\/\//i.test(v.siteUrl) || /^http:\/\/(localhost|127\.0\.0\.1|[a-z0-9-]+\.localhost)(:\d+)?(\/|$)/i.test(v.siteUrl), { message: 'برای امنیت رمزها، نشانی سایت باید https باشد.', path: ['siteUrl'] })
+  // HTTPS only; plain-http localhost is a local-development convenience and never accepted in production (QA-E032-03).
+  .refine((v) => /^https:\/\//i.test(v.siteUrl) || (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1|[a-z0-9-]+\.localhost)(:\d+)?(\/|$)/i.test(v.siteUrl)), { message: 'برای امنیت رمزها، نشانی سایت باید https باشد.', path: ['siteUrl'] })
 
 export async function startRestAction(_prev: ImportActionState, form: FormData): Promise<ImportActionState> {
   const parsed = RestInput.safeParse(Object.fromEntries(form))
@@ -111,6 +113,9 @@ export async function startRestAction(_prev: ImportActionState, form: FormData):
   const s = await importActor('import.run')
   if (!s) return DENIED
   const v = parsed.data
+  // Refuse private / loopback / link-local targets before anything is stored or sent (SSRF, QA-E032-03).
+  const reach = await checkPublicHost(new URL(v.siteUrl).hostname, { allowLoopback: process.env.NODE_ENV !== 'production' })
+  if (!reach.ok) return { ok: false, message: 'این نشانی به یک شبکهٔ داخلی اشاره می‌کند و پذیرفته نمی‌شود.' }
   try {
     const job = await startRest({
       payload: await getPayloadClient(),

@@ -78,7 +78,7 @@ describe('REST fallback reach (SSRF)', () => {
   // or (in the action) http://localhost:PORT. The server then sends the application password to that address and the
   // HTTP status/"non-JSON" errors leak what is listening. Media pulls have a guarded lookup; REST does not. Remove
   // `.fails` when RestSource (or startRest) refuses private/loopback/link-local targets before any request.
-  it.fails('QA-E032-03: refuses private, loopback and link-local targets before sending credentials', async () => {
+  it('QA-E032-03: refuses private, loopback and link-local targets before sending credentials', async () => {
     for (const url of ['https://10.0.0.5', 'https://192.168.1.10', 'https://169.254.169.254', 'https://[::1]', 'https://127.0.0.1:5432']) {
       const calls: string[] = []
       const spy = (async (input: RequestInfo | URL) => {

@@ -5,6 +5,7 @@
 import { IntegrationError } from '../errors'
 import { readBundle, type BundleInput, type ReadBundleOptions } from './bundle'
 import { FORMAT_NAME, FORMAT_VERSION, JSON_META_PREFIX, ManifestSchema, makeRecord, type Manifest, type ManifestInput, type SourceRecord } from './format'
+import { checkPublicHost } from './net'
 import { sha256Hex } from './signature'
 import type { MissingKind } from './types'
 
@@ -91,6 +92,10 @@ export type RestSourceConfig = {
   tablePrefix?: string
   fetch?: typeof fetch
   timeoutMs?: number
+  /** Local development only: allow localhost / *.localhost / 127.x. Private and link-local addresses never. */
+  allowLoopback?: boolean
+  /** Tests: replaces DNS resolution for the reach check. */
+  resolveHost?: (host: string) => Promise<string[]>
 }
 
 type Auth = 'wp' | 'woo' | 'llms'
@@ -171,6 +176,9 @@ export class RestSource implements WordPressSource {
 
   /** GET with timeout; never follows redirects (credentials must not leave the origin). */
   private async get(path: string, query: Record<string, string>, auth: Auth): Promise<{ status: number; body: unknown; totalPages: number | null }> {
+    // SSRF guard (QA-E032-03): checked before every request, so credentials never reach a private address.
+    const reach = await checkPublicHost(this.base.hostname, { allowLoopback: this.config.allowLoopback, resolve: this.config.resolveHost })
+    if (!reach.ok) throw new IntegrationError('wordpress', `Refusing to connect to ${this.base.hostname} (${reach.reason})`)
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), this.timeoutMs)
     try {

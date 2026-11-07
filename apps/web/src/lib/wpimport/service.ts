@@ -291,7 +291,7 @@ export async function openJobSource(payload: Payload, tenant: Tenant, job: Impor
   } else if (full.mode === 'rest') {
     const cfg = openJson<Omit<RestSourceConfig, 'tenantSlug'>>(full.restSealed)
     if (!cfg) throw new BundleError('empty', 'REST credentials were wiped')
-    source = restSource({ ...cfg, tenantSlug: tenant.slug })
+    source = restSource({ ...cfg, tenantSlug: tenant.slug, allowLoopback: process.env.NODE_ENV !== 'production' })
   } else throw new BundleError('empty', `Unsupported mode ${full.mode}`)
   return withPhoneOverrides(source, choicesOf(full).phoneOverrides)
 }
