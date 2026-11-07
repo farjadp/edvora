@@ -1051,6 +1051,20 @@ h2.LexicalEditorTheme__h {
   border-radius: var(--style-radius-s);
 }
 
+/* On a 375px screen the 450px-wide image card overflowed the editor and was clipped at the start edge. */
+.LexicalEditorTheme__upload,
+.LexicalEditorTheme__upload__contents,
+.LexicalEditorTheme__upload__card,
+.LexicalEditorTheme__upload__media,
+.LexicalEditorTheme__upload__media .thumbnail {
+  max-inline-size: 100%;
+}
+
+.LexicalEditorTheme__upload__media img {
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
 /* Slash menu ("/" to insert blocks). */
 .slash-menu-popup {
   background: var(--ed-surface);
