@@ -70,3 +70,7 @@ New QA files: `wp-import-push.spec.ts`, `wp-import-scenarios.spec.ts`, `wp-impor
 | `pnpm typecheck`, `pnpm build`, `tsc -p e2e` | green |
 | Playwright (`pnpm e2e`, E2E_PORT=3120) | 78 pass (incl. 2 expected-fail), 4 skipped (deployed smoke), 1 fail (`rich-text.spec` needs a `demo.png` media that a fresh seed does not create, QA-E032-12, not import related) |
 | PHP lint | php:7.4-cli and php:8.2-cli: 12 files, no syntax errors |
+
+## Re-verification (fresh DB `edvora_qa032b`, 2026-11-06)
+Status changes: W1 expired bundle, W4 REST reach, W8 bidi, W7p/W18 resume, W19 auto-revoke, W21 retention, W23, W8a skip, W8b CSV, a11y: **pass**. Still gap/partial (declared, follow-up): W7p cancel (no automated test), W21 sweep (no automated test), W8a move-orders, W8f, W22a, W24, W13 e2e `/verify`, real WordPress docker run, REST through the UI, media download e2e.
+Suites: core 183, integrations 74, web 38, ui 17, all pass, no expected-fail left. typecheck, build, `tsc -p e2e` green. Playwright: 80 pass, 4 skipped (deployed smoke), 1 fail (`rich-text.spec`, demo-1.png quirk, QA-E032-12).

@@ -35,6 +35,7 @@ Developer agents fix; QA re-tests and closes.
 Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); remove the marker when fixed.
 
 ## QA-E032-01 · A bundle from an expired connection is accepted and can be run
+- **QA re-verify 2026-11-06:** CLOSED (bundle spec un-marked, green).
 - **Status:** fixed in `5d5afaa` (tech-lead) — `ingestBundle` uses `connectionUsable()`; QA test un-marked.
 - **Severity:** major (security; W1 "expires in 72 h", W3)
 - **Tenant:** demo (any)
@@ -121,3 +122,19 @@ Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); re
 - **Steps:** new DB, `payload migrate`, `pnpm seed`, `pnpm e2e`.
 - **Actual:** `src/seed/e2e-richtext.ts` throws `Not found: demo media` because it expects a `demo.png` media row in demo that no seed creates. The spec then fails in `beforeAll`.
 - **Suspected area:** `apps/web/src/seed/run.ts` (create the demo media) or make `e2e-richtext.ts` create it.
+
+## E-032 re-verification (QA, fresh DB `edvora_qa032b`, after commits 8204cd0..6ac5b28)
+| ID | Verdict |
+| --- | --- |
+| 01 expired bundle | CLOSED (e2e un-marked, green) |
+| 02 stale UI | CLOSED (scenario reload workaround gone, green) |
+| 03 REST SSRF | CLOSED (`it.fails` removed, integrations 74/74); not exercised through the UI |
+| 04 bidi phones | CLOSED (core 183/183) |
+| 05 table a11y | CLOSED (axe clean at 375/desktop, light/dark) |
+| 06 cancel/resume | CLOSED for resume (e2e "a failed run resumes from its saved cursor"); cancel verified by code read only, no automated test, FOLLOW-UP |
+| 07 retention of unfinished jobs | CLOSED by code read (daily `importSweep`); no automated test for the sweep, FOLLOW-UP (add one) |
+| 08 auto-revoke | CLOSED (scenarios re-open the reused connection) |
+| 09 plugin post_password / temp dir | CLOSED (static review tests + lint 7.4/8.2 re-run by dev; QA PK qa tests green) |
+| 10 typo | CLOSED |
+| 11 partial stories | W23, W8a skip+add phone, W8b CSV: CLOSED (e2e "held users: CSV… and the student-side request"). Still open, declared: W8a move-orders, W8f, W22a, W24, 308 vs 301: FOLLOW-UP (not release blockers) |
+| 12 rich-text on fresh DB | Seed now creates `demo.png`, but on a machine whose media folder already has `demo.png` Payload stores `demo-1.png` and `rich-text.spec` still fails there (not on a clean checkout/CI). OPEN minor, FOLLOW-UP: look the media up by alt or `demo*.png` in `e2e-richtext.ts` |

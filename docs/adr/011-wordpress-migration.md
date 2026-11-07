@@ -1,6 +1,20 @@
 # ADR 011 — WordPress migration (plugin bundle, REST fallback, source-shaped records)
 
-**Status:** proposed (2026-11-06, E-032 phase 2) — needs Farjad's review. No code until approved.
+**Status:** accepted (Farjad, 2026-11-06), stacks WooCommerce + LifterLMS + Tutor LMS. Built in E-032 phase 3.
+
+**Amendments during the build** (the spec is `packages/integrations/src/wordpress/FORMAT.md`):
+- The bundle is a **gzip NDJSON** file (manifest on the first line, HMAC signature on the last), not a zip, because PHP
+  `ZipArchive` is often missing on Iranian shared hosts and Node reads gzip without a dependency.
+- Mappers take the whole source index (`map(ctx)`), not one record at a time, because lesson order, enrollments and
+  progress span records.
+- Media is pulled **before** records, so course images and post HTML can point at the new files.
+- Push nonces are stored in the `import-nonces` collection, short-lived security rows that are deleted after expiry.
+- Connections are revoked automatically when their job finishes or is cancelled.
+- Defaults for the open questions:
+  - Raw data is purged 30 days after the job ends; abandoned drafts after 7 days.
+  - Orders are imported when completed, processing or refunded. Other statuses are counted and skipped.
+  - Quiz attempts are counted, not imported.
+  - Media hosts outside the site must be approved by the admin in the dry run.
 
 ## Context
 Most Iranian academies we can sign run on WordPress: WooCommerce + an Iranian theme course builder (Studiare),
