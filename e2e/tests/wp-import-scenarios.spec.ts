@@ -389,8 +389,7 @@ test.describe('W3 bundle upload refusals', () => {
     await loginImporter(page)
     const c = await createConnectionUi(page, DEMO)
     await sql("update import_connections set expires_at = now() - interval '1 hour' where connection_id = $1", [c.connectionId])
-    // QA-E032-01: ingestBundle never checks expiry although REJECT_MESSAGES has connection_expired.
-    test.fail(true, 'QA-E032-01: expired connections still accept bundle uploads')
+    // QA-E032-01 (fixed): expiry is checked like in push mode.
     await rejected(page, DEMO, bundleFor(c, 'demo'), /منقضی/)
   })
 })

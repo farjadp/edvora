@@ -206,7 +206,9 @@ export async function ingestBundle(i: { payload: Payload; tenant: Tenant; actor:
   const connectionId = typeof head?.connectionId === 'string' ? head.connectionId : ''
   const connection = connectionId ? await findConnection(payload, tenant.id, connectionId) : null
   if (!connection) return reject(payload, job, tenant, actor, head?.tenantSlug && head.tenantSlug !== tenant.slug ? 'tenant_mismatch' : 'connection_unknown')
-  if (connection.revokedAt) return reject(payload, job, tenant, actor, 'connection_revoked')
+  // Same rule as push (QA-E032-01): a revoked or expired connection's bundle is refused.
+  const usable = connectionUsable(connection)
+  if (usable !== 'ok') return reject(payload, job, tenant, actor, `connection_${usable}`)
   if (head.tenantSlug !== tenant.slug) return reject(payload, job, tenant, actor, 'tenant_mismatch')
   const secret = openConnectionSecret(connection)
   if (!secret) return reject(payload, job, tenant, actor, 'secret_unreadable')
