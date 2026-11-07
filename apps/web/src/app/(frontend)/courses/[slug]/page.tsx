@@ -1,11 +1,12 @@
 import { buildInstalmentPlan, formatJalali, formatToman, rial, toPersianDigits } from '@edvora/core'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { CourseArt } from '../../../../components/CourseCard'
 import { EnrollCard } from '../../../../components/EnrollCard'
 import { LeadForm } from '../../../../components/LeadForm'
 import { getCourseBySlug, getLessons, getOpenCohorts } from '../../../../lib/queries'
+import { findRedirect } from '../../../../lib/redirects'
 import { getCurrentTenant } from '../../../../lib/tenant'
 import { hasRichText, lexicalToPlainText } from '@edvora/core/richtext'
 import { RichText } from '../../../../components/RichText'
@@ -22,7 +23,12 @@ export default async function CoursePage({ params }: Props) {
   const slug = decodeURIComponent((await params).slug)
   const tenant = await getCurrentTenant()
   const course = await getCourseBySlug(tenant.id, slug)
-  if (!course) notFound()
+  if (!course) {
+    // E-032: a WordPress course URL that shares the /courses/ base (Tutor) but whose slug changed on import.
+    const to = await findRedirect(tenant.id, `/courses/${slug}`)
+    if (to) permanentRedirect(to)
+    notFound()
+  }
 
   const [cohorts, lessons] = await Promise.all([getOpenCohorts(tenant.id), getLessons(course.id)])
   const cohort = cohorts.get(course.id)

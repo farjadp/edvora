@@ -174,6 +174,15 @@ export const Users: CollectionConfig = {
               validate: (v: unknown) => !v || (typeof v === 'string' && /^09\d{9}$/.test(v)) || 'شماره موبایل معتبر نیست',
             },
             {
+              // E-032 (ADR 011): a real contact email, separate from the login `email` (a placeholder for OTP students).
+              // Not unique, not used for auth, so an imported WordPress email can never collide with or take over a login.
+              name: 'contactEmail',
+              type: 'email',
+              label: { fa: 'ایمیل تماس', en: 'Contact email' },
+              admin: { description: 'For receipts and contact only. Not used to sign in.' },
+              access: { read: sensitive(true) },
+            },
+            {
               type: 'row',
               fields: [
                 {

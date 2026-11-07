@@ -61,7 +61,7 @@ async function main() {
   }
   const tenant = await first(payload.find({ collection: 'tenants', where: { slug: { equals: 'demo' } }, limit: 1, overrideAccess: true }), 'demo tenant')
   const t = { tenant: { equals: tenant.id } }
-  const media = await first(payload.find({ collection: 'media', where: { and: [t, { filename: { equals: 'demo.png' } }] }, limit: 1, overrideAccess: true }), 'demo media')
+  const media = await first(payload.find({ collection: 'media', where: { and: [t, { alt: { equals: 'نمونه تصویر demo' } }] }, limit: 1, overrideAccess: true }), 'demo media')
   const course = await first(payload.find({ collection: 'courses', where: { and: [t, { slug: { equals: 'demo-program' } }] }, limit: 1, depth: 0, overrideAccess: true }), 'demo course')
   const doc = (marker: string) => richDoc(course.id, media.id, marker)
 
@@ -82,7 +82,8 @@ async function main() {
   await payload.update({ collection: 'courses', id: course.id, data: { syllabus, faq }, overrideAccess: true, depth: 0 })
   const lesson = await first(payload.find({ collection: 'lessons', where: { and: [t, { title: { equals: 'منابع تکمیلی' } }] }, limit: 1, depth: 0, overrideAccess: true }), 'lesson')
   await payload.update({ collection: 'lessons', id: lesson.id, data: { notes: doc('یادداشت') }, overrideAccess: true, depth: 0 })
-  const quiz = await first(payload.find({ collection: 'quizzes', where: t, limit: 1, depth: 0, overrideAccess: true }), 'quiz')
+  // The seeded course's quiz (other demo data, e.g. a WordPress import, may add quizzes).
+  const quiz = await first(payload.find({ collection: 'quizzes', where: { and: [t, { course: { equals: course.id } }] }, sort: 'id', limit: 1, depth: 0, overrideAccess: true }), 'quiz')
   await payload.update({ collection: 'quizzes', id: quiz.id, data: { description: doc('توضیح‌آزمون') }, overrideAccess: true, depth: 0 })
   const q = await first(payload.find({ collection: 'questions', where: { and: [t, { text: { contains: 'جزو چهار بخش' } }] }, limit: 1, depth: 0, overrideAccess: true }), 'question')
   await payload.update({ collection: 'questions', id: q.id, data: { explanation: doc('توضیح‌پاسخ') }, overrideAccess: true, depth: 0 })

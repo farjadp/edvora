@@ -12,7 +12,8 @@
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/run.ts",
-    "import:iba": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env src/seed/import-iba.ts"
+    "import:iba": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env src/seed/import-iba.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@edvora/core": "workspace:*",
@@ -46,6 +47,7 @@
     "node-html-parser": "7.0.1",
     "tailwindcss": "^4.1.17",
     "tsx": "^4.20.6",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^4.1.12"
   }
 }

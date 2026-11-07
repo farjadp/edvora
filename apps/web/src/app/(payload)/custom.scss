@@ -754,6 +754,334 @@ div.nav__link {
   margin-block-end: 28px;
 }
 
+/*
+ * E-034 · /admin/login as the Seal card (option B), same look as /staff/login. Everything is scoped to the login view
+ * (`.login.template-minimal`) or to the `ed-login-*` elements injected by components/admin/LoginSkin; the rest of the
+ * admin is untouched. Payload's form markup and toasts stay; only their look changes here.
+ */
+.login.template-minimal {
+  position: relative;
+  isolation: isolate;
+  min-block-size: 100dvh;
+  padding-block: 96px 48px;
+  padding-inline: 16px;
+  overflow: hidden;
+}
+
+.login .template-minimal__wrap {
+  position: relative;
+  inline-size: 100%;
+  max-inline-size: 448px;
+  margin-inline: auto;
+  padding: 64px 36px 32px;
+  border-radius: var(--style-radius-m);
+}
+
+/* Inner hairline: the certificate double frame of the card. */
+.login .template-minimal__wrap::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--ed-line);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.login .login__brand {
+  display: flex;
+  justify-content: center;
+  margin-block-end: 0;
+  text-align: center;
+}
+
+.ed-login-brand {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: var(--ed-ink);
+}
+
+.ed-login-seal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 92px;
+  block-size: 92px;
+  padding: 6px;
+  border-radius: 50%;
+  background: var(--ed-surface);
+  box-shadow: 0 0 0 1px var(--ed-line);
+}
+
+/* On the login card the seal breaks the top edge (other Payload views using the Logo keep it in the flow). */
+.login .ed-login-seal {
+  position: absolute;
+  inset-block-start: -46px;
+  inset-inline: 0;
+  margin-inline: auto;
+}
+
+.ed-login-seal__art {
+  inline-size: 80px;
+  block-size: 80px;
+}
+.ed-login-seal__teeth {
+  fill: var(--ed-brand);
+}
+.ed-login-seal__ring {
+  stroke: var(--ed-brand-ink);
+}
+
+.ed-login-seal__initial {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--ed-display);
+  font-weight: 900;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--ed-brand-ink);
+}
+
+.ed-login-seal__logo {
+  position: absolute;
+  inset: 24%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--ed-surface);
+}
+.ed-login-seal__logo img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
+.ed-login-brand__name {
+  font-family: var(--ed-display);
+  font-weight: 900;
+  font-size: 20px;
+  line-height: 1.6;
+}
+
+.ed-login-brand__welcome {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--ed-muted);
+  text-wrap: pretty;
+}
+
+/* Page frame: double hairline, corner stars, guilloche in the academy colour. Static; decorative only. */
+.ed-login-frame {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.ed-login-frame::before,
+.ed-login-frame::after {
+  content: '';
+  position: absolute;
+  border: 1px solid var(--ed-line-strong);
+  opacity: 0.7;
+}
+.ed-login-frame::before {
+  inset: 16px;
+}
+.ed-login-frame::after {
+  inset: 22px;
+  border-color: var(--ed-line);
+  opacity: 1;
+}
+
+.ed-login-frame__guilloche {
+  inline-size: 1024px;
+  block-size: 1024px;
+  max-inline-size: none;
+  max-block-size: none;
+  flex: none;
+  color: var(--ed-brand);
+  opacity: 0.13;
+}
+
+.ed-login-frame__star {
+  position: absolute;
+  inline-size: 16px;
+  block-size: 16px;
+  color: var(--ed-brand);
+}
+.ed-login-frame__star--ts {
+  inset-block-start: 1.85rem;
+  inset-inline-start: 1.85rem;
+}
+.ed-login-frame__star--te {
+  inset-block-start: 1.85rem;
+  inset-inline-end: 1.85rem;
+}
+.ed-login-frame__star--bs {
+  inset-block-end: 1.85rem;
+  inset-inline-start: 1.85rem;
+}
+.ed-login-frame__star--be {
+  inset-block-end: 1.85rem;
+  inset-inline-end: 1.85rem;
+}
+
+.ed-login-head {
+  position: relative;
+  text-align: center;
+  margin-block-end: 28px;
+}
+
+.ed-login-rule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-block: 20px;
+  color: var(--ed-brand);
+}
+.ed-login-rule > span {
+  flex: 1;
+  block-size: 1px;
+  background: var(--ed-line-strong);
+  opacity: 0.6;
+}
+.ed-login-rule__star {
+  inline-size: 12px;
+  block-size: 12px;
+}
+
+.ed-login-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 2px 10px;
+  border: 1px solid var(--ed-line-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+.ed-login-tag svg {
+  inline-size: 14px;
+  block-size: 14px;
+}
+
+.login .ed-login-title {
+  margin: 0;
+  font-family: var(--ed-display);
+  font-weight: 900;
+  font-size: 28px;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+
+/* Payload's form, restyled to the Seal fields and button. */
+.login .login__form__inputWrap {
+  gap: 20px;
+}
+.login .field-type .field-label {
+  font-weight: 700;
+}
+.login .field-type input:not([type='checkbox']):not([type='radio']) {
+  block-size: 48px;
+  background: var(--ed-paper);
+  border-color: var(--ed-line-strong);
+  border-radius: 2px;
+}
+.login .form-submit {
+  margin-block-start: 20px;
+}
+.login .form-submit .btn {
+  inline-size: 100%;
+  min-block-size: 48px;
+  margin: 0;
+  border-radius: var(--style-radius-m);
+  font-weight: 700;
+}
+
+/* A7: Payload's «forgot password» page cannot send mail (no email adapter); the honest help line is in afterLogin. */
+.login__form a[href$='/forgot'] {
+  display: none;
+}
+
+.ed-login-after {
+  position: relative;
+  margin-block-start: 24px;
+  font-size: 13px;
+  line-height: 1.9;
+}
+.ed-login-after__line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+}
+.ed-login-after__line svg {
+  flex: none;
+  inline-size: 16px;
+  block-size: 16px;
+  margin-block-start: 5px;
+}
+.ed-login-after__line a {
+  font-weight: 700;
+  color: var(--ed-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--ed-brand);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+.ed-login-after__line a:hover {
+  text-decoration-thickness: 4px;
+}
+.ed-login-after__help {
+  margin: 12px 0 0;
+  color: var(--ed-muted);
+}
+
+/* Error toasts while on the login page read like the Seal alert (A2, A4, A8). Text is Payload's. */
+body:has(.login.template-minimal) .payload-toast-item.toast-error {
+  border: 1px solid color-mix(in srgb, var(--ed-danger) 60%, transparent);
+  border-radius: var(--style-radius-m);
+  background: var(--ed-surface);
+  color: var(--ed-ink);
+}
+
+@media (max-width: 600px) {
+  .login.template-minimal {
+    padding-block: 80px 32px;
+  }
+  .login .template-minimal__wrap {
+    padding: 64px 20px 28px;
+  }
+  .ed-login-frame::before {
+    inset: 8px;
+  }
+  .ed-login-frame::after,
+  .ed-login-frame__star {
+    display: none;
+  }
+  .ed-login-frame__guilloche {
+    inline-size: 736px;
+    block-size: 736px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .login .ed-login-seal__art {
+    animation: ed-login-stamp 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+}
+/* Scale only, never opacity: a paused animation (background tab, throttled frame, screenshot) must not leave the seal faint. */
+@keyframes ed-login-stamp {
+  from {
+    transform: scale(1.14);
+  }
+}
+
 /* ---------- Motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
