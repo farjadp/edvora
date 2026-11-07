@@ -41,7 +41,7 @@ function Row({ r }: { r: AdvisorRow }) {
         ) : null}
       </div>
       <p className="mt-1">
-        <a href={`tel:${r.phone}`} dir="ltr" className="inline-flex min-h-11 items-center gap-2 font-latin hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+        <a href={`tel:${r.phone}`} dir="ltr" className="inline-flex min-h-11 items-center gap-2 font-latin hover:text-brand-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           <Icon name="phone" className="size-4" />
           {r.phone}
         </a>
@@ -142,7 +142,7 @@ export function LeadsDesk({ title, name, desk, filter, adminLink }: { title: str
           )}
           {adminLink ? (
             <p className="mt-4">
-              <a href={adminLink.href} className="inline-flex min-h-11 items-center font-bold text-brand underline-offset-4 hover:underline">
+              <a href={adminLink.href} className="inline-flex min-h-11 items-center font-bold text-brand-text underline-offset-4 hover:underline">
                 {adminLink.label} <span aria-hidden>↗</span>
               </a>
             </p>

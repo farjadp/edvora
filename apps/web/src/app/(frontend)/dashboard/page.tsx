@@ -160,10 +160,10 @@ export default async function DashboardPage() {
                     {c.code}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
-                    <Link href={`/dashboard/certificates/${c.id}`} className="inline-flex min-h-11 items-center rounded-sm text-sm font-bold text-brand underline-offset-4 hover:underline">
+                    <Link href={`/dashboard/certificates/${c.id}`} className="inline-flex min-h-11 items-center rounded-sm text-sm font-bold text-brand-text underline-offset-4 hover:underline">
                       مشاهدهٔ گواهی
                     </Link>
-                    <Link href={`/verify?code=${encodeURIComponent(c.code ?? '')}`} className="inline-flex min-h-11 items-center rounded-sm text-sm font-bold text-brand underline-offset-4 hover:underline">
+                    <Link href={`/verify?code=${encodeURIComponent(c.code ?? '')}`} className="inline-flex min-h-11 items-center rounded-sm text-sm font-bold text-brand-text underline-offset-4 hover:underline">
                       صفحهٔ استعلام
                     </Link>
                   </div>

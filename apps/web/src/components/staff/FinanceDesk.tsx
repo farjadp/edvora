@@ -57,7 +57,7 @@ export function FinanceDesk({ title, inbox, checkedAt, adminLink, orderHref }: {
                   {KIND_LABEL[it.kind]} · {formatToman(rial(it.amount))}
                 </p>
                 {orderHref && adminLink ? (
-                  <a href={`/admin/collections/orders/${it.orderId}`} className="inline-flex min-h-11 items-center text-sm font-bold text-brand underline-offset-4 hover:underline">
+                  <a href={`/admin/collections/orders/${it.orderId}`} className="inline-flex min-h-11 items-center text-sm font-bold text-brand-text underline-offset-4 hover:underline">
                     بررسی سفارش <span aria-hidden>↗</span>
                   </a>
                 ) : null}

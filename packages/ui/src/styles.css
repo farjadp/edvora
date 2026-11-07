@@ -49,6 +49,8 @@
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-focus: var(--focus);
+  /* Brand-coloured text: use `text-brand-text`, not `text-brand`, for links and small text (AA in both themes). */
+  --color-brand-text: var(--brand-text);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-sunken: var(--sunken);
@@ -83,6 +85,7 @@
   --accent-ink: #111827;
   /* Focus ring/border: ≥3:1 on every surface (WCAG 1.4.11). */
   --focus: #1a56db;
+  --brand-text: var(--brand);
   --bg: #f6f6f3;
   --surface: #ffffff;
   --sunken: #eeeee9;
@@ -110,6 +113,8 @@
   --line: #262b36;
   --line-strong: #676b72;
   --focus: #3167df;
+  /* Fallback; the layout injects a computed ≥4.5:1 value per tenant (tenantPaletteCss). */
+  --brand-text: color-mix(in oklab, var(--brand) 55%, #ffffff);
   --ok: #3ccf8e;
   --danger: #f97066;
   --milestone: #e0b040;

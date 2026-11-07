@@ -42,7 +42,7 @@ export function CompletionPanel({ courseSlug, state }: { courseSlug: string; sta
           <ul className="mt-2 grid gap-2">
             {requirements.map((r) => (
               <li key={`${r.kind}-${r.id}`} data-requirement={r.kind} data-state={r.state} className="flex items-center justify-between gap-3 rounded-xl border border-line px-4 py-3 text-sm">
-                <Link href={`/learn/${courseSlug}/${r.kind === 'quiz' ? 'quiz' : 'assignment'}/${r.id}`} className="min-w-0 font-bold hover:text-brand">
+                <Link href={`/learn/${courseSlug}/${r.kind === 'quiz' ? 'quiz' : 'assignment'}/${r.id}`} className="min-w-0 font-bold hover:text-brand-text">
                   <span className="me-2 text-xs font-normal text-muted">{r.kind === 'quiz' ? 'آزمون' : 'تکلیف'}</span>
                   {r.title}
                 </Link>

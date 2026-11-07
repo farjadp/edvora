@@ -74,7 +74,7 @@ export default async function AttemptResultPage({ params }: Props) {
           <div className="min-w-0">
             <FocusHeading id="quiz-result-title" className="flex items-center gap-2 font-display text-3xl font-black leading-tight outline-none md:text-4xl">
               {passed ? 'قبول شدید' : 'هنوز به حد نصاب نرسیده‌اید'}
-              <Icon name={passed ? 'check' : 'half'} className={cx('size-7', passed ? 'text-ok' : 'text-brand')} />
+              <Icon name={passed ? 'check' : 'half'} className={cx('size-7', passed ? 'text-ok' : 'text-brand-text')} />
             </FocusHeading>
             {review.score != null ? (
               <p className="mt-2 text-lg">
@@ -138,7 +138,7 @@ export default async function AttemptResultPage({ params }: Props) {
           ) : null}
           {passed && canRetry ? (
             <p className="mt-3 text-sm">
-              <Link href={`/learn/${course.slug}/quiz/${quiz.id}`} className="font-bold text-brand underline-offset-4 hover:underline">
+              <Link href={`/learn/${course.slug}/quiz/${quiz.id}`} className="font-bold text-brand-text underline-offset-4 hover:underline">
                 آزمون دوباره
               </Link>
             </p>

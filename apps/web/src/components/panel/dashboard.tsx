@@ -119,7 +119,7 @@ export function ContinueCard({ item, ring }: { item: LearnItem; ring: boolean })
       ) : null}
 
       <p className="mt-6">
-        <Link href={`/learn/${item.course.slug}`} className="rounded-sm text-sm font-bold text-brand underline-offset-4 hover:underline">
+        <Link href={`/learn/${item.course.slug}`} className="rounded-sm text-sm font-bold text-brand-text underline-offset-4 hover:underline">
           جلسات، آزمون‌ها و تکالیف
         </Link>
       </p>
@@ -170,7 +170,7 @@ export function WeekSection({ item, showCourse }: { item: LearnItem; showCourse:
         <div data-testid="week-neutral" className="mt-3">
           <p className="font-bold">{r.thisWeek.neutralReason === 'break' ? 'این هفته آکادمی در وقفه است.' : 'این هفته جلسهٔ جدیدی منتشر نشده است.'}</p>
           <p className="mt-1 text-sm leading-7 text-muted">ریتم شما حفظ می‌شود. تا جلسهٔ بعدی می‌توانید جلسه‌های قبلی را مرور کنید.</p>
-          <Link href={`/learn/${item.course.slug}`} className="mt-3 inline-flex min-h-11 items-center rounded-sm text-sm font-bold text-brand underline-offset-4 hover:underline">
+          <Link href={`/learn/${item.course.slug}`} className="mt-3 inline-flex min-h-11 items-center rounded-sm text-sm font-bold text-brand-text underline-offset-4 hover:underline">
             مرور جلسه‌های قبلی
           </Link>
         </div>
@@ -293,7 +293,7 @@ export function LevelSection({
               </span>
             </p>
             <details className="group mt-3">
-              <summary className={cx('inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-sm text-sm font-bold text-brand', focusRing)}>
+              <summary className={cx('inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-sm text-sm font-bold text-brand-text', focusRing)}>
                 همهٔ نشان‌ها ({fa(badges.length)})
                 <Icon name="chevron" className="size-4 group-open:-rotate-90" />
               </summary>
@@ -316,7 +316,7 @@ export function LevelSection({
           <div data-testid="badges-empty" className="mt-4">
             <p className="text-sm leading-7 text-muted">نشان‌ها با پیشرفت شما جمع می‌شوند. اولین نشان: تکمیل یک جلسه.</p>
             {nextHref ? (
-              <Link href={nextHref} className="mt-2 inline-flex min-h-11 items-center rounded-sm text-sm font-bold text-brand underline-offset-4 hover:underline">
+              <Link href={nextHref} className="mt-2 inline-flex min-h-11 items-center rounded-sm text-sm font-bold text-brand-text underline-offset-4 hover:underline">
                 ادامهٔ جلسه
               </Link>
             ) : null}

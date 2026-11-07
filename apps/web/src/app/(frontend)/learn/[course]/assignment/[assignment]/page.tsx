@@ -52,7 +52,7 @@ export default async function AssignmentPage({ params, searchParams }: Props) {
             const m = docOf<Media>(a)
             return m?.url ? (
               <li key={m.id}>
-                <a href={m.url} className="text-brand hover:underline">
+                <a href={m.url} className="text-brand-text hover:underline">
                   {m.alt || 'پیوست'}
                 </a>
               </li>
@@ -103,7 +103,7 @@ export default async function AssignmentPage({ params, searchParams }: Props) {
           <ul className="mt-4 grid gap-2 text-sm">
             {files.map((f) => (
               <li key={f.id}>
-                <a href={f.href} className="text-brand hover:underline">
+                <a href={f.href} className="text-brand-text hover:underline">
                   {f.label}
                 </a>
               </li>

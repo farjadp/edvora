@@ -182,7 +182,7 @@ export default async function LessonPage({ params }: Props) {
                 return (
                   <li key={r.id ?? r.title}>
                     {file?.url ? (
-                      <a href={file.url} className="text-brand hover:underline">
+                      <a href={file.url} className="text-brand-text hover:underline">
                         {r.title}
                       </a>
                     ) : (
@@ -216,7 +216,7 @@ export default async function LessonPage({ params }: Props) {
 
       <aside className="lg:sticky lg:top-24 lg:self-start">
         {enrolled ? (
-          <Link href={`/learn/${course.slug}`} className="mb-3 inline-block text-sm font-bold text-brand hover:underline">
+          <Link href={`/learn/${course.slug}`} className="mb-3 inline-block text-sm font-bold text-brand-text hover:underline">
             فهرست دوره، آزمون‌ها و تکالیف
           </Link>
         ) : null}

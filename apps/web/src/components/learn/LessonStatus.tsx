@@ -98,7 +98,7 @@ export function LessonStatus({ lessonId, initiallyCompleted, progress, completed
         <div className="border-t-2 border-ink bg-surface py-6">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <ProgressRing value={after} label={`${fa(after)} درصد از دوره`} className="size-16" testId="lesson-ring">
-              <Icon name="check" className="size-6 text-brand" />
+              <Icon name="check" className="size-6 text-brand-text" />
             </ProgressRing>
             <div className="min-w-0">
               <p className="font-display text-2xl font-black md:text-3xl">این جلسه تکمیل شد</p>

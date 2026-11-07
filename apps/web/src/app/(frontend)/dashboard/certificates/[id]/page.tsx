@@ -40,7 +40,7 @@ export default async function CertificatePage({ params }: Props) {
       <div className="mx-auto max-w-2xl px-4 pb-16 pt-12 md:px-8">
         <h1 className="font-display text-3xl font-black">این گواهی باطل شده است.</h1>
         <p className="mt-3 leading-8 text-muted">برای اطلاع از دلیل آن با آکادمی تماس بگیرید.</p>
-        <Link href="/dashboard" className="mt-6 inline-flex min-h-11 items-center font-bold text-brand underline-offset-4 hover:underline">
+        <Link href="/dashboard" className="mt-6 inline-flex min-h-11 items-center font-bold text-brand-text underline-offset-4 hover:underline">
           بازگشت به پنل
         </Link>
       </div>

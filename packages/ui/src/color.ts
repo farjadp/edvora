@@ -76,6 +76,8 @@ export type TenantPalette = {
   focus: Hex
   /** Focus colour for dark theme, ≥3:1 against every dark-theme surface. */
   focusDark: Hex
+  /** Brand-coloured TEXT in dark theme: ≥4.5:1 against every dark-theme surface (light theme uses `--brand` as is). */
+  brandTextDark: Hex
 }
 
 /** Derives every colour the UI needs from a tenant's two brand colours. */
@@ -87,6 +89,7 @@ export function tenantPalette(brand: Hex, accent: Hex): TenantPalette {
     accentInk: readableInk(accent),
     focus: ensureContrast(brand, SURFACES.light, '#000000'),
     focusDark: ensureContrast(brand, SURFACES.dark, '#ffffff'),
+    brandTextDark: ensureContrast(brand, SURFACES.dark, '#ffffff', 4.5),
   }
 }
 
@@ -94,6 +97,6 @@ export function tenantPalette(brand: Hex, accent: Hex): TenantPalette {
 export function tenantPaletteCss(p: TenantPalette): string {
   return (
     `html:root{--brand:${p.brand};--brand-ink:${p.brandInk};--accent:${p.accent};--accent-ink:${p.accentInk};--focus:${p.focus}}` +
-    `html:root[data-theme='dark']{--focus:${p.focusDark}}`
+    `html:root[data-theme='dark']{--focus:${p.focusDark};--brand-text:${p.brandTextDark}}`
   )
 }
