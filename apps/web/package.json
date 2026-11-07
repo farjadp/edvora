@@ -11,7 +11,9 @@
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
-    "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/run.ts"
+    "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/run.ts",
+    "import:iba": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env src/seed/import-iba.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@edvora/core": "workspace:*",
@@ -23,12 +25,14 @@
     "@payloadcms/next": "3.93.0",
     "@payloadcms/plugin-multi-tenant": "3.93.0",
     "@payloadcms/richtext-lexical": "3.93.0",
+    "@payloadcms/storage-s3": "3.93.0",
     "@payloadcms/translations": "3.93.0",
     "@payloadcms/ui": "3.93.0",
     "cross-env": "^7.0.3",
     "graphql": "^16.8.1",
     "next": "16.3.3",
     "payload": "3.93.0",
+    "qrcode-generator": "^2.0.4",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "server-only": "^0.0.1",
@@ -41,8 +45,10 @@
     "@types/node": "^24.10.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "node-html-parser": "7.0.1",
     "tailwindcss": "^4.1.17",
     "tsx": "^4.20.6",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^4.1.12"
   }
 }

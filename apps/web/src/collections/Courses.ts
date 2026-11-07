@@ -1,5 +1,10 @@
 import type { CollectionConfig } from 'payload'
-import { admins, anyone } from '../access/roles'
+import { allow, allowCreate, anyone, fieldAllow, guard, nobody, requireForFields } from '../access/permissions'
+import { auditChange } from '../hooks/audit'
+import { richTextField } from '../lib/richText'
+import { sourceUrlField } from './fields'
+
+const staffOnly = fieldAllow('courses.edit')
 
 export const COURSE_KINDS = [
   { value: 'program', label: { fa: 'دوره بلندمدت', en: 'Long program' } },
@@ -11,13 +16,22 @@ export const COURSE_KINDS = [
 export const Courses: CollectionConfig = {
   slug: 'courses',
   labels: { singular: { fa: 'دوره', en: 'Course' }, plural: { fa: 'دوره‌ها', en: 'Courses' } },
-  admin: { useAsTitle: 'title', defaultColumns: ['title', 'kind', 'price', 'status'], group: { fa: 'آموزش', en: 'Learning' } },
+  admin: {
+    components: { beforeListTable: ['/components/admin/ListKpis#ListKpis'] }, useAsTitle: 'title', defaultColumns: ['title', 'kind', 'price', 'status'], group: { fa: 'آموزش', en: 'Learning' } },
   access: {
     // Public pages query through the server with explicit tenant + status filters.
     read: anyone,
-    create: admins,
-    update: admins,
-    delete: admins,
+    create: allowCreate('courses.edit'),
+    update: allow('courses.edit', { course: 'id' }),
+    delete: nobody,
+  },
+  hooks: {
+    beforeChange: [
+      guard({ create: ['courses.edit'], update: ['courses.edit'], fields: { course: 'id' } }),
+      requireForFields(['price', 'maxInstalments'], 'pricing.edit', (a, b) => (a ?? null) !== (b ?? null) && !(a == null && (b === 0 || b === 1))),
+      requireForFields(['status'], 'courses.publish', (a, b) => (a === 'published') !== (b === 'published')),
+    ],
+    afterChange: [auditChange('courses')],
   },
   fields: [
     {
@@ -51,6 +65,23 @@ export const Courses: CollectionConfig = {
       ],
     },
     { name: 'heroImage', type: 'upload', relationTo: 'media' },
+    sourceUrlField,
+    {
+      name: 'pendingClaims',
+      type: 'array',
+      label: { fa: 'ادعاهای تأییدنشده (منتشر نمی‌شود)', en: 'Unverified claims (never published)' },
+      // Staff-only: never returned by the public API and never rendered on public pages.
+      access: { read: staffOnly, create: staffOnly, update: staffOnly },
+      admin: {
+        position: 'sidebar',
+        description: { fa: 'متن‌هایی که تا تأیید نشده‌اند نباید در سایت بیایند.', en: 'Copy that must stay off the site until verified.' },
+      },
+      fields: [
+        { name: 'text', type: 'textarea', required: true },
+        { name: 'note', type: 'text' },
+        { name: 'sourceUrl', type: 'text' },
+      ],
+    },
     { name: 'summary', type: 'textarea', label: { fa: 'خلاصه', en: 'Summary' } },
     {
       type: 'row',
@@ -101,7 +132,7 @@ export const Courses: CollectionConfig = {
               type: 'array',
               fields: [
                 { name: 'title', type: 'text', required: true },
-                { name: 'description', type: 'textarea' },
+                richTextField({ name: 'description' }),
                 { name: 'hours', type: 'number' },
               ],
             },
@@ -129,7 +160,7 @@ export const Courses: CollectionConfig = {
               type: 'array',
               fields: [
                 { name: 'question', type: 'text', required: true },
-                { name: 'answer', type: 'textarea', required: true },
+                richTextField({ name: 'answer', required: true }),
               ],
             },
           ],

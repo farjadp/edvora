@@ -1,8 +1,10 @@
 import { toPersianDigits } from '@edvora/core'
 import Link from 'next/link'
 import type { Tenant } from '../payload-types'
+import { getNavPages } from '../lib/queries'
 
-export function Footer({ tenant }: { tenant: Tenant }) {
+export async function Footer({ tenant }: { tenant: Tenant }) {
+  const pages = await getNavPages(tenant.id)
   return (
     <footer className="mt-24 border-t border-line">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-3 md:px-8">
@@ -13,6 +15,13 @@ export function Footer({ tenant }: { tenant: Tenant }) {
         <div className="text-sm leading-8 text-muted">
           <p className="mb-2 font-bold text-ink">دسترسی سریع</p>
           <Link href="/#programs" className="block hover:text-ink">دوره‌ها</Link>
+          <Link href="/faculty" className="block hover:text-ink">اساتید</Link>
+          <Link href="/journal" className="block hover:text-ink">مجله</Link>
+          {pages.map((p) => (
+            <Link key={p.id} href={`/${p.slug}`} className="block hover:text-ink">
+              {p.title}
+            </Link>
+          ))}
           <Link href="/verify" className="block hover:text-ink">استعلام گواهی</Link>
           <Link href="/login" className="block hover:text-ink">ورود دانشجویان</Link>
         </div>
@@ -20,6 +29,7 @@ export function Footer({ tenant }: { tenant: Tenant }) {
           <p className="mb-2 font-bold text-ink">تماس</p>
           {tenant.contact?.phone ? <p dir="ltr" className="text-end font-latin">{toPersianDigits(tenant.contact.phone)}</p> : null}
           {tenant.contact?.email ? <p dir="ltr" className="text-end font-latin">{tenant.contact.email}</p> : null}
+          {tenant.contact?.address ? <p className="leading-7">{tenant.contact.address}</p> : null}
         </div>
       </div>
       <p className="border-t border-line py-5 text-center text-xs text-muted">

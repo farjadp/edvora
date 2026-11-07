@@ -130,6 +130,7 @@ describe('progress', () => {
     expect(certificateEligibility({ progress: 100, defensePassed: false, requiresDefense: true })).toEqual({
       eligible: false,
       reason: 'defense',
+      missing: ['defense'],
     })
     expect(certificateEligibility({ progress: 100, defensePassed: true, requiresDefense: true }).eligible).toBe(true)
   })

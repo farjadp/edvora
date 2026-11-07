@@ -69,7 +69,8 @@ export async function getTestimonials(tenantId: number) {
   const res = await payload.find({
     collection: 'testimonials',
     where: inTenant(tenantId, [{ approvedForUse: { equals: true } }]),
-    limit: 20,
+    sort: 'sortOrder',
+    limit: 50,
     depth: 1,
     overrideAccess: true,
   })
@@ -80,11 +81,50 @@ export async function getPosts(tenantId: number, limit = 8) {
   const payload = await getPayloadClient()
   const res = await payload.find({
     collection: 'posts',
-    where: inTenant(tenantId),
+    where: inTenant(tenantId, [{ publishedAt: { less_than_equal: new Date().toISOString() } }]),
     sort: '-publishedAt',
     limit,
     depth: 1,
     overrideAccess: true,
   })
   return res.docs
+}
+
+export async function getPostBySlug(tenantId: number, slug: string) {
+  const payload = await getPayloadClient()
+  const res = await payload.find({
+    collection: 'posts',
+    where: inTenant(tenantId, [{ slug: { equals: slug } }, { publishedAt: { less_than_equal: new Date().toISOString() } }]),
+    limit: 1,
+    depth: 2,
+    overrideAccess: true,
+  })
+  return res.docs[0] ?? null
+}
+
+/** Published content pages (about, FAQ…), for the menu and footer. */
+export async function getNavPages(tenantId: number) {
+  const payload = await getPayloadClient()
+  const res = await payload.find({
+    collection: 'pages',
+    where: inTenant(tenantId, [{ status: { equals: 'published' } }, { showInNav: { equals: true } }]),
+    sort: 'sortOrder',
+    limit: 20,
+    depth: 0,
+    overrideAccess: true,
+    select: { title: true, slug: true },
+  })
+  return res.docs
+}
+
+export async function getPageBySlug(tenantId: number, slug: string) {
+  const payload = await getPayloadClient()
+  const res = await payload.find({
+    collection: 'pages',
+    where: inTenant(tenantId, [{ slug: { equals: slug } }, { status: { equals: 'published' } }]),
+    limit: 1,
+    depth: 2,
+    overrideAccess: true,
+  })
+  return res.docs[0] ?? null
 }

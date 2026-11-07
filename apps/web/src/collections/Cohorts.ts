@@ -1,11 +1,20 @@
 import type { CollectionConfig } from 'payload'
-import { admins, anyone } from '../access/roles'
+import { allow, allowCreate, anyone, guard, nobody, requireForFields } from '../access/permissions'
+import { breaksField } from '../fields/gamification'
+import { auditChange } from '../hooks/audit'
 
 export const Cohorts: CollectionConfig = {
   slug: 'cohorts',
   labels: { singular: { fa: 'دوره برگزاری', en: 'Cohort' }, plural: { fa: 'دوره‌های برگزاری', en: 'Cohorts' } },
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'course', 'startDate', 'status'], group: { fa: 'آموزش', en: 'Learning' } },
-  access: { read: anyone, create: admins, update: admins, delete: admins },
+  access: { read: anyone, create: allowCreate('cohorts.manage'), update: allow('cohorts.manage', { course: 'course', cohort: 'id' }), delete: nobody },
+  hooks: {
+    beforeChange: [
+      guard({ create: ['cohorts.manage'], update: ['cohorts.manage'], fields: { course: 'course', cohort: 'id' } }),
+      requireForFields(['priceOverride'], 'pricing.edit'),
+    ],
+    afterChange: [auditChange('cohorts')],
+  },
   fields: [
     { name: 'course', type: 'relationship', relationTo: 'courses', required: true, index: true },
     { name: 'title', type: 'text', required: true, admin: { description: 'e.g. ورودی هفدهم' } },
@@ -46,5 +55,6 @@ export const Cohorts: CollectionConfig = {
         { name: 'priceOverride', type: 'number', min: 0, admin: { description: 'Rials. Leave empty to use course price.' } },
       ],
     },
+    breaksField('Cohort breaks (E-028): weeks that touch one are neutral for this cohort’s weekly rhythm.'),
   ],
 }

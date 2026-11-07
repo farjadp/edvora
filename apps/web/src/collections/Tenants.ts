@@ -1,5 +1,13 @@
 import type { CollectionConfig } from 'payload'
-import { adminsField, isSuperAdmin, superAdminField, superAdminOnly } from '../access/roles'
+import { ROLE_TEMPLATES } from '@edvora/core'
+import { allow, asSystem, fieldAllow, nobody } from '../access/permissions'
+import { isSuperAdmin } from '../access/roles'
+import { gamificationSettingsField } from '../fields/gamification'
+import { auditChange } from '../hooks/audit'
+import { richTextField, tenantSelf } from '../lib/richText'
+
+const platformOnly = ({ req }: { req: { user?: unknown } }) => isSuperAdmin(req.user as never)
+const settingsField = fieldAllow('settings.edit', (d) => d?.id)
 
 /** An academy on Edvora. Everything else belongs to exactly one tenant. */
 export const Tenants: CollectionConfig = {
@@ -9,9 +17,32 @@ export const Tenants: CollectionConfig = {
   access: {
     // The multi-tenant plugin narrows read/update to the user's own tenants.
     read: ({ req }) => Boolean(req.user),
-    create: superAdminOnly,
-    update: ({ req }) => isSuperAdmin(req.user) || Boolean(req.user?.roles?.includes('admin')),
-    delete: superAdminOnly,
+    create: platformOnly,
+    update: allow('settings.edit', { tenant: 'id' }),
+    // Never hard-deleted (Notion 11 §0: suspend/archive an academy is a later platform feature).
+    delete: nobody,
+  },
+  hooks: {
+    afterChange: [
+      // Every new academy starts with the role templates (ADR 006 §4); admins copy and edit them.
+      async ({ doc, operation, req }) => {
+        if (operation !== 'create') return doc
+        await asSystem(req, async () => {
+          for (const t of ROLE_TEMPLATES) {
+            const exists = await req.payload.find({ collection: 'roles', where: { and: [{ tenant: { equals: doc.id } }, { key: { equals: t.key } }] }, limit: 1, depth: 0, overrideAccess: true, req })
+            if (exists.docs.length) continue
+            await req.payload.create({
+              collection: 'roles',
+              overrideAccess: true,
+              req,
+              data: { tenant: doc.id, key: t.key, template: t.key, name: t.name.fa, description: t.description, permissions: [...t.permissions], archived: false },
+            })
+          }
+        })
+        return doc
+      },
+      auditChange('tenants'),
+    ],
   },
   fields: [
     { name: 'name', type: 'text', required: true, label: { fa: 'نام آکادمی', en: 'Name' } },
@@ -21,21 +52,21 @@ export const Tenants: CollectionConfig = {
       required: true,
       unique: true,
       index: true,
-      access: { update: superAdminField },
+      access: { create: platformOnly, update: platformOnly },
       admin: { description: 'Lowercase, no spaces. Used in URLs and for DEFAULT_TENANT_SLUG.' },
     },
     {
       name: 'domains',
       type: 'array',
       label: { fa: 'دامنه‌ها', en: 'Domains' },
-      access: { update: superAdminField },
+      access: { create: platformOnly, update: platformOnly },
       fields: [{ name: 'domain', type: 'text', required: true, index: true }],
     },
     {
       name: 'plan',
       type: 'select',
       defaultValue: 'starter',
-      access: { update: superAdminField },
+      access: { create: platformOnly, update: platformOnly },
       options: [
         { label: 'Starter', value: 'starter' },
         { label: 'Growth', value: 'growth' },
@@ -47,7 +78,7 @@ export const Tenants: CollectionConfig = {
       type: 'select',
       hasMany: true,
       label: { fa: 'ماژول‌های فعال', en: 'Enabled modules' },
-      access: { update: superAdminField },
+      access: { create: platformOnly, update: platformOnly },
       defaultValue: ['site', 'lms', 'payments', 'certificates'],
       options: [
         { label: 'Public site', value: 'site' },
@@ -103,7 +134,7 @@ export const Tenants: CollectionConfig = {
                 { name: 'text', type: 'text' },
               ],
             },
-            { name: 'manifesto', type: 'textarea', label: { fa: 'مانیفست / درباره ما', en: 'Manifesto' } },
+            richTextField({ name: 'manifesto', label: { fa: 'مانیفست / درباره ما', en: 'Manifesto' }, tenantsOf: tenantSelf }),
             {
               name: 'services',
               type: 'array',
@@ -137,9 +168,14 @@ export const Tenants: CollectionConfig = {
               fields: [
                 { name: 'phone', type: 'text' },
                 { name: 'email', type: 'email' },
+                { name: 'address', type: 'text' },
               ],
             },
           ],
+        },
+        {
+          label: { fa: 'انگیزش و پیشرفت', en: 'Gamification' },
+          fields: [gamificationSettingsField],
         },
         {
           label: { fa: 'تنظیمات فنی', en: 'Settings' },
@@ -155,7 +191,7 @@ export const Tenants: CollectionConfig = {
             {
               name: 'zarinpalMerchantId',
               type: 'text',
-              access: { read: adminsField, update: adminsField },
+              access: { read: settingsField, update: settingsField },
               admin: { description: "The academy's own gateway. Money goes straight to the academy." },
             },
           ],

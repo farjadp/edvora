@@ -1,10 +1,11 @@
 import { ThemeToggle } from '@edvora/ui'
 import Link from 'next/link'
 import type { Media, Tenant } from '../payload-types'
+import { getNavPages } from '../lib/queries'
 import { getCurrentUser } from '../lib/session'
 
 export async function Header({ tenant }: { tenant: Tenant }) {
-  const user = await getCurrentUser()
+  const [user, pages] = await Promise.all([getCurrentUser(), getNavPages(tenant.id)])
   const logo = typeof tenant.logo === 'object' ? (tenant.logo as Media | null) : null
 
   return (
@@ -21,8 +22,13 @@ export async function Header({ tenant }: { tenant: Tenant }) {
 
         <nav className="hidden items-center gap-6 text-sm text-muted md:flex">
           <Link href="/#programs" className="hover:text-ink">دوره‌ها</Link>
-          <Link href="/#services" className="hover:text-ink">خدمات</Link>
-          <Link href="/#journal" className="hover:text-ink">مجله</Link>
+          <Link href="/faculty" className="hover:text-ink">اساتید</Link>
+          <Link href="/journal" className="hover:text-ink">مجله</Link>
+          {pages.map((p) => (
+            <Link key={p.id} href={`/${p.slug}`} className="hover:text-ink">
+              {p.title}
+            </Link>
+          ))}
           <Link href="/verify" className="hover:text-ink">استعلام گواهی</Link>
         </nav>
 

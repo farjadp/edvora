@@ -1,0 +1,104 @@
+# Local fixture WordPress for the Edvora Migrator plugin (ADR 011 §Testing). Dev only — never deploy.
+#   wp57    WordPress 5.7 / PHP 7.4 (IBA-era: WooCommerce 5.4.4 legacy orders, LifterLMS 4.21.3 in folder lifterlmsfa)
+#   latest  current WordPress / PHP 8.2 (latest WooCommerce with HPOS, LifterLMS, Tutor LMS)
+# Usage: see README.md. Test credentials only (also in seed.sh).
+name: edvora-wp-fixture
+
+x-db-env: &db-env
+  WORDPRESS_DB_HOST: db
+  WORDPRESS_DB_USER: wp
+  WORDPRESS_DB_PASSWORD: wp-fixture-db
+  WORDPRESS_CONFIG_EXTRA: |
+    define( 'FS_METHOD', 'direct' );
+    define( 'WP_ENVIRONMENT_TYPE', 'local' );
+    define( 'DISABLE_WP_CRON', true );
+
+services:
+  db:
+    image: mariadb:10.6
+    environment:
+      MARIADB_ROOT_PASSWORD: root-fixture-db
+      MARIADB_USER: wp
+      MARIADB_PASSWORD: wp-fixture-db
+    volumes:
+      - db:/var/lib/mysql
+      - ./seed/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      retries: 40
+
+  wp57:
+    image: wordpress:5.7-php7.4-apache
+    depends_on: { db: { condition: service_healthy } }
+    ports: ["8057:80"]
+    environment:
+      <<: *db-env
+      WORDPRESS_DB_NAME: wp57
+    volumes:
+      - wp57:/var/www/html
+      - ../wordpress-plugin/edvora-migrator:/var/www/html/wp-content/plugins/edvora-migrator:ro
+
+  cli57:
+    image: wordpress:cli-php7.4
+    user: "33:33"
+    depends_on: [wp57]
+    command: ["sleep", "infinity"]
+    environment:
+      <<: *db-env
+      WORDPRESS_DB_NAME: wp57
+      HOME: /tmp
+      WP_CLI_CACHE_DIR: /tmp/wp-cli-cache
+    volumes:
+      - wp57:/var/www/html
+      - ../wordpress-plugin/edvora-migrator:/var/www/html/wp-content/plugins/edvora-migrator:ro
+      - ./seed:/seed:ro
+      - ../../packages/integrations/src/wordpress/fixtures:/fixtures
+
+  latest:
+    image: wordpress:php8.2-apache
+    depends_on: { db: { condition: service_healthy } }
+    ports: ["8082:80"]
+    environment:
+      <<: *db-env
+      WORDPRESS_DB_NAME: wplatest
+    volumes:
+      - latest:/var/www/html
+      - ../wordpress-plugin/edvora-migrator:/var/www/html/wp-content/plugins/edvora-migrator:ro
+
+  clilatest:
+    image: wordpress:cli-php8.2
+    user: "33:33"
+    depends_on: [latest]
+    command: ["sleep", "infinity"]
+    environment:
+      <<: *db-env
+      WORDPRESS_DB_NAME: wplatest
+      HOME: /tmp
+      WP_CLI_CACHE_DIR: /tmp/wp-cli-cache
+    volumes:
+      - latest:/var/www/html
+      - ../wordpress-plugin/edvora-migrator:/var/www/html/wp-content/plugins/edvora-migrator:ro
+      - ./seed:/seed:ro
+      - ../../packages/integrations/src/wordpress/fixtures:/fixtures
+
+  # Optional mock of Edvora's push API (profile "mock"). Shares the WordPress container's network namespace,
+  # so the plugin reaches it at http://localhost:8099 (http is allowed only for localhost).
+  mock57:
+    image: php:8.2-cli
+    profiles: ["mock"]
+    network_mode: "service:wp57"
+    command: ["php", "-S", "127.0.0.1:8099", "/mock/index.php"]
+    volumes: ["./mock-edvora:/mock:ro"]
+
+  mocklatest:
+    image: php:8.2-cli
+    profiles: ["mock"]
+    network_mode: "service:latest"
+    command: ["php", "-S", "127.0.0.1:8099", "/mock/index.php"]
+    volumes: ["./mock-edvora:/mock:ro"]
+
+volumes:
+  db:
+  wp57:
+  latest:

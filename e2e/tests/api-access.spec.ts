@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { IBA } from './helpers'
 
 // Anonymous REST reads of private collections must be refused (Payload answers 403).
-for (const collection of ['leads', 'orders', 'otp-codes']) {
+for (const collection of ['leads', 'orders', 'otp-codes', 'users', 'roles', 'memberships', 'audit-logs', 'coupons', 'questions', 'quizzes', 'quiz-attempts', 'assignments', 'submissions', 'submission-files']) {
   test(`anonymous GET /api/${collection} is denied`, async ({ playwright }) => {
     const api = await playwright.request.newContext({ baseURL: IBA })
     const res = await api.get(`/api/${collection}`)
