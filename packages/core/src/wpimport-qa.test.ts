@@ -60,7 +60,7 @@ describe('phones the way WordPress sites store them', () => {
   // QA-E032-04 (minor): numbers copied from Persian chat apps or typed by Digits often carry invisible direction marks
   // (RLM U+200F, LRM U+200E, LRE/PDF U+202A/C) or a ZWNJ. \s does not match them, so the user is "invalid" at login and
   // "held" in an import. Remove `.fails` once normalizeIranMobile strips U+200B–U+200F, U+202A–U+202E, U+2066–U+2069.
-  it.fails('QA-E032-04: invisible direction marks / ZWNJ around or inside a number are ignored', () => {
+  it('QA-E032-04: invisible direction marks / ZWNJ around or inside a number are ignored', () => {
     for (const raw of ['\u200f09121234567', '\u200e09121234567', '09121234567\u200f', '\u202a09121234567\u202c', '09\u200c121234567']) {
       expect(normalizeIranMobile(raw), JSON.stringify(raw)).toBe(sara)
     }
