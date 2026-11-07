@@ -198,6 +198,7 @@ The full list is in [`AGENTS.md`](AGENTS.md). These are the ones that bite:
 | Folder | What's there |
 | --- | --- |
 | [`docs/adr/`](docs/adr/) | Architecture decisions, listed below |
+| [`docs/guide/`](docs/guide/README.md) | Persian user guides for admins, staff, instructors, students |
 | [`docs/product/`](docs/product/) | Phase 2 stories, gamification PRD |
 | [`docs/ux/`](docs/ux/) · [`docs/design/`](docs/design/) | Flows, wireframes, the design system, screenshots |
 | [`docs/specs/`](docs/specs/) | Technical specs per task |
