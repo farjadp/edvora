@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
-import { createLiveClassProvider, createMockLiveClassProvider, type LiveEvent } from '.'
+import { createLiveClassProvider, createMockLiveClassProvider, type LiveClassConfig, type LiveEvent } from '.'
 
 const fixedNow = new Date('2026-11-06T10:00:00Z')
 const make = (now = () => fixedNow) =>
@@ -104,6 +104,8 @@ describe('createLiveClassProvider', () => {
   it('defaults to mock, needs a secret, rejects unknown providers', () => {
     expect(createLiveClassProvider({ provider: undefined, mockRoomUrl: 'http://x/live', mockSecret: 's' }).name).toBe('mock')
     expect(() => createLiveClassProvider({ provider: 'mock', mockRoomUrl: 'http://x/live' })).toThrow(/SECRET/)
-    expect(() => createLiveClassProvider({ provider: 'zoom', mockRoomUrl: 'http://x/live', mockSecret: 's' })).toThrow(/Unknown/)
+    // An env typo reaches the factory as an unknown string at runtime; the union forbids it at compile time.
+    const zoom = { provider: 'zoom', mockRoomUrl: 'http://x/live', mockSecret: 's' } as unknown as LiveClassConfig
+    expect(() => createLiveClassProvider(zoom)).toThrow(/Unknown/)
   })
 })
