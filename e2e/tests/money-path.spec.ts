@@ -49,7 +49,7 @@ test.describe('demo tenant money path', () => {
     })
 
     await test.step('mark a lesson watched', async () => {
-      await page.getByRole('link', { name: /معرفی دوره/ }).click()
+      await page.getByRole('link', { name: 'ادامهٔ یادگیری' }).click() // E-028: the dashboard CTA no longer carries the lesson title
       await page.waitForURL(`${DEMO}/learn/demo-program/**`)
       await page.getByRole('button', { name: 'علامت‌گذاری به‌عنوان دیده‌شده' }).click()
       await expect(page.getByRole('button', { name: '✓ دیده شد' })).toBeDisabled()
