@@ -112,6 +112,11 @@ abstract class Edvora_Migrator_Kind_Group {
 		$args[]               = $limit;
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT p.* FROM {$wpdb->posts} p WHERE {$where} AND p.ID > %d ORDER BY p.ID ASC LIMIT %d", $args ), ARRAY_A );
+		// Never export the shared password of protected posts (QA-E032-09).
+		foreach ( $rows as &$r ) {
+			unset( $r['post_password'] );
+		}
+		unset( $r );
 		$ids  = wp_list_pluck( $rows, 'ID' );
 		$meta = $this->post_meta( $ids, $def );
 		$rel  = empty( $def['terms'] ) ? array() : $this->post_terms( $ids );

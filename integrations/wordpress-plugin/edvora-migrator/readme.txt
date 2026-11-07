@@ -26,8 +26,11 @@ What it does:
 What it never exports: password hashes, activation keys, login sessions, application passwords, other plugins'
 settings, or user meta outside a short allow-list (names, phone numbers, billing contact, national code).
 
-Temporary files live in a private folder under `wp-content/uploads/` (blocked with `.htaccess`, random name),
-are deleted after download, after 24 hours, and when the plugin is deactivated.
+Temporary files live in a private folder under `wp-content/uploads/` (random 32-character name, blocked with
+`.htaccess` for Apache/LiteSpeed and `web.config` for IIS, plus an empty `index.php`), and are deleted after download,
+after 24 hours, and when the plugin is deactivated. **nginx ignores `.htaccess`:** on nginx hosts add
+`location ~ /wp-content/uploads/edvora-migrator- { deny all; }` to the site config, or prefer "Send to Edvora"
+(push), which keeps no temp file on disk. Protected posts' passwords (`post_password`) are never exported.
 
 == Installation ==
 

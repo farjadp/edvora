@@ -3,7 +3,7 @@
  * Bundle file (FORMAT §1): gzip of NDJSON — manifest line, record lines, signature line.
  *
  * Records are appended batch by batch to an uncompressed temp file in a private folder
- * (wp-content/uploads/edvora-migrator-<random>/, .htaccess deny + index.php). The final step writes
+ * (wp-content/uploads/edvora-migrator-<32 hex>/, .htaccess + web.config deny, index.php). The final step writes
  * manifest + records + signature through one deflate stream (single gzip member) and deletes the temp file.
  * Leftovers are removed by a daily cron after 24 h and on deactivation.
  *
@@ -57,11 +57,12 @@ class Edvora_Migrator_Bundle {
 			return '';
 		}
 		$name = (string) get_option( Edvora_Migrator_Settings::OPT_TMPDIR, '' );
-		if ( '' === $name || ! preg_match( '/^edvora-migrator-[a-f0-9]{24}$/', $name ) ) {
+		// New folders get 32 random hex characters (128 bits); 24-char folders from 1.0.0 stay valid so cleanup finds them.
+		if ( '' === $name || ! preg_match( '/^edvora-migrator-[a-f0-9]{24}(?:[a-f0-9]{8})?$/', $name ) ) {
 			if ( ! $create ) {
 				return '';
 			}
-			$name = 'edvora-migrator-' . bin2hex( random_bytes( 12 ) );
+			$name = 'edvora-migrator-' . bin2hex( random_bytes( 16 ) );
 			Edvora_Migrator_Settings::put( Edvora_Migrator_Settings::OPT_TMPDIR, $name );
 		}
 		$dir = trailingslashit( $uploads['basedir'] ) . $name;
@@ -76,6 +77,10 @@ class Edvora_Migrator_Bundle {
 		}
 		if ( ! file_exists( $dir . '/index.php' ) ) {
 			file_put_contents( $dir . '/index.php', "<?php\n// Silence is golden.\n" );
+		}
+		// IIS: deny everything in this folder (nginx ignores both files; see readme).
+		if ( ! file_exists( $dir . '/web.config' ) ) {
+			file_put_contents( $dir . '/web.config', "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<configuration>\n  <system.webServer>\n    <authorization>\n      <deny users=\"*\" />\n    </authorization>\n  </system.webServer>\n</configuration>\n" );
 		}
 		// phpcs:enable
 		return $dir;

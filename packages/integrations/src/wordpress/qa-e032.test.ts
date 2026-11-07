@@ -175,7 +175,9 @@ describe('Edvora Migrator plugin (static review)', () => {
 
   it('temp bundle folder: random name, deny rules, silence file, daily cleanup, removed on deactivate and uninstall', () => {
     const bundle = stripComments(php('includes/class-bundle.php'))
-    expect(bundle).toContain("'edvora-migrator-' . bin2hex( random_bytes( 12 ) )")
+    expect(bundle).toContain("'edvora-migrator-' . bin2hex( random_bytes( 16 ) )")
+    expect(bundle).toContain('web.config')
+    expect(stripComments(php('includes/class-exporter.php'))).toContain("unset( $r['post_password'] )")
     expect(bundle).toContain('Require all denied')
     expect(bundle).toContain('Deny from all')
     expect(bundle).toContain('index.php')
