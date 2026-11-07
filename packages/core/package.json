@@ -14,7 +14,8 @@
     "./assignments": "./src/assignments.ts",
     "./progress": "./src/progress.ts",
     "./jalali": "./src/jalali.ts",
-    "./richtext": "./src/richtext.ts"
+    "./richtext": "./src/richtext.ts",
+    "./wpimport": "./src/wpimport.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

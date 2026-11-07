@@ -1,4 +1,4 @@
-import { toPersianDigits } from './digits'
+import { toLatinDigits, toPersianDigits } from './digits'
 
 /**
  * Money is stored as an integer number of rials. It is shown to users as toman (1 toman = 10 rials).
@@ -46,4 +46,57 @@ export function applyCoupon(price: Rial, coupon: Coupon | null | undefined): { p
   }
   discount = Math.min(discount, price)
   return { price: rial(price - discount), discount: rial(discount) }
+}
+
+// ---------------------------------------------------------------- Import: site currency → rial (ADR 011)
+
+/** Currency codes Iranian WordPress stores use (WooCommerce core + Persian WooCommerce). */
+export const RIAL_FACTORS = { IRR: 1, IRT: 10, IRHR: 1_000, IRHT: 10_000 } as const
+export type IranCurrency = keyof typeof RIAL_FACTORS
+
+export type RialConversionErrorCode = 'unknown_currency' | 'invalid_amount' | 'negative' | 'fractional' | 'too_large'
+
+/** Thrown by `toRial`; callers skip the record and report `code` instead of guessing. */
+export class RialConversionError extends Error {
+  constructor(
+    public readonly code: RialConversionErrorCode,
+    public readonly amount: string,
+    public readonly currency: string,
+  ) {
+    super(`Cannot convert ${JSON.stringify(amount)} ${JSON.stringify(currency)} to rial: ${code}`)
+    this.name = 'RialConversionError'
+  }
+}
+
+/**
+ * Converts an amount in a site's currency to integer rials without floating point.
+ * Accepts "1,500,000", "۱٬۵۰۰٬۰۰۰", "1500000.00", "12.5" (IRT → 125). Separators `,` `٬` and spaces are stripped;
+ * `٫` is read as the decimal point. Factors: IRR 1, IRT 10, IRHR 1000, IRHT 10000.
+ * Throws `RialConversionError` for an unknown/empty currency, a non-numeric or negative amount, or a result
+ * with a fractional rial — never rounds.
+ */
+export function toRial(amount: string | number, currency: string): Rial {
+  const code = String(currency ?? '').trim().toUpperCase()
+  const raw = typeof amount === 'number' ? numberToDecimalString(amount) : String(amount ?? '')
+  if (!(code in RIAL_FACTORS)) throw new RialConversionError('unknown_currency', raw, String(currency ?? ''))
+  const factor = RIAL_FACTORS[code as IranCurrency]
+  const cleaned = toLatinDigits(raw).replace(/[,٬\s]/g, '').replace(/٫/g, '.')
+  if (cleaned.startsWith('-')) throw new RialConversionError('negative', raw, code)
+  const m = /^\+?(\d+)(?:\.(\d*))?$|^\+?\.(\d+)$/.exec(cleaned)
+  if (!m) throw new RialConversionError('invalid_amount', raw, code)
+  const intPart = m[1] ?? '0'
+  const fracPart = (m[2] ?? m[3] ?? '').replace(/0+$/, '')
+  const scale = String(factor).length - 1 // factor is a power of ten
+  if (fracPart.length > scale) throw new RialConversionError('fractional', raw, code)
+  const value = BigInt(intPart + fracPart.padEnd(scale, '0'))
+  if (value > BigInt(Number.MAX_SAFE_INTEGER)) throw new RialConversionError('too_large', raw, code)
+  return rial(Number(value))
+}
+
+function numberToDecimalString(n: number): string {
+  if (!Number.isFinite(n)) return String(n)
+  const s = String(n)
+  if (!/e/i.test(s)) return s
+  // 1e21 and friends: expand without float arithmetic via toLocaleString (exact for integers).
+  return n.toLocaleString('en-US', { useGrouping: false, maximumFractionDigits: 20 })
 }
