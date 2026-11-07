@@ -61,7 +61,7 @@ test.describe('1. lesson completion → XP and ring', () => {
     const again = await dashboardNumbers(page)
     expect(again.xp).toBe(40)
     await page.getByText('همهٔ نشان‌ها').click()
-    await expect(page.locator('[data-testid=badge-list] li[data-badge="first_lesson"]')).toHaveCount(1)
+    await expect(page.locator('[data-testid=badge-list] li[data-badge="first-step"]')).toHaveCount(1)
     await expect(page.locator('[data-testid=badge-list] li[data-badge="analyst"]')).toHaveCount(1)
   })
 })
