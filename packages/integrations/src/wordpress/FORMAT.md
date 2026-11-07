@@ -85,7 +85,7 @@ Export order (dependencies first) and exactly what each kind carries:
 | # | kind | `wpId` | `data` | `meta` | `rel` / `items` |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `wp.user` | `ID` | `wp_users` row **without** `user_pass`, `user_activation_key` | allow-listed usermeta only: `first_name`, `last_name`, `nickname`, `description`, `<prefix>capabilities`, `digits_phone`, `digits_phone_no`, `digt_countrycode`, `mobile`, `phone_number`, `billing_phone`, `billing_first_name`, `billing_last_name`, `billing_email`, `billing_city`, `_tutor_instructor_status`, and any key matching `/(national|melli|meli)_?(code|id)/i` | — |
-| 2 | `wp.term` | `term_taxonomy_id` | `term_id, name, slug, taxonomy, parent, description, count` for taxonomies `category, post_tag, product_cat, course_cat, course_tag` | termmeta | — |
+| 2 | `wp.term` | `term_taxonomy_id` | `term_id, name, slug, taxonomy, parent, description, count` for taxonomies `category, post_tag, product_cat, course_cat, course_tag, course_difficulty, course_track, membership_cat, membership_tag` (LifterLMS) and `course-category, course-tag` (Tutor) | termmeta | — |
 | 3 | `wp.attachment` | `ID` | posts row (`post_type='attachment'`) | `_wp_attached_file`, `_wp_attachment_image_alt` | — |
 | 4 | `wp.post` | `ID` | posts row, `post_type IN ('post','page')`, `post_status IN ('publish','draft','private','future')` | all meta except keys starting `_edit_`, `_wp_old_`, `_oembed_` | `rel.terms` |
 | 5 | `woo.product` | `ID` | posts row `post_type='product'` | all meta except `_edit_*`, `_oembed_*`, `_product_attributes` | `rel.terms` |
