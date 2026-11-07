@@ -179,7 +179,8 @@ hairline values as the site tokens above, in light and `data-theme='dark'`. Scre
   selected = Edvora default blue. Fallbacks live in `custom.scss`, so nothing breaks if the component is absent.
 - **Fonts:** Vazirmatn 400/500/700/900 and Space Grotesk 500/700 via `@fontsource` (imported in `(payload)/layout.tsx`);
   Morabba 400/700/900 from `apps/web/public/fonts/morabba` through `@font-face` in `custom.scss`. Morabba only for page
-  titles, the wordmark and dashboard numerals. Gold (`--milestone`) is not used in the admin.
+  titles and the wordmark. Numerals (KPI values, totals) are Vazirmatn bold with tabular figures: Persian digits in
+  Morabba misread (۱۸۰٬۰۰۰٬۰۰۰ looked like Latin letters, E-035). Gold (`--milestone`) is not used in the admin.
 - **Components (`components/admin/`):** `Brand` (`Logo` for login/nav, `Icon` for the breadcrumb: girih star + ring, `currentColor`),
   `TenantAccent`, `DashboardHome` (`beforeDashboard`: greeting, up to four counts, quick links; each item only when Payload's
   permission data allows `read` / `create`, counts run with `overrideAccess: false` and filter by the selected academy).
@@ -237,5 +238,11 @@ nav, theme, fullscreen, bell, user menu), `PageHeader`, `KpiCard`/`KpiGrid`, `Pa
 via `var(--c-*)` attributes so they also render inside Payload, which has no Tailwind; time runs right to left).
 App-side: `components/staff/desks/*` (one per desk), `components/admin/console.tsx` (the same blocks with `c-*` classes in
 `custom.scss`), `lib/consoleNav.ts` (module map), `lib/consoleData.ts` (tenant-filtered queries, period maths).
-Rule: KPI delta = last 30 days vs the 30 before (createdAt); sparkline = last 14 days; bar compare = last 7 vs 7 before;
-no baseline means no percentage. Empty data means an empty state, never an invented number.
+Rule (`@edvora/core/console`, unit-tested): days are Tehran calendar days. KPI delta = last 30 days vs the 30 before;
+sparkline = last 14 days; bar compare = last 7 vs 7 before; no baseline means no percentage. Records count by
+`createdAt`; settled sales = paid instalments by `paidAt` (integer rials); overdue instalments = the E-028 finance-inbox
+rule. A sparkline with fewer than two non-zero days is a dashed baseline + one dot and says «دادهٔ کافی برای روند نیست».
+Empty data means an empty state, never an invented number. Scope (`ConsoleScope`): one academy; in /admin without a
+selection, the academies the person is staff in, or (platform admin only) the whole platform, named in the eyebrow.
+Nav (`lib/consoleNav.ts`): a module shows when its `read` rule (mirrors the collection's staff read rule) holds; in
+/admin also Payload's own read permission (`payloadAllows`, which accepts where-scoped `{ permission, where }`).
