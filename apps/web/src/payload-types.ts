@@ -45,6 +45,7 @@ export interface Config {
     coupons: Coupon;
     testimonials: Testimonial;
     posts: Post;
+    pages: Page;
     media: Media;
     'otp-codes': OtpCode;
     'import-connections': ImportConnection;
@@ -85,6 +86,7 @@ export interface Config {
     coupons: CouponsSelect<false> | CouponsSelect<true>;
     testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'otp-codes': OtpCodesSelect<false> | OtpCodesSelect<true>;
     'import-connections': ImportConnectionsSelect<false> | ImportConnectionsSelect<true>;
@@ -212,6 +214,7 @@ export interface Tenant {
   contact?: {
     phone?: string | null;
     email?: string | null;
+    address?: string | null;
   };
   /**
    * Turning it off hides XP, levels, streaks, badges and celebrations; history is kept, so turning it back on restores everything.
@@ -278,6 +281,10 @@ export interface Media {
   id: number;
   tenant?: (number | null) | Tenant;
   alt: string;
+  /**
+   * Where this was imported from
+   */
+  sourceUrl?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -542,6 +549,21 @@ export interface Course {
   programCode?: string | null;
   status: 'draft' | 'published';
   heroImage?: (number | null) | Media;
+  /**
+   * Where this was imported from
+   */
+  sourceUrl?: string | null;
+  /**
+   * Copy that must stay off the site until verified.
+   */
+  pendingClaims?:
+    | {
+        text: string;
+        note?: string | null;
+        sourceUrl?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   summary?: string | null;
   /**
    * In RIALS (integer). 8,470,000 toman = 84,700,000 rials.
@@ -1398,7 +1420,7 @@ export interface Testimonial {
   tenant?: (number | null) | Tenant;
   name: string;
   /**
-   * e.g. مدیرعامل فرش امارات
+   * e.g. مدیرعامل فرش عمارت
    */
   role?: string | null;
   quote?: string | null;
@@ -1408,6 +1430,15 @@ export interface Testimonial {
    * Only approved testimonials are shown.
    */
   approvedForUse?: boolean | null;
+  /**
+   * Where consent for reuse comes from / what is still to confirm.
+   */
+  consentNote?: string | null;
+  sortOrder?: number | null;
+  /**
+   * Where this was imported from
+   */
+  sourceUrl?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1439,6 +1470,67 @@ export interface Post {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * Where this was imported from
+   */
+  sourceUrl?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  slug: string;
+  status: 'draft' | 'published';
+  showInNav?: boolean | null;
+  sortOrder?: number | null;
+  intro?: string | null;
+  cover?: (number | null) | Media;
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  faq?:
+    | {
+        question: string;
+        answer: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Where this was imported from
+   */
+  sourceUrl?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1893,6 +1985,10 @@ export interface PayloadLockedDocument {
         value: number | Post;
       } | null)
     | ({
+        relationTo: 'pages';
+        value: number | Page;
+      } | null)
+    | ({
         relationTo: 'media';
         value: number | Media;
       } | null)
@@ -2015,6 +2111,7 @@ export interface TenantsSelect<T extends boolean = true> {
     | {
         phone?: T;
         email?: T;
+        address?: T;
       };
   gamification?:
     | T
@@ -2194,6 +2291,15 @@ export interface CoursesSelect<T extends boolean = true> {
   programCode?: T;
   status?: T;
   heroImage?: T;
+  sourceUrl?: T;
+  pendingClaims?:
+    | T
+    | {
+        text?: T;
+        note?: T;
+        sourceUrl?: T;
+        id?: T;
+      };
   summary?: T;
   price?: T;
   maxInstalments?: T;
@@ -2721,6 +2827,9 @@ export interface TestimonialsSelect<T extends boolean = true> {
   videoUrl?: T;
   photo?: T;
   approvedForUse?: T;
+  consentNote?: T;
+  sortOrder?: T;
+  sourceUrl?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2737,6 +2846,32 @@ export interface PostsSelect<T extends boolean = true> {
   author?: T;
   publishedAt?: T;
   body?: T;
+  sourceUrl?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  slug?: T;
+  status?: T;
+  showInNav?: T;
+  sortOrder?: T;
+  intro?: T;
+  cover?: T;
+  body?: T;
+  faq?:
+    | T
+    | {
+        question?: T;
+        answer?: T;
+        id?: T;
+      };
+  sourceUrl?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2747,6 +2882,7 @@ export interface PostsSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   tenant?: T;
   alt?: T;
+  sourceUrl?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

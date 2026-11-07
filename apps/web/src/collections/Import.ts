@@ -162,7 +162,7 @@ export const ImportRefs: CollectionConfig = {
     { name: 'reason', type: 'text' },
     // Minimal PII for held users (name, WP email, wpId) until an admin adds a phone. Purged with the raw bundle.
     { name: 'heldData', type: 'json' },
-    // TODO(E-030): once E-030 (#17) adds `sourceUrl` to courses/posts/media/pages, backfill it from here.
+    // Also written to the record's own `sourceUrl` column (courses, posts, media, pages — E-030).
     { name: 'sourceUrl', type: 'text' },
     { name: 'job', type: 'relationship', relationTo: 'import-jobs', index: true },
   ],

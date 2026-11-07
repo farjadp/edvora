@@ -7,6 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./digits": "./src/digits.ts",
+    "./persian": "./src/persian.ts",
+    "./previewGate": "./src/previewGate.ts",
     "./money": "./src/money.ts",
     "./staff": "./src/staff.ts",
     "./login": "./src/login.ts",

@@ -168,6 +168,7 @@ export const Tenants: CollectionConfig = {
               fields: [
                 { name: 'phone', type: 'text' },
                 { name: 'email', type: 'email' },
+                { name: 'address', type: 'text' },
               ],
             },
           ],

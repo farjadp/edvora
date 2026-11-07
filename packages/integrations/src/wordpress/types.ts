@@ -6,7 +6,7 @@ import type { Manifest, SourceRecord } from './format'
 
 export type MapperId = 'wp-core' | 'woocommerce' | 'lifterlms' | 'tutor'
 
-/** Edvora collections a WordPress import writes to (`pages` arrives with E-030). */
+/** Edvora collections a WordPress import writes to. */
 export type EdvoraCollection =
   | 'users'
   | 'media'

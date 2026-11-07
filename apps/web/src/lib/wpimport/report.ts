@@ -40,7 +40,7 @@ export type ImportReport = {
   media: { total: number; hosts: { host: string; count: number; needsApproval: boolean }[] }
   missingKinds: ImportPlan['missingKinds']
   notImported: Record<string, number>
-  /** Drafts for collections Edvora does not have yet (pages until E-030). */
+  /** Drafts for collections Edvora does not have yet (none since E-030 added pages). */
   notWritable: Partial<Record<EdvoraCollection, number>>
   conflicts: { refKey: string; collection: EdvoraCollection; title: string; targetId: string | number | null; reason: string | null }[]
 }
@@ -75,7 +75,7 @@ export async function buildReport(payload: Payload, tenant: { id: number }, plan
   const conflicts = COLLECTION_ORDER.flatMap((c) =>
     plan.drafts[c].filter((d) => d.action === 'conflict').map((d) => ({ refKey: d.refKey, collection: c, title: titleOf(d.fields), targetId: d.targetId ?? null, reason: d.reason ?? null })),
   )
-  // Redirects to collections Edvora does not have yet (pages until E-030) are not written: keep them out of the preview.
+  // Redirects to collections Edvora does not have yet (none since E-030 added pages) are not written: keep them out of the preview.
   const unwritable = new Set(COLLECTION_ORDER.filter((c) => !WRITABLE.has(c)).flatMap((c) => plan.drafts[c].map((d) => d.refKey)))
   const redirects = plan.redirects.filter((r) => !unwritable.has(r.targetRefKey))
   // What will really happen: drafts of collections Edvora lacks, and redirects to them, are skipped at commit.

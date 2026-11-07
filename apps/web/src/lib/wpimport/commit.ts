@@ -21,6 +21,7 @@ import type { ImportJob } from '../../payload-types'
 import { idOf } from '../ids'
 import { COMMIT_BATCH, RETENTION_DAYS } from './constants'
 import { loadRefs, refFrom, type RefRow } from './ctx'
+import { isReservedPageSlug } from '../pageSlugs'
 import { docChecksum, parseRefKey, placeholderEmail, toDocData, unionIds, UnresolvedRef, WRITABLE } from './docValues'
 import type { MediaResolver } from './htmlToLexical'
 import { titleOf } from './report'
@@ -274,7 +275,7 @@ async function writeUser(w: WriteCtx, d: PlannedDraft): Promise<'create' | 'upda
 
 async function writeRedirect(w: WriteCtx, d: PlannedDraft): Promise<'create' | 'update' | 'skipped'> {
   const target = (d.fields.target as { $ref?: string } | undefined)?.$ref
-  // Redirect only to something that exists in Edvora (pages arrive with E-030).
+  // Redirect only to something that was imported (its target ref resolves).
   if (target && w.refs.resolve(target) === null) {
     await w.refs.upsert(w.req, d, { status: 'skipped', reason: 'target_missing' })
     return 'skipped'
@@ -322,6 +323,12 @@ async function writeDraft(w: WriteCtx, d: PlannedDraft, siteId: string): Promise
     return bump(w.summary, c, 'skipped')
   }
   if (c === 'users') return bump(w.summary, c, await writeUser(w, d))
+  // A WordPress page whose slug is an Edvora route (dashboard, courses, login… — typical LMS shortcode pages) has a
+  // native equivalent; writing it would fail validation and, inside the batch transaction, roll the batch back.
+  if (c === 'pages' && typeof d.fields.slug === 'string' && isReservedPageSlug(d.fields.slug)) {
+    if (w.refs.get(d.refKey)?.status !== 'linked') await w.refs.upsert(w.req, d, { status: 'skipped', reason: 'reserved_slug' })
+    return bump(w.summary, c, 'skipped')
+  }
   if (c === 'redirects') return bump(w.summary, c, await writeRedirect(w, d))
 
   let data: Record<string, unknown>

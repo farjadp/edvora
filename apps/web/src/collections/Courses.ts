@@ -1,7 +1,10 @@
 import type { CollectionConfig } from 'payload'
-import { allow, allowCreate, anyone, guard, nobody, requireForFields } from '../access/permissions'
+import { allow, allowCreate, anyone, fieldAllow, guard, nobody, requireForFields } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
 import { richTextField } from '../lib/richText'
+import { sourceUrlField } from './fields'
+
+const staffOnly = fieldAllow('courses.edit')
 
 export const COURSE_KINDS = [
   { value: 'program', label: { fa: 'دوره بلندمدت', en: 'Long program' } },
@@ -62,6 +65,23 @@ export const Courses: CollectionConfig = {
       ],
     },
     { name: 'heroImage', type: 'upload', relationTo: 'media' },
+    sourceUrlField,
+    {
+      name: 'pendingClaims',
+      type: 'array',
+      label: { fa: 'ادعاهای تأییدنشده (منتشر نمی‌شود)', en: 'Unverified claims (never published)' },
+      // Staff-only: never returned by the public API and never rendered on public pages.
+      access: { read: staffOnly, create: staffOnly, update: staffOnly },
+      admin: {
+        position: 'sidebar',
+        description: { fa: 'متن‌هایی که تا تأیید نشده‌اند نباید در سایت بیایند.', en: 'Copy that must stay off the site until verified.' },
+      },
+      fields: [
+        { name: 'text', type: 'textarea', required: true },
+        { name: 'note', type: 'text' },
+        { name: 'sourceUrl', type: 'text' },
+      ],
+    },
     { name: 'summary', type: 'textarea', label: { fa: 'خلاصه', en: 'Summary' } },
     {
       type: 'row',

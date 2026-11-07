@@ -36,7 +36,7 @@ export const DEFAULT_MAPPERS: readonly StackMapper[] = [wpCoreMapper, woocommerc
 
 export const DEFAULT_PATHS: EdvoraPaths = {
   course: (slug) => `/courses/${slug}`,
-  post: (slug) => `/blog/${slug}`,
+  post: (slug) => `/journal/${slug}`,
   page: (slug) => `/${slug}`,
 }
 
