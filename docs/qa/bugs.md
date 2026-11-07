@@ -103,3 +103,9 @@ Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); re
 - W8a: only "add a phone"; no "skip B / link B's orders to A" choice. W8b: no "needs phone" CSV export. W8f: no inactive-users choice.
 - W22a: no heads-up SMS. W24: static "next steps" list only; no 10-sample-URL 301 test, DNS/SSL checks.
 - W16: redirects answer 308 (documented decision) and imported courses are drafts, so an old URL redirects to a page that is 404 until the admin publishes.
+
+## QA-E032-12 · `rich-text.spec.ts` fails on a freshly seeded database
+- **Severity:** minor (test data; pre-existing from E-031, found during the E-032 full run)
+- **Steps:** new DB, `payload migrate`, `pnpm seed`, `pnpm e2e`.
+- **Actual:** `src/seed/e2e-richtext.ts` throws `Not found: demo media` because it expects a `demo.png` media row in demo that no seed creates. The spec then fails in `beforeAll`.
+- **Suspected area:** `apps/web/src/seed/run.ts` (create the demo media) or make `e2e-richtext.ts` create it.
