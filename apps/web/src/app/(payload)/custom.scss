@@ -1567,6 +1567,11 @@ h2.LexicalEditorTheme__h {
     display: none;
   }
 }
+@media (max-width: 420px) {
+  .c-tool--search {
+    display: none;
+  }
+}
 @media (max-width: 900px) {
   .c-tool--search span,
   .c-tool--search kbd,
