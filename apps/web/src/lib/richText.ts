@@ -21,7 +21,8 @@ import {
   UnorderedListFeature,
   UploadFeature,
 } from '@payloadcms/richtext-lexical'
-import type { CollectionSlug, FieldAccess, FieldHook, RichTextField } from 'payload'
+import { getTenantFromCookie } from '@payloadcms/plugin-multi-tenant/utilities'
+import type { CollectionSlug, FieldAccess, FieldHook, FilterOptionsProps, RichTextField } from 'payload'
 import { idOf } from './ids'
 import { throwFieldErrors } from './validation'
 
@@ -39,16 +40,50 @@ import { throwFieldErrors } from './validation'
 export const RICH_TEXT_SCOPED_COLLECTIONS = ['media', 'courses', 'lessons'] as const satisfies readonly CollectionSlug[]
 export const RICH_TEXT_LINK_COLLECTIONS: CollectionSlug[] = ['courses', 'lessons']
 
+/**
+ * Payload ships the Persian heading label as the literal "[SKIPPED]", so H2/H3/H4 would look identical in the picker.
+ * A config-level translation can't override it (the feature's strings are merged last), so patch the feature's own.
+ */
+function headingFeature(props: Parameters<typeof HeadingFeature>[0]): ReturnType<typeof HeadingFeature> {
+  const provider = HeadingFeature(props)
+  const feature = provider.feature
+  return {
+    ...provider,
+    feature: async (args) => {
+      const resolved = typeof feature === 'function' ? await feature(args) : feature
+      return { ...resolved, i18n: { ...resolved.i18n, fa: { label: 'عنوان {{headingLevel}}' } } }
+    },
+  }
+}
+
 export const richTextEditor = lexicalEditor({
   features: () => [
     ParagraphFeature(),
-    HeadingFeature({ enabledHeadingSizes: ['h2', 'h3', 'h4'] }),
+    headingFeature({ enabledHeadingSizes: ['h2', 'h3', 'h4'] }),
     BoldFeature(),
     ItalicFeature(),
     UnderlineFeature(),
     StrikethroughFeature(),
     InlineCodeFeature(),
-    LinkFeature({ enabledCollections: RICH_TEXT_LINK_COLLECTIONS, maxDepth: 1 }),
+    LinkFeature({
+      enabledCollections: RICH_TEXT_LINK_COLLECTIONS,
+      maxDepth: 1,
+      // The internal-link picker is not covered by the multi-tenant plugin's filter: scope it to the selected academy.
+      fields: ({ defaultFields }) =>
+        defaultFields.map((field) =>
+          'name' in field && field.name === 'doc' && field.type === 'relationship'
+            ? {
+                ...field,
+                filterOptions: ({ req }: FilterOptionsProps) => {
+                  const tenant = getTenantFromCookie(req.headers, 'number')
+                  if (typeof tenant !== 'number') return true
+                  // courses and lessons both carry `tenant`.
+                  return { tenant: { equals: tenant } }
+                },
+              }
+            : field,
+        ),
+    }),
     UnorderedListFeature(),
     OrderedListFeature(),
     ChecklistFeature(),
