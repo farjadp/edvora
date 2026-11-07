@@ -12,7 +12,7 @@ test.describe('demo tenant money path', () => {
   test('OTP login → 4 instalments + TEST20 → pay two instalments → lesson → logout', async ({ page }) => {
     await test.step('phone OTP login with the dev code on screen', async () => {
       await login(page, DEMO, phone)
-      await expect(page.getByTestId('dashboard-greeting')).toContainText('دانشجوی') // E-028: greeting uses the first name only
+      await expect(page.getByTestId('dashboard-greeting')).toContainText('سلام، دانشجوی تست') // profile first name, else the full display name
     })
 
     await test.step('checkout demo-program, 4 instalments, coupon TEST20', async () => {

@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import type { Where } from 'payload'
 import Link from 'next/link'
 import { ContinueCard, Header, LevelSection, NoCourses, PathBlock, Section, WeekSection, WelcomeCard, mergeBadges, type LearnItem } from '../../../components/panel/dashboard'
-import { firstName } from '../../../components/panel/learnLink'
+import { greetingName } from '@edvora/core/names'
 import { docOf, idOf } from '../../../lib/ids'
 import { getStudentDashboardGamification } from '../../../lib/gamificationQueries'
 import { getPayloadClient } from '../../../lib/payload'
@@ -73,7 +73,7 @@ export default async function DashboardPage() {
     )
   ).filter((x): x is LearnItem => x !== null)
 
-  const name = firstName(user.name)
+  const name = greetingName(user)
   const primary = items[0]
   const doneAll = items.reduce((n, i) => n + i.done, 0)
   const view = primary?.view ?? null

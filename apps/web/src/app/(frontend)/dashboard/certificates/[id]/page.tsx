@@ -13,6 +13,7 @@ import { getPayloadClient } from '../../../../../lib/payload'
 import { requireUser } from '../../../../../lib/session'
 import { getCurrentTenant } from '../../../../../lib/tenant'
 import type { Cohort, Course, Media } from '../../../../../payload-types'
+import { greetingName } from '@edvora/core/names'
 
 export const metadata: Metadata = { title: 'گواهی شما', robots: { index: false } }
 
@@ -57,7 +58,7 @@ export default async function CertificatePage({ params }: Props) {
 
   return (
     <div data-testid="certificate-finale" className="mx-auto max-w-3xl px-4 pb-16 pt-8 md:px-8 md:pt-12">
-      <FocusHeading className="font-display text-4xl font-black leading-tight outline-none md:text-5xl">تبریک، {user.name || 'دانشجو'}</FocusHeading>
+      <FocusHeading className="font-display text-4xl font-black leading-tight outline-none md:text-5xl">{greetingName(user) ? `تبریک، ${greetingName(user)}` : 'تبریک'}</FocusHeading>
       <p className="mt-3 text-lg leading-8">
         دورهٔ «{course?.title}» را به پایان رساندید.
       </p>

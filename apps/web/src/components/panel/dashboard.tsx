@@ -143,13 +143,13 @@ export function PathBlock({ item, gold }: { item: LearnItem; gold: boolean }) {
 }
 
 /** M1: first visit, nothing done yet. Replaces the rhythm card (UX §3). */
-export function WelcomeCard({ name }: { name: string }) {
+export function WelcomeCard({ name }: { name: string | null }) {
   return (
     <section data-testid="welcome-card" aria-labelledby="welcome" className="border-t border-ink pt-4">
       <h2 id="welcome" className="text-sm font-bold text-muted">
         شروع مسیر
       </h2>
-      <p className="mt-3 font-display text-xl font-black">خوش آمدید، {name}</p>
+      <p className="mt-3 font-display text-xl font-black">{name ? `خوش آمدید، ${name}` : 'خوش آمدید'}</p>
       <p className="mt-2 leading-8 text-muted">با اولین جلسه شروع کنید؛ پیشرفت شما از همان‌جا ثبت می‌شود.</p>
     </section>
   )
@@ -327,7 +327,7 @@ export function LevelSection({
   )
 }
 
-export function Header({ name, line, children }: { name: string; line: string; children?: ReactNode }) {
+export function Header({ name, line, children }: { name: string | null; line: string; children?: ReactNode }) {
   return (
     <header className="relative overflow-hidden border-b border-line pb-8">
       <Guilloche className="-end-16 -top-24 hidden size-80 opacity-[.18] md:block" />
@@ -335,7 +335,7 @@ export function Header({ name, line, children }: { name: string; line: string; c
         <div className="min-w-0">
           <p className="text-sm font-bold text-muted">پنل من</p>
           <h1 data-testid="dashboard-greeting" className="mt-2 font-display text-4xl font-black leading-tight md:text-6xl">
-            سلام، {name}
+            {name ? `سلام، ${name}` : 'سلام'}
           </h1>
           <p className="mt-3 max-w-prose text-lg text-muted">{line}</p>
         </div>
