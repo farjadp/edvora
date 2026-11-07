@@ -3,7 +3,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { DEMO, IBA, fakePhone } from './helpers'
-import { activeStudent, repoRoot } from './gamification-helpers'
+import { loginAny, repoRoot } from './gamification-helpers'
 import { adminCreds, apiAs } from './staff-helpers'
 
 /**
@@ -59,9 +59,10 @@ test('student login (both academies)', async ({ page }) => {
 })
 
 test('student dashboard and certificate', async ({ page }) => {
-  test.setTimeout(300_000)
+  test.setTimeout(120_000)
+  // Plain login is enough for colours; the full Seal dashboard is covered by gamification-a11y.spec.ts.
   const phone = fakePhone()
-  await activeStudent(page, phone)
+  await loginAny(page, DEMO, phone)
   await page.goto(`${DEMO}/dashboard`)
   await expect(page.getByTestId('dashboard')).toBeVisible()
   await check(page, 'dashboard')
