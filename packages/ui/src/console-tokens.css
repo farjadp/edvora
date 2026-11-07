@@ -52,7 +52,7 @@
   --c-chart-3: #b5654a;
   --c-chart-4: #6c7f8a;
   --c-chart-5: #7b8b3e;
-  --c-chart-track: #e6e0cd;
+  --c-chart-track: #ebe5d3;
   /* The academy's own colour, resolved at :root before [data-console] re-maps --brand: logo chip only. */
   --c-tenant: var(--brand);
   --c-tenant-ink: var(--brand-ink);
