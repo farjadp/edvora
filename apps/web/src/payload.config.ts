@@ -1,5 +1,6 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
+import { s3Storage } from '@payloadcms/storage-s3'
 import { en } from '@payloadcms/translations/languages/en'
 import { fa } from '@payloadcms/translations/languages/fa'
 import path from 'path'
@@ -18,8 +19,10 @@ import { OtpCodes, Posts, Testimonials } from './collections/Content'
 import { Coupons } from './collections/Coupons'
 import { Courses } from './collections/Courses'
 import { Enrollments } from './collections/Enrollments'
+import { ImportConnections, ImportJobs, ImportNonces, ImportRefs, Redirects } from './collections/Import'
 import { Leads } from './collections/Leads'
 import { Lessons } from './collections/Lessons'
+import { Attendance, LiveEvents, LiveSessions } from './collections/LiveSessions'
 import { Media } from './collections/Media'
 import { Memberships } from './collections/Memberships'
 import { Orders } from './collections/Orders'
@@ -32,6 +35,7 @@ import { Submissions } from './collections/Submissions'
 import { Tenants } from './collections/Tenants'
 import { Users } from './collections/Users'
 import { richTextEditor } from './lib/richText'
+import { IMPORT_QUEUE, importTasks } from './lib/wpimport/tasks'
 import { migrations } from './migrations'
 import type { Config } from './payload-types'
 
@@ -74,6 +78,9 @@ export default buildConfig({
     Assignments,
     Submissions,
     SubmissionFiles,
+    LiveSessions,
+    Attendance,
+    LiveEvents,
     Certificates,
     Leads,
     Orders,
@@ -82,7 +89,23 @@ export default buildConfig({
     Posts,
     Media,
     OtpCodes,
+    // E-032: WordPress import (ADR 011).
+    ImportConnections,
+    ImportNonces,
+    ImportJobs,
+    ImportRefs,
+    Redirects,
   ],
+  // E-032: first use of the Payload jobs queue (ADR 011 §Resumability). Each import task works ≤ 20 s, then re-queues
+  // itself with its cursor. One app process runs the queue (IMPORT_QUEUE_AUTORUN=false on the others).
+  jobs: {
+    tasks: importTasks,
+    autoRun: [{ cron: process.env.IMPORT_QUEUE_CRON || '* * * * *', queue: IMPORT_QUEUE, limit: 5 }],
+    shouldAutoRun: () => process.env.IMPORT_QUEUE_AUTORUN !== 'false',
+    deleteJobOnComplete: true,
+    // Only server code queues or runs these tasks; nobody may through the REST API.
+    access: { run: () => false, queue: () => false, cancel: () => false },
+  },
   // E-031: one full-featured Lexical editor for every rich-text field (see lib/richText.ts).
   editor: richTextEditor,
   secret: process.env.PAYLOAD_SECRET ?? '',
@@ -96,6 +119,21 @@ export default buildConfig({
   }),
   sharp,
   plugins: [
+    // E-017: Media files in the private S3 bucket (ArvanCloud in production) when S3_MEDIA=true; else local disk.
+    // Payload keeps serving them through its own access-controlled URLs, so nothing becomes public.
+    s3Storage({
+      enabled: process.env.STORAGE_PROVIDER === 's3' && process.env.S3_MEDIA === 'true',
+      collections: { media: { prefix: 'media' } },
+      bucket: process.env.S3_BUCKET ?? '',
+      config: {
+        endpoint: process.env.S3_ENDPOINT,
+        region: process.env.S3_REGION || 'default',
+        forcePathStyle: true,
+        credentials: { accessKeyId: process.env.S3_ACCESS_KEY_ID ?? '', secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? '' },
+        requestChecksumCalculation: 'WHEN_REQUIRED',
+        responseChecksumValidation: 'WHEN_REQUIRED',
+      },
+    }),
     multiTenantPlugin<Config>({
       tenantsSlug: 'tenants',
       // Every record below belongs to exactly one academy, with strict isolation.
@@ -122,6 +160,16 @@ export default buildConfig({
         assignments: {},
         submissions: {},
         'submission-files': {},
+        // E-033: live classes (ADR 012).
+        'live-sessions': {},
+        attendance: {},
+        'live-events': {},
+        // E-032: WordPress import.
+        'import-connections': {},
+        'import-nonces': {},
+        'import-jobs': {},
+        'import-refs': {},
+        redirects: {},
       },
       // No hard delete: academies are never removed, so never cascade-delete their records.
       cleanupAfterTenantDelete: false,

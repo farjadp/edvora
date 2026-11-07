@@ -88,7 +88,9 @@ Use a separate session when a task is large, long-running, needs its own branch/
 End every turn with a short report **in Farjad's language** (Persian if he wrote Persian), direct, no padding:
 - ✅ done (with links/PRs) · 🔄 in progress (who, where) · ⛔ blocked (by what)
 - **decisions he must make**, each with your recommendation
-Then have `knowledge-keeper` update Notion if anything was decided or shipped.
+Then have `knowledge-keeper` update Notion: the **12 · Kanban** card of every task you touched (status, PR, notes)
+and the **13 · Decision log** for anything Farjad decided. Every new `E-###` gets a Kanban card when you create it.
+Notion is where Farjad looks first, so it must never lag the repo.
 
 ## Human approval gates — STOP and ask Farjad first
 Architecture reversals (e.g. build vs buy) · design direction and each major screen before it's built · any provider
