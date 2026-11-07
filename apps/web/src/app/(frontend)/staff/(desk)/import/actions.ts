@@ -14,6 +14,9 @@ import { importActor } from '../../../../../lib/wpimport/access'
 import { purgeJob, resolveConflict } from '../../../../../lib/wpimport/commit'
 import {
   MAX_BUNDLE_BYTES,
+  auditImport,
+  cancelJob,
+  resumeJob,
   confirmJob,
   createConnection,
   findJob,
@@ -201,15 +204,85 @@ export async function setHeldPhoneAction(_prev: ImportActionState, form: FormDat
   const s = await importActor('import.run')
   if (!s) return DENIED
   const { jobId, wpId, phone } = parsed.data
+  const payload = await getPayloadClient()
+  if (!(await isHeld(payload, s.tenant.id, jobId, wpId))) return { ok: false, message: 'این کاربر در فهرست نگه‌داشته‌ها نیست.' }
+  // Linking is only ever by phone (an existing account with that phone gets this academy's membership, W8c/W23);
+  // never by email.
   const result = await updateChoices({
-    payload: await getPayloadClient(),
+    payload,
     tenant: tenantOf(s),
     actor: actorOf(s),
     jobId,
-    patch: (c) => ({ ...c, phoneOverrides: { ...(c.phoneOverrides ?? {}), [wpId]: phone } }),
+    patch: (c) => ({ ...c, phoneOverrides: { ...(c.phoneOverrides ?? {}), [wpId]: phone }, skipUsers: (c.skipUsers ?? []).filter((x) => x !== wpId) }),
   })
   if ('ok' in result && result.ok === false) return { ok: false, message: result.message }
-  return { ok: true, message: 'شماره ثبت شد.', redirectTo: `${jobPath(jobId)}#held` }
+  await auditImport(payload, { tenant: s.tenant.id, actor: actorOf(s), action: 'import.held.phone', collection: 'import-jobs', docId: jobId, note: `wp user ${wpId}` })
+  return { ok: true, message: 'شماره ثبت شد.', redirectTo: `${jobPath(jobId)}?notice=replanned#held` }
+}
+
+async function isHeld(payload: Awaited<ReturnType<typeof getPayloadClient>>, tenantId: number, jobId: number, wpId: string): Promise<boolean> {
+  const job = await findJob(payload, tenantId, jobId)
+  const held = ((job?.report as { heldUsers?: { wpId: string }[] } | null)?.heldUsers ?? []).some((u) => u.wpId === wpId)
+  const skipped = ((job?.choices as { skipUsers?: string[] } | null)?.skipUsers ?? []).includes(wpId)
+  return held || skipped
+}
+
+const SkipInput = z.object({ jobId: JobId, wpId: z.string().regex(/^\d{1,20}$/), skip: z.enum(['yes', 'no']) })
+
+/** W8a: do not import a held user (e.g. the duplicate of someone else); "no" brings them back. */
+export async function skipHeldUserAction(_prev: ImportActionState, form: FormData): Promise<ImportActionState> {
+  const parsed = SkipInput.safeParse(Object.fromEntries(form))
+  if (!parsed.success) return { ok: false, message: 'درخواست نامعتبر است.' }
+  const s = await importActor('import.run')
+  if (!s) return DENIED
+  const { jobId, wpId, skip } = parsed.data
+  const payload = await getPayloadClient()
+  if (!(await isHeld(payload, s.tenant.id, jobId, wpId))) return { ok: false, message: 'این کاربر در فهرست نگه‌داشته‌ها نیست.' }
+  const result = await updateChoices({
+    payload,
+    tenant: tenantOf(s),
+    actor: actorOf(s),
+    jobId,
+    patch: (c) => {
+      const rest = (c.skipUsers ?? []).filter((x) => x !== wpId)
+      return { ...c, skipUsers: skip === 'yes' ? [...rest, wpId] : rest }
+    },
+  })
+  if ('ok' in result && result.ok === false) return { ok: false, message: result.message }
+  await auditImport(payload, { tenant: s.tenant.id, actor: actorOf(s), action: skip === 'yes' ? 'import.held.skip' : 'import.held.unskip', collection: 'import-jobs', docId: jobId, note: `wp user ${wpId}` })
+  return { ok: true, message: 'ثبت شد.', redirectTo: `${jobPath(jobId)}?notice=replanned#held` }
+}
+
+export async function cancelImportAction(_prev: ImportActionState, form: FormData): Promise<ImportActionState> {
+  const jobId = JobId.safeParse(form.get('jobId'))
+  if (!jobId.success || form.get('confirm') !== 'yes') return { ok: false, message: 'برای لغو، تأیید را بزنید.' }
+  const s = await importActor('import.run')
+  if (!s) return DENIED
+  const r = await cancelJob({ payload: await getPayloadClient(), tenant: tenantOf(s), actor: actorOf(s), jobId: jobId.data })
+  return r.ok ? { ok: true, message: 'انتقال لغو شد.', redirectTo: jobPath(jobId.data) } : { ok: false, message: r.message }
+}
+
+export async function resumeImportAction(_prev: ImportActionState, form: FormData): Promise<ImportActionState> {
+  const jobId = JobId.safeParse(form.get('jobId'))
+  if (!jobId.success) return { ok: false, message: 'درخواست نامعتبر است.' }
+  const s = await importActor('import.run')
+  if (!s) return DENIED
+  const payload = await getPayloadClient()
+  const r = await resumeJob({ payload, tenant: tenantOf(s), actor: actorOf(s), jobId: jobId.data })
+  if (!r.ok) return { ok: false, message: r.message }
+  if (r.queued) after(() => kickQueue(payload))
+  return { ok: true, message: 'انتقال ادامه یافت.', redirectTo: jobPath(jobId.data) }
+}
+
+/** Plan a finished/failed/cancelled job again (re-run from the same raw data, e.g. after linking held users). */
+export async function replanAction(_prev: ImportActionState, form: FormData): Promise<ImportActionState> {
+  const jobId = JobId.safeParse(form.get('jobId'))
+  if (!jobId.success) return { ok: false, message: 'درخواست نامعتبر است.' }
+  const s = await importActor('import.run')
+  if (!s) return DENIED
+  const r = await updateChoices({ payload: await getPayloadClient(), tenant: tenantOf(s), actor: actorOf(s), jobId: jobId.data, patch: (c) => c })
+  if ('ok' in r && r.ok === false) return { ok: false, message: r.message }
+  return { ok: true, message: 'گزارش تازه ساخته شد.', redirectTo: `${jobPath(jobId.data)}?notice=replanned` }
 }
 
 // ---------------------------------------------------------------- run
@@ -236,7 +309,7 @@ export async function resolveConflictAction(_prev: ImportActionState, form: Form
   if (!s) return DENIED
   try {
     const ok = await resolveConflict(await getPayloadClient(), { tenant: tenantOf(s), actor: actorOf(s), ...parsed.data })
-    return ok ? { ok: true, message: 'ثبت شد.', redirectTo: `${jobPath(parsed.data.jobId)}#conflicts` } : { ok: false, message: 'این تعارض دیگر قابل حل نیست (شاید دادهٔ خام پاک شده است).' }
+    return ok ? { ok: true, message: 'ثبت شد.', redirectTo: `${jobPath(parsed.data.jobId)}?notice=saved#conflicts` } : { ok: false, message: 'این تعارض دیگر قابل حل نیست (شاید دادهٔ خام پاک شده است).' }
   } catch (err) {
     ;(await getPayloadClient()).logger.error({ err, msg: 'resolveConflict failed' })
     return { ok: false, message: 'ثبت ممکن نشد.' }

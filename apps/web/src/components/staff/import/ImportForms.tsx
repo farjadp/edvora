@@ -7,7 +7,11 @@ import { useActionState, useEffect, useRef, useState, type ReactNode } from 'rea
 import {
   confirmImportAction,
   createConnectionAction,
+  cancelImportAction,
   purgeNowAction,
+  replanAction,
+  resumeImportAction,
+  skipHeldUserAction,
   resolveConflictAction,
   revokeConnectionAction,
   saveChoicesAction,
@@ -23,8 +27,14 @@ type Action = (prev: ImportActionState, form: FormData) => Promise<ImportActionS
 /** Full navigation on `redirectTo` (keeps the Host header, ADR 005). */
 function useNavigate(state: ImportActionState) {
   useEffect(() => {
-    if (state?.redirectTo) window.location.assign(state.redirectTo)
-  }, [state?.redirectTo])
+    if (!state?.redirectTo) return
+    const target = new URL(state.redirectTo, window.location.href)
+    // Same page with only a different hash does not reload by itself (QA-E032-02): force a full reload.
+    if (target.pathname === window.location.pathname && target.search === window.location.search) {
+      window.location.hash = target.hash
+      window.location.reload()
+    } else window.location.assign(target.toString())
+  }, [state])
 }
 
 function Feedback({ state }: { state: ImportActionState }) {
@@ -454,9 +464,79 @@ export function PurgeButton({ jobId }: { jobId: number }) {
         </>
       ) : (
         <button type="button" className={btnSecondary()} onClick={() => setArmed(true)}>
-          حذف همین حالای دادهٔ خام
+          حذف همین حالا دادهٔ خام
         </button>
       )}
+      <Feedback state={state} />
+    </form>
+  )
+}
+
+export function SkipHeldButton({ jobId, wpId, skipped }: { jobId: number; wpId: string; skipped: boolean }) {
+  const { state, run, pending } = useImportAction(skipHeldUserAction)
+  return (
+    <form action={run} className="grid gap-1">
+      <input type="hidden" name="jobId" value={jobId} />
+      <input type="hidden" name="wpId" value={wpId} />
+      <input type="hidden" name="skip" value={skipped ? 'no' : 'yes'} />
+      <button type="submit" disabled={pending} className={btnSecondary()}>
+        {pending ? '…' : skipped ? 'وارد شود' : 'وارد نشود'}
+      </button>
+      {state && !state.ok ? <p role="alert" className="text-sm text-danger">{state.message}</p> : null}
+    </form>
+  )
+}
+
+export function CancelImportButton({ jobId }: { jobId: number }) {
+  const { state, run, pending } = useImportAction(cancelImportAction)
+  const [armed, setArmed] = useState(false)
+  return (
+    <form action={run} className="grid gap-2">
+      <input type="hidden" name="jobId" value={jobId} />
+      {armed ? (
+        <>
+          <input type="hidden" name="confirm" value="yes" />
+          <p className="text-sm leading-7 text-muted">کار پس از دستهٔ فعلی متوقف می‌شود؛ آنچه تا الان وارد شده می‌ماند و چیزی حذف نمی‌شود.</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="submit" disabled={pending} className={btnDanger()}>
+              {pending ? '…' : 'بله، لغو شود'}
+            </button>
+            <button type="button" className={btnSecondary()} onClick={() => setArmed(false)}>
+              انصراف
+            </button>
+          </div>
+        </>
+      ) : (
+        <button type="button" className={btnSecondary()} onClick={() => setArmed(true)}>
+          لغو انتقال
+        </button>
+      )}
+      <Feedback state={state} />
+    </form>
+  )
+}
+
+export function ResumeImportButton({ jobId }: { jobId: number }) {
+  const { state, run, pending } = useImportAction(resumeImportAction)
+  return (
+    <form action={run} className="grid gap-2">
+      <input type="hidden" name="jobId" value={jobId} />
+      <button type="submit" disabled={pending} className={btnPrimary()}>
+        {pending ? 'در حال ادامه…' : 'ادامهٔ انتقال از آخرین مرحله'}
+      </button>
+      <Feedback state={state} />
+    </form>
+  )
+}
+
+export function ReplanButton({ jobId }: { jobId: number }) {
+  const { state, run, pending } = useImportAction(replanAction)
+  return (
+    <form action={run} className="grid gap-2">
+      <input type="hidden" name="jobId" value={jobId} />
+      <button type="submit" disabled={pending} className={btnSecondary()}>
+        {pending ? 'در حال ساخت گزارش…' : 'بررسی و اجرای دوباره با همین داده'}
+      </button>
       <Feedback state={state} />
     </form>
   )

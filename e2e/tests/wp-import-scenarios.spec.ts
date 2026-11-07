@@ -229,11 +229,10 @@ test('W8a/W8b: a held user is released by adding a phone (Persian digits accepte
   const li = page.getByTestId('held-users').locator('li', { hasText: 'دوم' })
   await li.locator('input[name="phone"]').fill(toPersianDigits(`${site.phones.released.slice(0, 4)} ${site.phones.released.slice(4)}`))
   await li.getByRole('button', { name: 'افزودن شماره' }).click()
-  // QA-E032-02: the action answers redirectTo "<job>#held", a hash-only navigation that does not reload the page, so
-  // the list stays stale (no feedback at all). Wait for the saved choice, then reload to see the new plan.
-  await expect.poll(async () => JSON.stringify((await sql<{ choices: unknown }>('select choices from import_jobs where id = $1', [jobId]))[0]!.choices), { timeout: 60_000 }).toContain(site.phones.released)
-  await page.reload()
+  // QA-E032-02 (fixed): the page reloads by itself with the new plan and a notice.
   await expect(page.getByTestId('held-users').locator('li')).toHaveCount(2, { timeout: 60_000 })
+  await expect(page.getByText('گزارش تازه ساخته شد')).toBeVisible()
+  expect(JSON.stringify((await sql<{ choices: unknown }>('select choices from import_jobs where id = $1', [jobId]))[0]!.choices)).toContain(site.phones.released)
   // A bad number is refused with a calm Persian message and changes nothing.
   const first = page.getByTestId('held-users').locator('li').first()
   await first.locator('input[name="phone"]').fill('12345')
@@ -301,8 +300,8 @@ test('W17: a course edited in Edvora and changed in WordPress is a conflict; it 
   // "Use the WordPress version" overwrites on purpose, once, with an audit entry.
   await page.getByTestId('conflicts').getByRole('button', { name: /وردپرس/ }).first().click()
   await expect.poll(title, { timeout: 30_000 }).toBe(wpTitle)
-  await page.reload() // same hash-only redirect as QA-E032-02
-  await expect(page.getByTestId('conflicts')).toContainText('نسخهٔ وردپرس جایگزین شد')
+  // QA-E032-02 (fixed): no manual reload needed.
+  await expect(page.getByTestId('conflicts')).toContainText('نسخهٔ وردپرس جایگزین شد', { timeout: 30_000 })
   expect((await sql('select 1 from audit_logs where action = $1 and tenant_id = $2', ['import.conflict.wp', demoId])).length).toBeGreaterThan(0)
 })
 

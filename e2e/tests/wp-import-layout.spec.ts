@@ -97,7 +97,7 @@ for (const v of viewports) {
         expect(wide, `${p.name}: tables outside an overflow container`).toBe(0)
         expect(await latinDigitsInProse(page), `${p.name}: Latin digits in prose`).toEqual([])
         if (v.label === '375' || theme === 'dark') {
-          const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).disableRules(['scrollable-region-focusable']).analyze() // QA-E032-05 has its own test below
+          const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
           const bad = axe.violations.filter((x) => x.impact === 'serious' || x.impact === 'critical').map((x) => `${x.id}: ${x.nodes.slice(0, 2).map((n) => n.target.join(' ')).join(' | ')}`)
           expect(bad, `${p.name} axe`).toEqual([])
         }
@@ -119,8 +119,7 @@ test('dates are Jalali (Persian month names), never Gregorian digits', async ({ 
 
 test('QA-E032-05: horizontally scrollable tables can be reached by keyboard (tabindex on the scroll container)', async ({ browser }) => {
   // The counts table and the redirect preview scroll inside `.overflow-x-auto` boxes at 375 px; axe reports
-  // "scrollable-region-focusable" (serious): a keyboard user cannot scroll them. Remove test.fail when fixed.
-  test.fail(true, 'QA-E032-05')
+  // "scrollable-region-focusable" (serious). Fixed: the scroll containers are focusable regions with a label.
   const { ctx, page } = await open(browser, { width: 375, height: 812 }, 'light')
   const dry = pages.find((p) => p.name === 'dry-run')!
   await page.goto(`${DEMO}${dry.path}`)

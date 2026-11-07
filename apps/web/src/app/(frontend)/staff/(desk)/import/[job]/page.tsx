@@ -9,8 +9,12 @@ import {
   ConflictButtons,
   HeldPhoneForm,
   ProgressPoller,
+  CancelImportButton,
   PurgeButton,
+  ReplanButton,
+  ResumeImportButton,
   RevokeButton,
+  SkipHeldButton,
 } from '../../../../../../components/staff/import/ImportForms'
 import { btnSecondary, Card, ErrorText, linkClass, Notice } from '../../../../../../components/staff/ui'
 import { getPayloadClient } from '../../../../../../lib/payload'
@@ -21,6 +25,7 @@ import type { JobChoices } from '../../../../../../lib/wpimport/ctx'
 import { ACTION_LABELS, ACTIONS, COLLECTION_LABELS, HELD_REASON_LABELS, MAPPER_LABELS, MODE_LABELS, SEVERITY_LABELS, STATUS_LABELS } from '../../../../../../lib/wpimport/labels'
 import type { ImportReport } from '../../../../../../lib/wpimport/report'
 import { connectionUsable, findJob } from '../../../../../../lib/wpimport/service'
+import { IMPORT_CLAIM_PAGE } from '../../../../../../lib/wpimport/constants'
 
 type Props = { params: Promise<{ job: string }>; searchParams: Promise<{ notice?: string }> }
 
@@ -47,7 +52,7 @@ function CountsTable({ counts, columns }: { counts: Partial<Record<string, Recor
     .filter(([, v]) => v && Object.values(v).some((n) => n > 0))
   if (!rows.length) return <p className="text-muted">چیزی برای انتقال پیدا نشد.</p>
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="جدول شمارش داده‌ها">
       <table className="w-full min-w-[34rem] text-sm" data-testid="counts-table">
         <thead>
           <tr className="border-b border-line text-muted">
@@ -114,7 +119,7 @@ function Warnings({ warnings, total }: { warnings: ImportWarning[]; total: numbe
   )
 }
 
-function DryRunReport({ jobId, report, choices, run }: { jobId: number; report: ImportReport; choices: JobChoices; run: boolean }) {
+function DryRunReport({ jobId, report, choices, run, claims }: { jobId: number; report: ImportReport; choices: JobChoices; run: boolean; claims: Claim[] }) {
   const lmsConflict = report.detected.includes('lifterlms') && report.detected.includes('tutor')
   const currentLms = choices.enabledMappers?.find((m) => m === 'lifterlms' || m === 'tutor') ?? null
   const approved = new Set(choices.approvedHosts ?? [])
@@ -206,31 +211,7 @@ function DryRunReport({ jobId, report, choices, run }: { jobId: number; report: 
         </Section>
       ) : null}
 
-      {report.heldUsers.length ? (
-        <Section id="held" title={`کاربران نگه‌داشته (${fa(report.heldUsers.length)})`}>
-          <p className="text-sm leading-7 text-muted">این افراد بدون شمارهٔ موبایل معتبر یا با شمارهٔ تکراری‌اند؛ تا شماره‌ای برایشان ثبت نشود، حساب و سفارش‌ها و ثبت‌نام‌هایشان ساخته نمی‌شود. هیچ دو نفری خودکار ادغام نمی‌شوند.</p>
-          <ul className="grid gap-3" data-testid="held-users">
-            {report.heldUsers.map((u) => (
-              <li key={u.refKey} className="grid gap-2 rounded-xl border border-line p-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                <div className="min-w-0">
-                  <p className="font-bold">{u.name ?? `کاربر ${fa(Number(u.wpId))}`}</p>
-                  <p className="text-sm text-muted">
-                    {HELD_REASON_LABELS[u.reason] ?? u.reason}
-                    {u.phone ? ` · ${toPersianDigits(u.phone)}` : ''}
-                    {u.contactEmail ? (
-                      <>
-                        {' · '}
-                        <span dir="ltr" className="font-latin">{u.contactEmail}</span>
-                      </>
-                    ) : null}
-                  </p>
-                </div>
-                {run ? <HeldPhoneForm jobId={jobId} wpId={u.wpId} name={u.name ?? u.wpId} /> : null}
-              </li>
-            ))}
-          </ul>
-        </Section>
-      ) : null}
+      <HeldUsers jobId={jobId} report={report} choices={choices} run={run} purged={false} claims={claims} />
 
       {report.staffUsers.length ? (
         <Section title="مدیران و مدرسان وردپرس">
@@ -261,10 +242,86 @@ function DryRunReport({ jobId, report, choices, run }: { jobId: number; report: 
   )
 }
 
+type Claim = { id: number; name: string; phone: string; message: string | null; createdAt: string }
+
+/**
+ * Held users (W8a/W8b/W23): add a phone (an existing account with that phone, e.g. a student who signed up again,
+ * is linked — never by email), or skip; CSV for collecting phones; students' "I bought on the old site" requests.
+ */
+function HeldUsers({ jobId, report, choices, run, purged, claims }: { jobId: number; report: ImportReport; choices: JobChoices; run: boolean; purged: boolean; claims: Claim[] }) {
+  const skipped = choices.skipUsers ?? []
+  if (!report.heldUsers.length && !skipped.length && !claims.length) return null
+  const canEdit = run && !purged
+  return (
+    <Section id="held" title={`کاربران نگه‌داشته (${fa(report.heldUsers.length)})`}>
+      <p className="text-sm leading-7 text-muted">این افراد بدون شمارهٔ موبایل معتبر یا با شمارهٔ تکراری‌اند؛ تا شماره‌ای برایشان ثبت نشود، حساب و سفارش‌ها و ثبت‌نام‌هایشان ساخته نمی‌شود. هیچ دو نفری خودکار ادغام نمی‌شوند. اگر دانشجویی با شمارهٔ تازه در سایت ثبت‌نام کرده، همان شماره را اینجا وارد کنید تا سابقه‌اش به حسابش وصل شود.</p>
+      {report.heldUsers.length ? (
+        <a href={`/staff/import/${jobId}/held.csv`} className={btnSecondary()}>
+          دریافت فهرست برای جمع‌آوری شماره (CSV)
+        </a>
+      ) : null}
+      <ul className="grid gap-3" data-testid="held-users">
+        {report.heldUsers.map((u) => (
+          <li key={u.refKey} className="grid gap-2 rounded-xl border border-line p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div className="min-w-0">
+              <p className="font-bold">{u.name ?? `کاربر ${fa(Number(u.wpId))}`}</p>
+              <p className="text-sm text-muted">
+                {HELD_REASON_LABELS[u.reason] ?? u.reason}
+                {u.phone ? ` · ${toPersianDigits(u.phone)}` : ''}
+                {u.contactEmail ? (
+                  <>
+                    {' · '}
+                    <span dir="ltr" className="font-latin">{u.contactEmail}</span>
+                  </>
+                ) : null}
+              </p>
+            </div>
+            {canEdit ? (
+              <div className="flex flex-wrap items-start gap-2">
+                <HeldPhoneForm jobId={jobId} wpId={u.wpId} name={u.name ?? u.wpId} />
+                <SkipHeldButton jobId={jobId} wpId={u.wpId} skipped={false} />
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {skipped.length ? (
+        <div className="grid gap-2">
+          <h3 className="font-bold">وارد نمی‌شوند</h3>
+          <ul className="grid gap-2">
+            {skipped.map((wpId) => (
+              <li key={wpId} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line p-3 text-sm">
+                <span>کاربر وردپرس {fa(Number(wpId))}</span>
+                {canEdit ? <SkipHeldButton jobId={jobId} wpId={wpId} skipped /> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {claims.length ? (
+        <div className="grid gap-2" data-testid="import-claims">
+          <h3 className="font-bold">درخواست‌های دانشجویان («در سایت قبلی خرید کرده‌ام»)</h3>
+          <ul className="grid gap-2">
+            {claims.map((c) => (
+              <li key={c.id} className="grid gap-1 rounded-xl border border-line p-3 text-sm">
+                <p className="font-bold">
+                  {c.name} · <span dir="ltr">{toPersianDigits(c.phone)}</span>
+                </p>
+                {c.message ? <p className="leading-7 text-muted">{c.message}</p> : null}
+                <p className="text-muted">{formatJalali(c.createdAt)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </Section>
+  )
+}
+
 function RedirectTable({ rows }: { rows: { from: string; to: string }[] }) {
   if (!rows.length) return <p className="text-muted">تغییر مسیری لازم نیست.</p>
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="پیش‌نمایش تغییر مسیرها">
       <table className="w-full min-w-[28rem] text-sm" data-testid="redirects-preview">
         <thead>
           <tr className="border-b border-line text-muted">
@@ -381,6 +438,11 @@ export default async function ImportJobPage({ params, searchParams }: Props) {
   const report = (job.report ?? null) as ImportReport | null
   const summary = (job.summary ?? null) as CommitSummary | null
   const progress = (job.progress ?? {}) as { media?: { done: number; total: number }; records?: { done: number; total: number }; phase?: string }
+  const choices = (job.choices ?? {}) as JobChoices
+  // W23: students who signed up again and say they bought on the old site (asked from their dashboard).
+  const claims: Claim[] = (
+    await payload.find({ collection: 'leads', where: { and: [{ tenant: { equals: s.tenant.id } }, { 'source.page': { equals: IMPORT_CLAIM_PAGE } }] }, sort: '-createdAt', limit: 50, depth: 0, overrideAccess: true })
+  ).docs.map((l) => ({ id: l.id, name: l.name, phone: l.phone, message: l.message ?? null, createdAt: l.createdAt }))
   const running = ['ingesting', 'ready', 'dry-run', 'media', 'committing'].includes(job.status)
 
   return (
@@ -395,6 +457,8 @@ export default async function ImportJobPage({ params, searchParams }: Props) {
         </p>
       </header>
 
+      {notice === 'replanned' && job.status === 'awaiting-confirm' ? <Notice tone="ok">ثبت شد و گزارش تازه ساخته شد؛ برای اعمال، دوباره «اجرای انتقال» را تأیید کنید.</Notice> : null}
+      {notice === 'saved' ? <Notice tone="ok">ثبت شد.</Notice> : null}
       {notice === 'changed' && job.status === 'awaiting-confirm' ? <Notice tone="warn">داده‌ها از زمان بررسی تغییر کرده‌اند؛ گزارش تازه را ببینید و دوباره تأیید کنید.</Notice> : null}
       {notice === 'blocking' && job.status === 'awaiting-confirm' ? <Notice tone="warn">پیش از اجرا باید موارد مسدودکننده را برطرف کنید.</Notice> : null}
       {job.status === 'rejected' || job.status === 'failed' ? <ErrorText>{(job.error ?? '').replace(/^[a-z_]+: /, '') || 'انتقال ناموفق بود.'}</ErrorText> : null}
@@ -421,9 +485,28 @@ export default async function ImportJobPage({ params, searchParams }: Props) {
         </Section>
       ) : null}
 
-      {job.status === 'awaiting-confirm' && report ? <DryRunReport jobId={job.id} report={report} choices={(job.choices ?? {}) as JobChoices} run={run} /> : null}
+      {job.status === 'awaiting-confirm' && report ? <DryRunReport jobId={job.id} report={report} choices={choices} run={run} claims={claims} /> : null}
 
       {job.status === 'done' && summary ? <Summary jobId={job.id} summary={summary} finishedAt={job.finishedAt ?? null} purgeAfter={job.purgeAfter ?? null} purgedAt={job.purgedAt ?? null} run={run} /> : null}
+      {job.status === 'done' && report ? <HeldUsers jobId={job.id} report={report} choices={choices} run={run} purged={Boolean(job.purgedAt)} claims={claims} /> : null}
+
+      {run && ['draft', 'ingesting', 'ready', 'dry-run', 'awaiting-confirm', 'media', 'committing'].includes(job.status) ? (
+        <Section title="لغو">
+          <CancelImportButton jobId={job.id} />
+        </Section>
+      ) : null}
+      {run && (job.status === 'failed' || job.status === 'cancelled') && !job.purgedAt ? (
+        <Section title="ادامه">
+          <p className="text-sm leading-7 text-muted">انتقال از آخرین دستهٔ ذخیره‌شده ادامه پیدا می‌کند؛ آنچه قبلاً وارد شده دوباره ساخته نمی‌شود.</p>
+          <ResumeImportButton jobId={job.id} />
+        </Section>
+      ) : null}
+      {run && job.status === 'done' && !job.purgedAt ? (
+        <Section title="اجرای دوباره">
+          <p className="text-sm leading-7 text-muted">پس از افزودن شماره برای کاربران نگه‌داشته، یا برای گرفتن تغییرات تازه، گزارش را دوباره بسازید و تأیید کنید. موارد تکراری دوباره ساخته نمی‌شوند.</p>
+          <ReplanButton jobId={job.id} />
+        </Section>
+      ) : null}
     </div>
   )
 }

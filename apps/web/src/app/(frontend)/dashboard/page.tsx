@@ -2,6 +2,7 @@ import { courseProgress, formatJalali, formatToman, rial, toPersianDigits } from
 import type { Metadata } from 'next'
 import type { Where } from 'payload'
 import Link from 'next/link'
+import { ImportClaimForm } from '../../../components/ImportClaimForm'
 import { docOf, idOf } from '../../../lib/ids'
 import { getPayloadClient } from '../../../lib/payload'
 import { getLessons } from '../../../lib/queries'
@@ -32,6 +33,12 @@ export default async function DashboardPage() {
     payload.find({ collection: 'certificates', where: mine, depth: 1, limit: 20, overrideAccess: true }),
   ])
 
+  // W23: after a WordPress import, a student with nothing here may have bought on the old site under another phone.
+  const imported =
+    enrollments.totalDocs === 0 && orders.totalDocs === 0 && user.source !== 'import'
+      ? (await payload.count({ collection: 'import-jobs', where: { and: [{ tenant: { equals: tenant.id } }, { status: { equals: 'done' } }] }, overrideAccess: true })).totalDocs > 0
+      : false
+
   const learning = await Promise.all(
     enrollments.docs.map(async (e) => {
       const course = docOf<Course>(e.course)
@@ -54,6 +61,18 @@ export default async function DashboardPage() {
           <button className="rounded-xl border border-line px-4 py-2 text-sm hover:bg-sunken">خروج</button>
         </form>
       </div>
+
+      {imported ? (
+        <section className="mt-8 grid gap-3 rounded-2xl border border-line bg-surface p-5" aria-labelledby="old-site-title" data-testid="import-claim">
+          <h2 id="old-site-title" className="text-lg font-black">
+            قبلاً در سایت قدیمی ما دوره خریده‌اید؟
+          </h2>
+          <p className="text-sm leading-7 text-muted">
+            دوره‌ها و پیشرفت دانشجویان از سایت قبلی منتقل شده است، اما با این شماره چیزی پیدا نکردیم. شاید آنجا با شمارهٔ دیگری ثبت‌نام کرده بودید. مشخصات قبلی‌تان را بنویسید تا پشتیبانی سابقه‌تان را به همین حساب وصل کند.
+          </p>
+          <ImportClaimForm />
+        </section>
+      ) : null}
 
       <section className="pt-10">
         <h2 className="mb-4 text-xl font-black">ادامه یادگیری</h2>

@@ -393,6 +393,14 @@ async function seedDemoPeople(payload: Payload, t: number) {
  * signed with (`packages/integrations/src/wordpress/fixtures/*.edvora-bundle`, secret `edvora-fixture-secret`).
  * Fixture-only secret, published in the repo on purpose; valid 30 days from each seed so e2e runs can upload the bundle.
  */
+/** Demo-only image used by the rich-text e2e (QA-E032-12): a 1×1 PNG, created once. */
+async function seedDemoMedia(payload: Payload, t: number) {
+  const found = await payload.find({ collection: 'media', where: { and: [{ tenant: { equals: t } }, { filename: { equals: 'demo.png' } }] }, limit: 1, overrideAccess: true })
+  if (found.docs[0]) return
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+  await payload.create({ collection: 'media', data: { tenant: t, alt: 'نمونه تصویر demo' }, file: { data: png, mimetype: 'image/png', name: 'demo.png', size: png.length }, overrideAccess: true })
+}
+
 async function seedDemoImportConnection(payload: Payload, t: number) {
   const connectionId = 'cnx_fixture'
   const found = (await payload.find({ collection: 'import-connections', where: { connectionId: { equals: connectionId } }, limit: 1, depth: 0, overrideAccess: true })).docs[0]
@@ -455,6 +463,7 @@ async function main() {
   for (const t of ids) await seedRoleTemplates(payload, t)
   if (wanted.has('demo')) await seedDemoPeople(payload, ids[ids.length - 1]!)
   if (wanted.has('demo')) await seedDemoImportConnection(payload, ids[ids.length - 1]!)
+  if (wanted.has('demo')) await seedDemoMedia(payload, ids[ids.length - 1]!)
   await seedAdmin(payload, ids)
   console.info(`Seed complete: tenants ${[...wanted].join(' + ')}, role templates`)
   process.exit(0)

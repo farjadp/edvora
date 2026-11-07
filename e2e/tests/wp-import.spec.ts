@@ -2,7 +2,8 @@ import { randomBytes } from 'node:crypto'
 import { join } from 'node:path'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { signRequest } from '../../packages/integrations/src/wordpress/signature'
-import { DEMO, IBA } from './helpers'
+import { DEMO, IBA, fakePhone, login } from './helpers'
+import { sql } from './wp-import-helpers'
 import { adminCreds, apiAs, createStaff, staffLogin, type StaffUser } from './staff-helpers'
 
 // E-032: WordPress import on the demo academy with the committed fixture bundle (signed with the demo-only seeded
@@ -23,6 +24,9 @@ test.beforeAll(async ({ playwright }) => {
   test.skip(!email || !password, 'SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD not available')
   admin = await apiAs(playwright, DEMO, email, password)
   importer = await createStaff(admin, 'demo', 'academy-admin', 'importer')
+  // Test data: the seeded demo fixture connection is auto-revoked when an import finishes (QA-E032-08); make it
+  // usable again so the suite can run more than once without re-seeding.
+  await sql("update import_connections set revoked_at = null, expires_at = now() + interval '30 days' where connection_id = 'cnx_fixture'")
 })
 
 test.afterAll(async () => {
@@ -104,12 +108,14 @@ test('upload the fixture → dry run → map products → confirm → summary', 
   expect(doc?.contactEmail).toBe('sara.rezaei@example.com')
 })
 
-test('re-uploading the same bundle changes nothing (idempotent)', async ({ page }) => {
+test('running the same import again changes nothing (idempotent); its connection was revoked when it finished', async ({ page }) => {
   await staffLogin(page, DEMO, importer, '/staff/import')
   await page.waitForURL(`${DEMO}/staff/import`)
-  await upload(page, DEMO)
-  await expect(page.getByTestId('job-status')).toHaveAttribute('data-status', 'awaiting-confirm')
-  // The previous run's decisions are reused for the same site.
+  const doneJob = (await sql<{ id: number }>("select id from import_jobs where status = 'done' and mode = 'bundle' order by id desc limit 1"))[0]!.id
+  await page.goto(`${DEMO}/staff/import/${doneJob}`)
+  await page.getByRole('button', { name: 'بررسی و اجرای دوباره با همین داده' }).click()
+  await expect(page.getByTestId('job-status')).toHaveAttribute('data-status', 'awaiting-confirm', { timeout: 60_000 })
+  // The previous run's decisions are kept.
   await expect(page.locator('[data-severity="blocking"]')).toHaveCount(0)
   for (const c of DATA) {
     const row = page.locator(`[data-testid="counts-table"] tr[data-collection="${c}"]`)
@@ -118,6 +124,58 @@ test('re-uploading the same bundle changes nothing (idempotent)', async ({ page 
     await expect(cell(page, c, 'update'), `${c} update`).toHaveText('—')
   }
   await expect(cell(page, 'users', 'unchanged')).not.toHaveText('—')
+  // W19 / QA-E032-08: the one-time connection stopped working when the import finished.
+  expect((await sql<{ revoked: boolean }>("select revoked_at is not null as revoked from import_connections where connection_id = 'cnx_fixture'"))[0]!.revoked).toBe(true)
+  await upload(page, DEMO)
+  await expect(page.getByTestId('job-status')).toHaveAttribute('data-status', 'rejected')
+  // Cancel (W7p): the re-planned job is cancelled, nothing is deleted.
+  await page.goto(`${DEMO}/staff/import/${doneJob}`)
+  await page.getByRole('button', { name: 'لغو انتقال' }).click()
+  await page.getByRole('button', { name: 'بله، لغو شود' }).click()
+  await expect(page.getByTestId('job-status')).toHaveAttribute('data-status', 'cancelled', { timeout: 30_000 })
+  expect((await sql('select 1 from audit_logs where action = $1 and doc_id = $2', ['import.cancel', String(doneJob)])).length).toBe(1)
+  await sql("update import_connections set revoked_at = null where connection_id = 'cnx_fixture'")
+})
+
+test('a failed run resumes from its saved cursor (W18)', async ({ page }) => {
+  await staffLogin(page, DEMO, importer, '/staff/import')
+  await page.waitForURL(`${DEMO}/staff/import`)
+  const jobId = (await sql<{ id: number }>("select id from import_jobs where status = 'cancelled' and plan_file is not null order by id desc limit 1"))[0]?.id
+  test.skip(!jobId, 'needs the cancelled job of the previous test')
+  // Simulate a crash after the first batch: the job is marked failed with its cursor saved.
+  await sql("update import_jobs set status = 'failed', error = 'commit failed; resume re-runs from the last saved batch', progress = jsonb_set(coalesce(progress, '{}'), '{phase}', '\"records\"') where id = $1", [jobId])
+  await page.goto(`${DEMO}/staff/import/${jobId}`)
+  await page.getByRole('button', { name: 'ادامهٔ انتقال از آخرین مرحله' }).click()
+  await expect(page.getByTestId('job-status')).toHaveAttribute('data-status', 'done', { timeout: 120_000 })
+  expect((await sql('select 1 from audit_logs where action = $1 and doc_id = $2', ['import.resume', String(jobId)])).length).toBe(1)
+  await sql("update import_connections set revoked_at = null where connection_id = 'cnx_fixture'")
+})
+
+test('held users: CSV for collecting phones (W8b) and the student-side request after an import (W23)', async ({ page, browser }) => {
+  await staffLogin(page, DEMO, importer, '/staff/import')
+  await page.waitForURL(`${DEMO}/staff/import`)
+  const jobId = (await sql<{ id: number }>("select id from import_jobs where status = 'done' order by id desc limit 1"))[0]!.id
+  const csv = await page.request.get(`${DEMO}/staff/import/${jobId}/held.csv`)
+  expect(csv.status()).toBe(200)
+  const text = await csv.text()
+  expect(text).toContain('wp_user_id,name,email,reason')
+  expect(text).toContain('شمارهٔ تکراری')
+  expect((await sql('select 1 from audit_logs where action = $1 and doc_id = $2', ['import.held.export', String(jobId)])).length).toBeGreaterThan(0)
+
+  // A new student (phone not in WordPress) sees the notice on the dashboard and asks to be linked.
+  const ctx = await browser.newContext()
+  const student = await ctx.newPage()
+  const phone = fakePhone()
+  await login(student, DEMO, phone)
+  const box = student.getByTestId('import-claim')
+  await expect(box).toContainText('قبلاً در سایت قدیمی ما دوره خریده‌اید؟')
+  await box.getByLabel('نام شما در سایت قبلی').fill('نیما صادقی')
+  await box.getByRole('button', { name: 'ثبت درخواست' }).click()
+  await expect(box.getByRole('status')).toContainText('درخواست شما ثبت شد')
+  await ctx.close()
+  // The admin sees the request next to the held list; linking is done by entering the student's phone (never email).
+  await page.goto(`${DEMO}/staff/import/${jobId}`)
+  await expect(page.getByTestId('import-claims')).toContainText(toPersianDigitsLocal(phone))
 })
 
 test('a bundle signed for demo is refused on the iba host', async ({ page }) => {
@@ -130,6 +188,7 @@ test('a bundle signed for demo is refused on the iba host', async ({ page }) => 
 })
 
 test('push API: signed ping works on demo; bad signature → 401; demo connection unknown on iba', async ({ request }) => {
+  await sql("update import_connections set revoked_at = null where connection_id = 'cnx_fixture'")
   const path = '/api/import/push/ping'
   const ok = await request.get(`${DEMO}${path}`, { headers: { ...signRequest({ secret: 'edvora-fixture-secret', connectionId: 'cnx_fixture', method: 'GET', pathWithQuery: path }) } })
   expect(ok.status()).toBe(200)
@@ -180,3 +239,7 @@ test('import desk is 403 for staff without import permissions', async ({ page })
   expect(res.status()).toBe(403)
   expect((await page.request.get(`${DEMO}/staff/import/plugin`, { maxRedirects: 0 })).status()).toBe(403)
 })
+
+function toPersianDigitsLocal(s: string): string {
+  return s.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]!)
+}
