@@ -24,6 +24,8 @@ export type AppShellProps = {
   /** e.g. `demo.localhost`, shown in the user menu. */
   host: string
   tenantName: string
+  /** Accessible name of the sidebar <nav>. */
+  navLabel?: string
   currentPath: string
   logoutHref: string
   menuItems: ShellMenuItem[]
@@ -43,7 +45,7 @@ export function isNavActive(href: string, path: string): boolean {
 
 const topBtn = cx('grid size-10 place-items-center rounded-xl border border-line bg-surface text-ink transition-colors hover:bg-sunken', focusRing)
 
-export function AppShell({ brand, homeHref, nav, user, host, tenantName, currentPath, logoutHref, menuItems, notifications, settingsHref, children }: AppShellProps) {
+export function AppShell({ brand, homeHref, nav, navLabel, user, host, tenantName, currentPath, logoutHref, menuItems, notifications, settingsHref, children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [drawer, setDrawer] = useState(false)
   const [menu, setMenu] = useState(false)
@@ -165,7 +167,7 @@ export function AppShell({ brand, homeHref, nav, user, host, tenantName, current
               </a>
             </div>
             <div className="overflow-y-auto px-3 py-4">
-              <SideNav nav={nav} path={currentPath} collapsed={collapsed} />
+              <SideNav nav={nav} path={currentPath} collapsed={collapsed} label={navLabel} />
             </div>
           </div>
         </aside>
@@ -297,7 +299,7 @@ export function AppShell({ brand, homeHref, nav, user, host, tenantName, current
             </button>
           </div>
           <div className="overflow-y-auto px-3 py-4">
-            <SideNav nav={nav} path={currentPath} collapsed={false} onNavigate={() => setDrawer(false)} />
+            <SideNav nav={nav} path={currentPath} collapsed={false} label={navLabel} onNavigate={() => setDrawer(false)} />
             <form method="post" action={logoutHref} className="mt-4 border-t border-side-line pt-4">
               <button type="submit" className={cx('flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-start text-sm font-bold hover:bg-side-hover', focusRing)}>
                 <ConsoleIcon name="logout" className="size-[1.125rem]" /> خروج
@@ -312,9 +314,9 @@ export function AppShell({ brand, homeHref, nav, user, host, tenantName, current
   )
 }
 
-function SideNav({ nav, path, collapsed, onNavigate }: { nav: ShellNavGroup[]; path: string; collapsed: boolean; onNavigate?: () => void }) {
+function SideNav({ nav, path, collapsed, onNavigate, label = 'ناوبری اصلی' }: { nav: ShellNavGroup[]; path: string; collapsed: boolean; onNavigate?: () => void; label?: string }) {
   return (
-    <nav aria-label="ناوبری اصلی" className="grid gap-4">
+    <nav aria-label={label} className="grid gap-4">
       {nav.map((g) => (
         <div key={g.key} className="grid gap-1">
           {collapsed ? <hr className="mx-3 border-side-line first:hidden" /> : <p className="px-3 pb-1 text-xs font-bold tracking-wide text-side-muted">{g.label}</p>}

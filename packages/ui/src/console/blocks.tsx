@@ -41,15 +41,15 @@ export function MiniBar({ pct, tone = 'brand', label, className }: { pct: number
 
 /* ---------------------------------------------------------------- Page header */
 
-export function PageHeader({ title, subtitle, actions, eyebrow }: { title: string; subtitle?: string; actions?: ReactNode; eyebrow?: string }) {
+export function PageHeader({ title, subtitle, actions, eyebrow, subtitleTestId }: { title: string; subtitle?: string; actions?: ReactNode; eyebrow?: string; subtitleTestId?: string }) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-      <div className="min-w-0">
+      <div className="min-w-0 flex-[1_1_26rem]">
         {eyebrow ? <p className="mb-1 text-sm font-medium text-brand-text">{eyebrow}</p> : null}
         <h1 className="font-display text-3xl font-black leading-tight md:text-4xl">{title}</h1>
-        {subtitle ? <p className="mt-1 max-w-2xl text-sm leading-7 text-muted md:text-base">{subtitle}</p> : null}
+        {subtitle ? <p data-testid={subtitleTestId} className="mt-1 max-w-2xl text-sm leading-7 text-muted md:text-base">{subtitle}</p> : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
     </header>
   )
 }
@@ -142,13 +142,15 @@ export type KpiCardProps = {
   spark?: { values: readonly number[]; label: string; tone?: ChartTone }
   href?: string
   hint?: string
+  /** data-testid on the value (e2e). */
+  testId?: string
 }
 
 const DELTA_TONE = { ok: 'text-ok', danger: 'text-danger', neutral: 'text-muted' } as const
 
-export function KpiCard({ label, value, icon, delta, progress, spark, href, hint }: KpiCardProps) {
+export function KpiCard({ label, value, icon, delta, progress, spark, href, hint, testId }: KpiCardProps) {
   return (
-    <div className="relative grid min-w-0 content-start gap-3 rounded-2xl border border-line bg-surface p-5 shadow-card">
+    <div className="relative grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3 rounded-2xl border border-line bg-surface p-5 shadow-card">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm text-muted">
@@ -160,7 +162,7 @@ export function KpiCard({ label, value, icon, delta, progress, spark, href, hint
               label
             )}
           </p>
-          <p className="mt-1 font-display text-4xl font-black leading-none">{value}</p>
+          <p data-testid={testId} className="mt-1 font-display text-4xl font-black leading-none">{value}</p>
         </div>
         <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-wash text-brand-text">
           <ConsoleIcon name={icon} />

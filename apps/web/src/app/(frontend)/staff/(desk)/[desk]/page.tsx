@@ -1,18 +1,23 @@
-import { formatJalali } from '@edvora/core'
 import { STAFF_DESKS, deskDef, landingDesk, type DeskKey } from '@edvora/core/staff'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { staff2faRequired } from '../../../../../access/permissions'
-import { DeskPlaceholder } from '../../../../../components/staff/DeskPlaceholder'
-import { FinanceDesk } from '../../../../../components/staff/FinanceDesk'
-import { LeadsDesk } from '../../../../../components/staff/LeadsDesk'
+import { ContentDesk } from '../../../../../components/staff/desks/ContentDesk'
+import { FinanceDesk } from '../../../../../components/staff/desks/FinanceDesk'
+import { LeadsDesk } from '../../../../../components/staff/desks/LeadsDesk'
+import { OverviewDesk } from '../../../../../components/staff/desks/OverviewDesk'
+import { StudentsDesk } from '../../../../../components/staff/desks/StudentsDesk'
+import { SupportDesk } from '../../../../../components/staff/desks/SupportDesk'
+import { TeachingDesk } from '../../../../../components/staff/desks/TeachingDesk'
 import { SecurityPromoCard } from '../../../../../components/staff/SecurityPromoCard'
 import { getAdvisorDesk, isDeskFilter } from '../../../../../lib/advisorDesk'
-import { getFinanceInbox } from '../../../../../lib/gamificationQueries'
+import { count, deltaOf, fa, one, staffCtx, trend } from '../../../../../lib/consoleData'
+import { LEAD_STATUS } from '../../../../../lib/consoleLabels'
 import { requireStaff } from '../../../../../lib/staff'
 import { deskCopy } from '../../../../../lib/staffDesks'
 
-type Props = { params: Promise<{ desk: string }>; searchParams: Promise<{ f?: string }> }
+type Sp = Record<string, string | string[] | undefined>
+type Props = { params: Promise<{ desk: string }>; searchParams: Promise<Sp> }
 
 const isDesk = (v: string): v is DeskKey => STAFF_DESKS.some((d) => d.key === v)
 
@@ -21,10 +26,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: isDesk(desk) ? deskDef(desk).title : 'میز کار' }
 }
 
-/** Desks. Leads (advisor) and finance have their E-028 bodies; the rest are E-022 placeholders until E-015 / E-023 / E-024. */
+/**
+ * Desks (E-035): each desk is header + KPIs + filter bar + table + side panels with real, tenant-filtered data.
+ * The support desk has no data source yet and shows an honest empty state.
+ */
 export default async function DeskPage({ params, searchParams }: Props) {
   const { desk } = await params
-  const { f } = await searchParams
+  const sp = await searchParams
   // Gate first: anonymous visitors learn nothing about which paths exist.
   const s = await requireStaff(`/staff/${desk}`)
   if (!isDesk(desk)) notFound()
@@ -32,19 +40,57 @@ export default async function DeskPage({ params, searchParams }: Props) {
   const { description, adminLink } = deskCopy(desk, s)
   const promo = landingDesk(s) === desk && !s.user.twoFactorEnabled && !staff2faRequired()
 
-  let body = null
-  if (desk === 'leads') {
-    const data = await getAdvisorDesk(s, isDeskFilter(f) ? f : 'today')
-    body = <LeadsDesk title={deskDef(desk).title} name={(s.user.name ?? '').trim().split(/\s+/)[0] || 'همکار'} desk={data} filter={isDeskFilter(f) ? f : 'today'} adminLink={adminLink} />
-  } else if (desk === 'finance') {
-    const inbox = await getFinanceInbox(s)
-    if (inbox) body = <FinanceDesk title={deskDef(desk).title} inbox={inbox} checkedAt={formatJalali(new Date(), 'HH:mm')} adminLink={adminLink} orderHref />
+  let body
+  switch (desk) {
+    case 'overview':
+      body = <OverviewDesk s={s} />
+      break
+    case 'leads': {
+      const f = isDeskFilter(sp.f) ? sp.f : 'today'
+      const q = one(sp.q).trim()
+      const data = await getAdvisorDesk(s, f)
+      if (q) data.rows = data.rows.filter((r) => r.name.includes(q) || r.phone.includes(q))
+      const c = staffCtx(s)
+      const own = { advisor: { equals: s.user.id } }
+      const [lt, ...mix] = await Promise.all([
+        trend(c, 'leads', { where: own }),
+        ...Object.keys(LEAD_STATUS).map(async (status) => ({ status, n: (await count(c, 'leads', own, { status: { equals: status } })) ?? 0 })),
+      ])
+      body = (
+        <LeadsDesk
+          name={(s.user.name ?? '').trim().split(/\s+/)[0] || 'همکار'}
+          desk={data}
+          filter={f}
+          q={q}
+          mix={mix as { status: string; n: number }[]}
+          newLeads={lt ? { value: fa(lt.current), delta: deltaOf(lt.current, lt.previous), spark: lt.spark } : null}
+          adminLink={adminLink}
+        />
+      )
+      break
+    }
+    case 'finance':
+      body = <FinanceDesk s={s} sp={sp} adminLink={adminLink} />
+      break
+    case 'students':
+      body = <StudentsDesk s={s} sp={sp} />
+      break
+    case 'teaching':
+      body = <TeachingDesk s={s} sp={sp} />
+      break
+    case 'content':
+      body = <ContentDesk s={s} sp={sp} />
+      break
+    case 'support':
+      body = <SupportDesk description={description} />
+      break
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid min-w-0 gap-6">
       {promo ? <SecurityPromoCard userId={String(s.user.id)} /> : null}
-      {body ?? <DeskPlaceholder title={deskDef(desk).title} description={description} adminLink={adminLink} />}
+      {body}
     </div>
   )
 }
+
