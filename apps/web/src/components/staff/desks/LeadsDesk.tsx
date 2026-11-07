@@ -83,7 +83,7 @@ export function LeadsDesk({ name, desk, filter, q, mix, newLeads, adminLink }: L
               ) : null}
               {next ? (
                 <a href={`#lead-${next.id}`} data-testid="next-follow-up" className={consoleBtn.primary}>
-                  پیگیری بعدی: {next.name}
+                  <span className="truncate">پیگیری بعدی: {next.name}</span>
                 </a>
               ) : null}
             </>

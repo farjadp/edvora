@@ -50,13 +50,13 @@ export function PageHeader({ title, subtitle, actions, eyebrow, subtitleTestId }
         <h1 className="font-display text-3xl font-black leading-tight md:text-4xl">{title}</h1>
         {subtitle ? <p data-testid={subtitleTestId} className="mt-1 max-w-2xl text-sm leading-7 text-muted md:text-base">{subtitle}</p> : null}
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{actions}</div> : null}
     </header>
   )
 }
 
 /** Buttons for PageHeader actions and panels. */
-const BTN = 'inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-colors disabled:opacity-60'
+const BTN = 'inline-flex h-10 min-w-0 max-w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-colors disabled:opacity-60'
 export const consoleBtn = {
   primary: cx(BTN, 'bg-brand text-brand-ink hover:opacity-90', focusRing),
   secondary: cx(BTN, 'border border-line-strong bg-surface text-ink hover:bg-sunken', focusRing),
