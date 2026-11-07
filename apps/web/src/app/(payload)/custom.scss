@@ -1075,9 +1075,9 @@ body:has(.login.template-minimal) .payload-toast-item.toast-error {
     animation: ed-login-stamp 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
 }
+/* Scale only, never opacity: a paused animation (background tab, throttled frame, screenshot) must not leave the seal faint. */
 @keyframes ed-login-stamp {
   from {
-    opacity: 0;
     transform: scale(1.14);
   }
 }

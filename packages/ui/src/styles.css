@@ -106,9 +106,9 @@
 }
 
 /* Seal login family (E-034): the seal stamps once on load and the form fades up; nothing else moves. */
+/* Scale only, never opacity: a paused animation (background tab, throttled frame, screenshot) must not leave the seal faint. */
 @keyframes seal-stamp {
   from {
-    opacity: 0;
     transform: scale(1.14);
   }
 }
