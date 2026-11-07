@@ -20,6 +20,7 @@ import { getCurrentUser, startSession } from '../../lib/session'
 import { getStaffSession } from '../../lib/staff'
 import { studentAttempt, studentCourse, studentQuiz } from '../../lib/student'
 import { getCurrentTenant } from '../../lib/tenant'
+import { IMPORT_CLAIM_PAGE } from '../../lib/wpimport/constants'
 
 /**
  * Actions never call redirect() for same-site pages: Next renders that target through an internal
@@ -92,6 +93,53 @@ export async function submitLead(_prev: FormState, form: FormData): Promise<Form
     return { ok: true, message: 'درخواست شما ثبت شد. مشاوران ما به‌زودی با شما تماس می‌گیرند.' }
   } catch (err) {
     console.error('[submitLead]', err)
+    return { ok: false, message: 'ثبت درخواست انجام نشد. لطفاً دوباره تلاش کنید.' }
+  }
+}
+
+// ---------------------------------------------------------------- WordPress import: "I bought on the old site" (W23)
+
+const ImportClaimInput = z.object({
+  oldName: z.string().trim().min(2, 'نامی را که در سایت قبلی داشتید بنویسید.').max(80),
+  oldEmail: z.string().trim().max(120).optional().transform((v) => (v ? v : undefined)).pipe(z.string().email('ایمیل معتبر نیست.').optional()),
+  message: z.string().trim().max(500).optional(),
+})
+
+/**
+ * A signed-in student whose old purchases were not found (their phone was not in WordPress) asks the academy to
+ * link them. Stored as a lead for the academy (source `import-claim`); an admin with `import.run` links the account
+ * to a held WordPress record by phone in the import desk. Nothing is linked automatically, never by email.
+ */
+export async function submitImportClaim(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = ImportClaimInput.safeParse(Object.fromEntries(form))
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'اطلاعات فرم کامل نیست.' }
+  const user = await getCurrentUser()
+  if (!user?.phone) return { ok: false, message: 'ابتدا وارد شوید.' }
+  try {
+    const [payload, tenant] = await Promise.all([getPayloadClient(), getCurrentTenant()])
+    const recent = await payload.count({
+      collection: 'leads',
+      where: { and: [{ tenant: { equals: tenant.id } }, { phone: { equals: user.phone } }, { 'source.page': { equals: IMPORT_CLAIM_PAGE } }, { createdAt: { greater_than: new Date(Date.now() - 24 * 3600_000).toISOString() } }] },
+      overrideAccess: true,
+    })
+    if (recent.totalDocs === 0) {
+      const v = parsed.data
+      await payload.create({
+        collection: 'leads',
+        overrideAccess: true,
+        data: {
+          tenant: tenant.id,
+          name: user.name || v.oldName,
+          phone: user.phone,
+          message: [`نام در سایت قبلی: ${v.oldName}`, v.oldEmail ? `ایمیل قبلی: ${v.oldEmail}` : null, v.message ? `توضیح: ${v.message}` : null].filter(Boolean).join(' · '),
+          status: 'new',
+          source: { page: IMPORT_CLAIM_PAGE },
+        },
+      })
+    }
+    return { ok: true, message: 'درخواست شما ثبت شد. پس از بررسی، دوره‌های قبلی‌تان به همین حساب اضافه می‌شود.' }
+  } catch (err) {
+    console.error('[submitImportClaim]', err)
     return { ok: false, message: 'ثبت درخواست انجام نشد. لطفاً دوباره تلاش کنید.' }
   }
 }

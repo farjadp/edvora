@@ -1,3 +1,1097 @@
+/*
+ * Edvora admin, "Seal" (مُهر) direction (E-031). Documented in docs/design/system.md.
+ *
+ * Paper background, ink text, hairline rules instead of grey boxes, restrained. The selected academy's brand colour is
+ * the accent (fills, current place, focus ring); it is injected by components/admin/TenantAccent as --brand-solid,
+ * --brand-solid-ink, --brand-text, --brand-wash and --focus, with the Edvora default as fallback here. Gold is reserved for
+ * milestones (certificates, levels) and has no job in the admin yet, so it is not defined.
+ *
+ * Payload ships its styles in `@layer payload-default`; everything here is unlayered, so it wins without !important.
+ * Tailwind is deliberately not loaded in the admin (its preflight reset fights Payload's), so our admin components
+ * use the small `ed-*` classes below. Only logical properties (inline/block): the admin is RTL for Persian.
+ */
+
+/* Self-hosted display face (licence confirmed by Farjad, 2026-11-06). Vazirmatn comes from @fontsource (layout.tsx). */
+@font-face {
+  font-family: 'Morabba';
+  src: url('/fonts/morabba/400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('/fonts/morabba/700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('/fonts/morabba/900.woff2') format('woff2');
+  font-weight: 900;
+  font-display: swap;
+}
+
+:root {
+  /* Same values as the site tokens in packages/ui/src/styles.css. */
+  --ed-paper: #f6f6f3;
+  --ed-surface: #ffffff;
+  --ed-sunken: #eeeee9;
+  --ed-ink: #111827;
+  --ed-muted: #5b6372;
+  --ed-line: #e3e3dc;
+  --ed-line-strong: #888884;
+  --ed-ok: #0f7b4b;
+  --ed-danger: #b42318;
+
+  /* Tenant accent (see TenantAccent). Fallbacks = Edvora default blue. */
+  --ed-brand: var(--brand-solid, #1a56db);
+  --ed-brand-ink: var(--brand-solid-ink, #ffffff);
+  --ed-brand-text: var(--brand-text, #1a56db);
+  --ed-brand-wash: var(--brand-wash, #e8eefc);
+  --ed-focus: var(--focus, #1a56db);
+
+  --ed-display: 'Morabba', 'Vazirmatn', ui-sans-serif, system-ui, sans-serif;
+
+  /* Warm neutral ramp: paper at 0, the site's ink at 900. Payload derives every light-theme grey from these. */
+  --color-base-0: #f6f6f3;
+  --color-base-50: #efefea;
+  --color-base-100: #e8e8e2;
+  --color-base-150: #e0e0d9;
+  --color-base-200: #d3d3cb;
+  --color-base-250: #c3c3bb;
+  --color-base-300: #b0b0a9;
+  --color-base-350: #9c9c96;
+  --color-base-400: #888884;
+  --color-base-450: #656a76;
+  --color-base-500: #5f6675;
+  --color-base-550: #5b6372;
+  --color-base-600: #4d5463;
+  --color-base-650: #404755;
+  --color-base-700: #343a47;
+  --color-base-750: #2a303b;
+  --color-base-800: #1f2430;
+  --color-base-850: #171c27;
+  --color-base-900: #111827;
+  --color-base-950: #0b101b;
+  --color-base-1000: #05080f;
+
+  /* Payload's "success" is blue by default; make it the site's green. */
+  --color-success-50: #eef8f2;
+  --color-success-100: #dcf1e5;
+  --color-success-150: #c2e7d2;
+  --color-success-200: #a3dbbc;
+  --color-success-250: #83cea5;
+  --color-success-300: #62bf8c;
+  --color-success-350: #43ae75;
+  --color-success-400: #2a9c62;
+  --color-success-450: #1a8c55;
+  --color-success-500: #0f7b4b;
+  --color-success-550: #0c6d42;
+  --color-success-600: #0a603a;
+  --color-success-650: #095433;
+  --color-success-700: #08482c;
+  --color-success-750: #073d26;
+  --color-success-800: #06331f;
+  --color-success-850: #052a1a;
+  --color-success-900: #042114;
+  --color-success-950: #03180f;
+
+  /* Error red tuned to the site's danger (#b42318 reads 6.0:1 on paper). */
+  --color-error-500: #b42318;
+  --color-error-550: #a11f15;
+  --color-error-600: #8f1c13;
+
+  --font-body: 'Vazirmatn', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-latin: 'Space Grotesk', 'Vazirmatn', ui-sans-serif, sans-serif;
+
+  /* Persian needs a larger body size than Payload's 13px; --base stays 20px because rem follows it. */
+  --base-body-size: 14;
+
+  /* Seal is restrained: small radii. */
+  --style-radius-s: 4px;
+  --style-radius-m: 6px;
+  --style-radius-l: 10px;
+
+  --accessibility-outline: 2px solid var(--ed-focus);
+  --accessibility-outline-offset: 2px;
+}
+
+/* Payload makes the nav full-width below its "m" breakpoint (1024px); only narrow it on desktop. */
+@media (min-width: 1025px) {
+  :root {
+    --nav-width: 264px;
+  }
+}
+
+html[data-theme='light'] {
+  --theme-bg: var(--ed-paper);
+  --theme-input-bg: var(--ed-surface);
+  --theme-text: var(--ed-ink);
+  --theme-border-color: var(--ed-line);
+  --theme-overlay: rgb(17 24 39 / 0.45);
+}
+
+html[data-theme='dark'] {
+  --ed-paper: #0c0e12;
+  --ed-surface: #151820;
+  --ed-sunken: #1c2029;
+  --ed-ink: #eef0f4;
+  --ed-muted: #9aa2b1;
+  --ed-line: #262b36;
+  --ed-line-strong: #676b72;
+  --ed-ok: #3ccf8e;
+  --ed-danger: #f97066;
+  --ed-brand-text: var(--brand-text, #7da2f5);
+  --ed-brand-wash: var(--brand-wash, #18213a);
+  --ed-focus: var(--focus, #6d93f0);
+
+  /* Payload's dark mode reads the base ramp backwards; give it the site's dark greys directly. */
+  --theme-elevation-0: #0c0e12;
+  --theme-elevation-50: #12151b;
+  --theme-elevation-100: #171a22;
+  --theme-elevation-150: #1f232c;
+  --theme-elevation-200: #262b36;
+  --theme-elevation-250: #2f3541;
+  --theme-elevation-300: #3a404c;
+  --theme-elevation-350: #474d59;
+  --theme-elevation-400: #8b919d;
+  --theme-elevation-450: #8b919d;
+  --theme-elevation-500: #9aa2b1;
+  --theme-elevation-550: #9aa2b1;
+  --theme-elevation-600: #aab1be;
+  --theme-elevation-650: #bac0cb;
+  --theme-elevation-700: #c9ced7;
+  --theme-elevation-750: #d8dce3;
+  --theme-elevation-800: #e3e6ec;
+  --theme-elevation-850: #eef0f4;
+  --theme-elevation-900: #f5f6f8;
+  --theme-elevation-950: #ffffff;
+  --theme-elevation-1000: #ffffff;
+
+  --theme-bg: var(--ed-paper);
+  --theme-input-bg: var(--ed-surface);
+  --theme-text: var(--ed-ink);
+  --theme-border-color: var(--ed-line);
+  --theme-overlay: rgb(0 0 0 / 0.6);
+
+  /* Error and success tints read on dark surfaces. */
+  --color-error-500: #f97066;
+  --color-error-550: #f97066;
+  --color-error-600: #fca5a0;
+}
+
+/* ---------- Browser surfaces ---------- */
+
+html {
+  font-feature-settings: 'ss01';
+  accent-color: var(--ed-brand);
+  caret-color: var(--ed-brand-text);
+  scrollbar-color: var(--ed-line-strong) transparent;
+}
+
+::selection {
+  background: #f59e0b;
+  color: #111827;
+}
+
+:focus-visible {
+  outline: var(--accessibility-outline);
+  outline-offset: var(--accessibility-outline-offset);
+}
+
+/* Codes, IDs and numbers in tables line up and read in Latin figures. */
+.cell-id,
+.cell-code,
+.cell-authority,
+.cell-refId,
+.cell-phone {
+  font-family: var(--font-latin);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type='number'],
+input[type='tel'] {
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+/* Display face only for page titles. */
+.doc-header__title,
+.collection-list__wrap h1,
+.list-header h1,
+.template-minimal h1,
+.ed-dash__title {
+  font-family: var(--ed-display);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+/* ---------- Brand marks ---------- */
+
+.ed-seal {
+  inline-size: 22px;
+  block-size: 22px;
+  color: var(--ed-ink);
+}
+
+.ed-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ed-ink);
+}
+
+.ed-logo__seal {
+  inline-size: 40px;
+  block-size: 40px;
+  color: var(--ed-brand-text);
+}
+
+.ed-logo__fa {
+  font-family: var(--ed-display);
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.ed-logo__en {
+  font-family: var(--font-latin);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--ed-muted);
+  direction: ltr;
+}
+
+/* Payload gives the breadcrumb icon a fixed 16px box. */
+.step-nav__home,
+.step-nav__home > span {
+  inline-size: auto;
+  block-size: auto;
+  overflow: visible;
+}
+
+.step-nav__home .ed-seal {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+/* ---------- Shell: nav ---------- */
+
+.nav {
+  background: var(--ed-surface);
+  border-inline-end: 1px solid var(--ed-line);
+}
+
+.nav .tenant-selector {
+  /* Payload's close button sits at the inline-start corner of the nav; keep the academy label clear of it. */
+  padding-inline-start: 36px;
+}
+
+.nav__scroll {
+  padding-block: 12px 24px;
+}
+
+.nav-group {
+  margin-block-end: 6px;
+}
+
+.nav-group__toggle {
+  padding-block: 10px 6px;
+}
+
+.nav-group__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ed-muted);
+}
+
+.nav__link {
+  position: relative;
+  border-radius: var(--style-radius-m);
+  padding-block: 7px;
+  padding-inline: 10px;
+  margin-inline: -10px;
+  color: var(--ed-ink);
+  transition: background-color 150ms ease-out;
+}
+
+.nav__link:hover {
+  background: var(--ed-sunken);
+  text-decoration: none;
+}
+
+.nav__link .nav__link-indicator {
+  display: none;
+}
+
+/* The current place: brand wash plus an inline-start bar, so it is not colour alone. */
+.nav__link.active,
+.nav__link[aria-current='page'],
+div.nav__link {
+  background: var(--ed-brand-wash);
+  color: var(--ed-brand-text);
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--ed-brand-text);
+}
+
+[dir='rtl'] .nav__link.active,
+[dir='rtl'] .nav__link[aria-current='page'],
+[dir='rtl'] div.nav__link {
+  box-shadow: inset -3px 0 0 var(--ed-brand-text);
+}
+
+.nav__link-label {
+  font-size: 14px;
+}
+
+.nav__controls {
+  border-block-start: 1px solid var(--ed-line);
+  padding-block-start: 12px;
+}
+
+/* ---------- Shell: header ---------- */
+
+.app-header__bg {
+  background: var(--ed-paper);
+  border-block-end: 1px solid var(--ed-line);
+  opacity: 1;
+}
+
+.step-nav {
+  font-size: 13px;
+  color: var(--ed-muted);
+}
+
+.step-nav__last {
+  color: var(--ed-ink);
+  font-weight: 700;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn--style-primary {
+  --bg-color: var(--ed-brand);
+  --color: var(--ed-brand-ink);
+  --hover-bg: color-mix(in oklab, var(--ed-brand) 86%, black);
+  --hover-color: var(--ed-brand-ink);
+  background-color: var(--ed-brand);
+  color: var(--ed-brand-ink);
+  font-weight: 700;
+}
+
+.btn--style-primary:not(:disabled):hover,
+.btn--style-primary:not(:disabled):focus-visible {
+  background-color: color-mix(in oklab, var(--ed-brand) 86%, black);
+}
+
+.list-create-new-doc__create-new-button.btn--style-pill {
+  background-color: var(--ed-brand);
+  color: var(--ed-brand-ink);
+  font-weight: 700;
+  padding-inline: 14px;
+}
+
+.list-create-new-doc__create-new-button.btn--style-pill:hover {
+  background-color: color-mix(in oklab, var(--ed-brand) 86%, black);
+  color: var(--ed-brand-ink);
+}
+
+.btn--style-secondary {
+  --bg-color: var(--ed-surface);
+  --color: var(--ed-ink);
+  --box-shadow: inset 0 0 0 1px var(--ed-line-strong);
+  --hover-bg: var(--ed-sunken);
+  --hover-color: var(--ed-ink);
+  background-color: var(--ed-surface);
+  color: var(--ed-ink);
+  box-shadow: inset 0 0 0 1px var(--ed-line-strong);
+}
+
+.btn--style-secondary:not(:disabled):hover {
+  background-color: var(--ed-sunken);
+}
+
+.btn:disabled,
+.btn--disabled {
+  opacity: 0.55;
+}
+
+/* ---------- Inputs ---------- */
+
+.field-type input:not([type='checkbox']):not([type='radio']),
+.field-type textarea,
+.react-select .rs__control,
+.search-filter__input,
+.field-type .rich-text-lexical .editor {
+  border-color: var(--ed-line-strong);
+  color: var(--ed-ink);
+}
+
+.field-type input:not([type='checkbox']):not([type='radio']):focus,
+.field-type textarea:focus,
+.react-select .rs__control--is-focused {
+  border-color: var(--ed-focus);
+  box-shadow: 0 0 0 1px var(--ed-focus);
+}
+
+.field-type input::placeholder,
+.field-type textarea::placeholder,
+.search-filter__input::placeholder {
+  color: var(--ed-muted);
+  opacity: 1;
+}
+
+.field-label {
+  font-weight: 700;
+  color: var(--ed-ink);
+}
+
+.field-description {
+  color: var(--ed-muted);
+}
+
+/* ---------- Dashboard: our landing block ---------- */
+
+.ed-dash {
+  padding-block: 8px 4px;
+}
+
+.ed-dash__head {
+  padding-block: 20px 22px;
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.ed-dash__eyebrow {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--ed-muted);
+}
+
+.ed-dash__title {
+  margin: 0;
+  font-size: 34px;
+}
+
+.ed-dash__block {
+  margin-block-start: 28px;
+}
+
+.ed-dash__label {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ed-muted);
+}
+
+.ed-dash__label--all {
+  margin-block-start: 36px;
+  padding-block-start: 22px;
+  border-block-start: 1px solid var(--ed-line);
+}
+
+/* Counts: numerals separated by hairlines, no card fills. */
+.ed-dash__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block: 1px solid var(--ed-line);
+}
+
+.ed-dash__stat {
+  min-inline-size: 0;
+  border-inline-start: 1px solid var(--ed-line);
+}
+
+.ed-dash__stat:first-child {
+  border-inline-start: 0;
+}
+
+.ed-dash__stat-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px;
+  color: var(--ed-ink);
+  text-decoration: none;
+  transition: background-color 150ms ease-out;
+}
+
+.ed-dash__stat-link:hover {
+  background: var(--ed-sunken);
+}
+
+.ed-dash__num {
+  font-family: var(--ed-display);
+  font-weight: 700;
+  font-size: 38px;
+  line-height: 1.2;
+  color: var(--ed-brand-text);
+}
+
+.ed-dash__stat-label {
+  font-size: 14px;
+  color: var(--ed-muted);
+}
+
+.ed-dash__links {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 4px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ed-dash__link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-inline-size: 0;
+  padding-block: 8px;
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.ed-dash__link {
+  font-weight: 700;
+  color: var(--ed-ink);
+  text-decoration: none;
+}
+
+.ed-dash__link:hover {
+  color: var(--ed-brand-text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.ed-dash__create {
+  flex: none;
+  font-size: 13px;
+  color: var(--ed-brand-text);
+  text-decoration: none;
+}
+
+.ed-dash__create:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ed-dash__empty {
+  margin: 0;
+  color: var(--ed-muted);
+}
+
+/* ---------- Dashboard: Payload's collection directory, as a hairline list ---------- */
+
+.dashboard {
+  padding-block-end: 48px;
+}
+
+.collections__group {
+  margin-block: 0 24px;
+}
+
+.collections__label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ed-muted);
+  margin-block-end: 8px;
+}
+
+.collections__card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 0 24px;
+  margin: 0;
+  padding: 0;
+}
+
+.collections__card-list > li {
+  margin: 0;
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-block-size: 0;
+  padding-block: 12px;
+  padding-inline: 8px;
+  transition: background-color 150ms ease-out;
+}
+
+.card--has-onclick:hover {
+  background: var(--ed-sunken);
+  box-shadow: none;
+}
+
+.card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ed-ink);
+  margin: 0;
+}
+
+.card__actions .btn--icon-style-with-border {
+  box-shadow: inset 0 0 0 1px var(--ed-line-strong);
+}
+
+/* ---------- Lists & tables ---------- */
+
+/* Payload's list table is wider than a 375px screen and pushed the page sideways (scrollWidth > clientWidth);
+   let it shrink and scroll inside its own box. */
+.table-wrap,
+.collection-list__tables {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.table {
+  inline-size: 100%;
+  min-inline-size: 0;
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-l);
+  overflow: auto;
+}
+
+.table table {
+  border-collapse: collapse;
+}
+
+.table thead th {
+  background: var(--ed-surface);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ed-muted);
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.table tbody tr,
+.table tbody tr:nth-child(odd) {
+  background: transparent;
+}
+
+.table tbody tr + tr td {
+  border-block-start: 1px solid var(--ed-line);
+}
+
+.table tbody tr:hover {
+  background: var(--ed-sunken);
+}
+
+.table td,
+.table th {
+  padding-block: 12px;
+}
+
+.pill {
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* ---------- Edit view ---------- */
+
+.doc-controls {
+  background: var(--ed-paper);
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.collapsible,
+.array-field__row,
+.blocks-field__row {
+  border-color: var(--ed-line);
+  border-radius: var(--style-radius-l);
+}
+
+.collapsible__toggle-wrap,
+.collapsible--style-default > .collapsible__toggle-wrap {
+  background: var(--ed-sunken);
+}
+
+.tabs-field__tabs {
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.tabs-field__tab-button--active {
+  color: var(--ed-brand-text);
+}
+
+/* axe: inactive tab labels and "add row" were 3.3:1 on paper. Payload dims inactive tabs with opacity too. */
+.tabs-field__tab-button:not(.tabs-field__tab-button--active),
+.array-field__add-row .btn__label {
+  color: var(--ed-muted);
+  opacity: 1;
+}
+
+/* ---------- Login ---------- */
+
+.template-minimal {
+  background: var(--ed-paper);
+}
+
+.template-minimal__wrap {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-l);
+  padding: 40px 36px;
+  max-inline-size: 420px;
+}
+
+.login__brand {
+  margin-block-end: 28px;
+}
+
+/*
+ * E-034 · /admin/login as the Seal card (option B), same look as /staff/login. Everything is scoped to the login view
+ * (`.login.template-minimal`) or to the `ed-login-*` elements injected by components/admin/LoginSkin; the rest of the
+ * admin is untouched. Payload's form markup and toasts stay; only their look changes here.
+ */
+.login.template-minimal {
+  position: relative;
+  isolation: isolate;
+  min-block-size: 100dvh;
+  padding-block: 96px 48px;
+  padding-inline: 16px;
+  overflow: hidden;
+}
+
+.login .template-minimal__wrap {
+  position: relative;
+  inline-size: 100%;
+  max-inline-size: 448px;
+  margin-inline: auto;
+  padding: 64px 36px 32px;
+  border-radius: var(--style-radius-m);
+}
+
+/* Inner hairline: the certificate double frame of the card. */
+.login .template-minimal__wrap::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--ed-line);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.login .login__brand {
+  display: flex;
+  justify-content: center;
+  margin-block-end: 0;
+  text-align: center;
+}
+
+.ed-login-brand {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: var(--ed-ink);
+}
+
+.ed-login-seal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 92px;
+  block-size: 92px;
+  padding: 6px;
+  border-radius: 50%;
+  background: var(--ed-surface);
+  box-shadow: 0 0 0 1px var(--ed-line);
+}
+
+/* On the login card the seal breaks the top edge (other Payload views using the Logo keep it in the flow). */
+.login .ed-login-seal {
+  position: absolute;
+  inset-block-start: -46px;
+  inset-inline: 0;
+  margin-inline: auto;
+}
+
+.ed-login-seal__art {
+  inline-size: 80px;
+  block-size: 80px;
+}
+.ed-login-seal__teeth {
+  fill: var(--ed-brand);
+}
+.ed-login-seal__ring {
+  stroke: var(--ed-brand-ink);
+}
+
+.ed-login-seal__initial {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--ed-display);
+  font-weight: 900;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--ed-brand-ink);
+}
+
+.ed-login-seal__logo {
+  position: absolute;
+  inset: 24%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--ed-surface);
+}
+.ed-login-seal__logo img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
+.ed-login-brand__name {
+  font-family: var(--ed-display);
+  font-weight: 900;
+  font-size: 20px;
+  line-height: 1.6;
+}
+
+.ed-login-brand__welcome {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--ed-muted);
+  text-wrap: pretty;
+}
+
+/* Page frame: double hairline, corner stars, guilloche in the academy colour. Static; decorative only. */
+.ed-login-frame {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.ed-login-frame::before,
+.ed-login-frame::after {
+  content: '';
+  position: absolute;
+  border: 1px solid var(--ed-line-strong);
+  opacity: 0.7;
+}
+.ed-login-frame::before {
+  inset: 16px;
+}
+.ed-login-frame::after {
+  inset: 22px;
+  border-color: var(--ed-line);
+  opacity: 1;
+}
+
+.ed-login-frame__guilloche {
+  inline-size: 1024px;
+  block-size: 1024px;
+  max-inline-size: none;
+  max-block-size: none;
+  flex: none;
+  color: var(--ed-brand);
+  opacity: 0.13;
+}
+
+.ed-login-frame__star {
+  position: absolute;
+  inline-size: 16px;
+  block-size: 16px;
+  color: var(--ed-brand);
+}
+.ed-login-frame__star--ts {
+  inset-block-start: 1.85rem;
+  inset-inline-start: 1.85rem;
+}
+.ed-login-frame__star--te {
+  inset-block-start: 1.85rem;
+  inset-inline-end: 1.85rem;
+}
+.ed-login-frame__star--bs {
+  inset-block-end: 1.85rem;
+  inset-inline-start: 1.85rem;
+}
+.ed-login-frame__star--be {
+  inset-block-end: 1.85rem;
+  inset-inline-end: 1.85rem;
+}
+
+.ed-login-head {
+  position: relative;
+  text-align: center;
+  margin-block-end: 28px;
+}
+
+.ed-login-rule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-block: 20px;
+  color: var(--ed-brand);
+}
+.ed-login-rule > span {
+  flex: 1;
+  block-size: 1px;
+  background: var(--ed-line-strong);
+  opacity: 0.6;
+}
+.ed-login-rule__star {
+  inline-size: 12px;
+  block-size: 12px;
+}
+
+.ed-login-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 2px 10px;
+  border: 1px solid var(--ed-line-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+.ed-login-tag svg {
+  inline-size: 14px;
+  block-size: 14px;
+}
+
+.login .ed-login-title {
+  margin: 0;
+  font-family: var(--ed-display);
+  font-weight: 900;
+  font-size: 28px;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+
+/* Payload's form, restyled to the Seal fields and button. */
+.login .login__form__inputWrap {
+  gap: 20px;
+}
+.login .field-type .field-label {
+  font-weight: 700;
+}
+.login .field-type input:not([type='checkbox']):not([type='radio']) {
+  block-size: 48px;
+  background: var(--ed-paper);
+  border-color: var(--ed-line-strong);
+  border-radius: 2px;
+}
+.login .form-submit {
+  margin-block-start: 20px;
+}
+.login .form-submit .btn {
+  inline-size: 100%;
+  min-block-size: 48px;
+  margin: 0;
+  border-radius: var(--style-radius-m);
+  font-weight: 700;
+}
+
+/* A7: Payload's «forgot password» page cannot send mail (no email adapter); the honest help line is in afterLogin. */
+.login__form a[href$='/forgot'] {
+  display: none;
+}
+
+.ed-login-after {
+  position: relative;
+  margin-block-start: 24px;
+  font-size: 13px;
+  line-height: 1.9;
+}
+.ed-login-after__line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+}
+.ed-login-after__line svg {
+  flex: none;
+  inline-size: 16px;
+  block-size: 16px;
+  margin-block-start: 5px;
+}
+.ed-login-after__line a {
+  font-weight: 700;
+  color: var(--ed-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--ed-brand);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+.ed-login-after__line a:hover {
+  text-decoration-thickness: 4px;
+}
+.ed-login-after__help {
+  margin: 12px 0 0;
+  color: var(--ed-muted);
+}
+
+/* Error toasts while on the login page read like the Seal alert (A2, A4, A8). Text is Payload's. */
+body:has(.login.template-minimal) .payload-toast-item.toast-error {
+  border: 1px solid color-mix(in srgb, var(--ed-danger) 60%, transparent);
+  border-radius: var(--style-radius-m);
+  background: var(--ed-surface);
+  color: var(--ed-ink);
+}
+
+@media (max-width: 600px) {
+  .login.template-minimal {
+    padding-block: 80px 32px;
+  }
+  .login .template-minimal__wrap {
+    padding: 64px 20px 28px;
+  }
+  .ed-login-frame::before {
+    inset: 8px;
+  }
+  .ed-login-frame::after,
+  .ed-login-frame__star {
+    display: none;
+  }
+  .ed-login-frame__guilloche {
+    inline-size: 736px;
+    block-size: 736px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .login .ed-login-seal__art {
+    animation: ed-login-stamp 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+}
+/* Scale only, never opacity: a paused animation (background tab, throttled frame, screenshot) must not leave the seal faint. */
+@keyframes ed-login-stamp {
+  from {
+    transform: scale(1.14);
+  }
+}
+
+/* ---------- Motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .nav__link,
+  .card,
+  .btn,
+  .ed-dash__stat-link {
+    transition: none;
+  }
+}
 
 /* Users → «بازنشانی تأیید دومرحله‌ای» (E-022) */
 .tfa-reset {
@@ -10,4 +1104,339 @@
   display: flex;
   flex-wrap: wrap;
   gap: calc(var(--base) / 2);
+}
+
+/* ---------- Rich text editor (Lexical) ----------
+ * Toolbars, blocks, tables, checklist, upload card, link popup and drawers. Same tokens as the rest of Seal; logical
+ * properties only so RTL (Persian) and LTR blocks both read correctly. Light/dark come from the --ed-* tokens.
+ */
+
+/* Lexical parks hidden floaters (drag handle, link popup) at translateX(-10000px). In RTL that is the scrollable side,
+ * so the whole edit page gained ~10 000px of sideways scroll. Clip horizontally at the field; vertical stays visible. */
+.rich-text-lexical__wrap {
+  overflow-x: clip;
+}
+
+.rich-text-lexical .editor {
+  background: var(--ed-surface);
+  border-radius: 0 0 var(--style-radius-m) var(--style-radius-m);
+  line-height: 1.9;
+}
+
+.rich-text-lexical .ContentEditable__root {
+  padding-inline: 12px;
+}
+
+.rich-text-lexical .LexicalEditorTheme__placeholder {
+  color: var(--ed-muted);
+}
+
+/* Fixed toolbar: a hairline strip above the editor, sticky under the document controls. */
+.fixed-toolbar {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line-strong);
+  border-block-end-color: var(--ed-line);
+  border-radius: var(--style-radius-m) var(--style-radius-m) 0 0;
+  gap: 2px;
+}
+
+.fixed-toolbar__group,
+.inline-toolbar-popup__group {
+  gap: 2px;
+}
+
+.fixed-toolbar__group + .fixed-toolbar__group,
+.inline-toolbar-popup__group + .inline-toolbar-popup__group {
+  border-inline-start: 1px solid var(--ed-line);
+  padding-inline-start: 4px;
+  margin-inline-start: 2px;
+}
+
+.toolbar-popup__button,
+.toolbar-popup__dropdown {
+  color: var(--ed-ink);
+  border-radius: var(--style-radius-s);
+}
+
+.toolbar-popup__button:hover:not(:disabled),
+.toolbar-popup__dropdown:hover:not(:disabled),
+.toolbar-popup__dropdown-item:hover:not(:disabled) {
+  background: var(--ed-sunken);
+}
+
+.toolbar-popup__button.active,
+.toolbar-popup__dropdown.active,
+.toolbar-popup__dropdown-item.active {
+  background: var(--ed-brand-wash);
+  color: var(--ed-brand-text);
+}
+
+.toolbar-popup__button:focus-visible,
+.toolbar-popup__dropdown:focus-visible,
+.toolbar-popup__dropdown-item:focus-visible {
+  outline: var(--accessibility-outline);
+  outline-offset: 0;
+}
+
+.toolbar-popup__dropdown-items,
+.fixed-toolbar__dropdown-items,
+.table-action-menu-dropdown {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-m);
+  box-shadow: 0 8px 24px rgb(17 24 39 / 0.12);
+  color: var(--ed-ink);
+}
+
+.toolbar-popup__dropdown-label {
+  color: var(--ed-muted);
+}
+
+/* Floating toolbar on selection and the link popup: paper card, hairline, no heavy shadow. */
+.inline-toolbar-popup,
+.link-editor {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-m);
+  box-shadow: 0 8px 24px rgb(17 24 39 / 0.12);
+  color: var(--ed-ink);
+}
+
+.link-editor a {
+  color: var(--ed-brand-text);
+}
+
+html[data-theme='dark'] .inline-toolbar-popup,
+html[data-theme='dark'] .link-editor,
+html[data-theme='dark'] .toolbar-popup__dropdown-items,
+html[data-theme='dark'] .table-action-menu-dropdown {
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
+}
+
+/* Content. */
+.LexicalEditorTheme__paragraph {
+  color: var(--ed-ink);
+}
+
+.LexicalEditorTheme__h {
+  color: var(--ed-ink);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+h2.LexicalEditorTheme__h {
+  font-family: var(--ed-display);
+}
+
+.LexicalEditorTheme__link {
+  color: var(--ed-brand-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.LexicalEditorTheme__quote {
+  color: var(--ed-muted);
+  border-inline-start-color: var(--ed-brand);
+  margin-inline: 0;
+}
+
+.LexicalEditorTheme__hr::after {
+  height: 1px;
+  background-color: var(--ed-line-strong);
+}
+
+.LexicalEditorTheme__hrSelected {
+  outline: 2px solid var(--ed-focus);
+}
+
+.LexicalEditorTheme__textCode {
+  background: var(--ed-sunken);
+  border-color: var(--ed-line);
+  color: var(--ed-ink);
+  font-family: var(--font-latin);
+}
+
+.LexicalEditorTheme__ul,
+.LexicalEditorTheme__ol {
+  padding-inline-start: 1.5em;
+  margin-inline: 0;
+}
+
+/* Checklist: logical placement so the box sits at the start edge in RTL and LTR blocks alike. */
+.LexicalEditorTheme__listItemChecked,
+.LexicalEditorTheme__listItemUnchecked,
+.LexicalEditorTheme__listItemChecked[dir='rtl'],
+.LexicalEditorTheme__listItemUnchecked[dir='rtl'] {
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+  margin-inline-start: 4px;
+  padding-inline-start: 26px;
+}
+
+.LexicalEditorTheme__listItemChecked::before,
+.LexicalEditorTheme__listItemUnchecked::before,
+.LexicalEditorTheme__listItemChecked[dir='rtl']::before,
+.LexicalEditorTheme__listItemUnchecked[dir='rtl']::before {
+  left: auto;
+  right: auto;
+  inset-inline-start: 0;
+  top: 0.45em;
+  border: 1px solid var(--ed-line-strong);
+  border-radius: var(--style-radius-s);
+  background-color: var(--ed-surface);
+}
+
+.LexicalEditorTheme__listItemChecked::before,
+.LexicalEditorTheme__listItemChecked[dir='rtl']::before {
+  background-color: var(--ed-brand);
+  border-color: var(--ed-brand);
+}
+
+.LexicalEditorTheme__listItemChecked::after,
+.LexicalEditorTheme__listItemChecked[dir='rtl']::after {
+  left: auto;
+  right: auto;
+  inset-inline-start: 6px;
+  top: calc(0.45em + 3px);
+  border-color: var(--ed-brand-ink);
+}
+
+.LexicalEditorTheme__listItemChecked {
+  color: var(--ed-muted);
+}
+
+/* Tables. */
+.LexicalEditorTheme__table {
+  border-collapse: collapse;
+  margin-block: 12px;
+}
+
+.LexicalEditorTheme__tableCell {
+  border-color: var(--ed-line-strong);
+  padding-inline: 10px;
+  color: var(--ed-ink);
+  text-align: start;
+}
+
+.LexicalEditorTheme__tableCellHeader {
+  background: var(--ed-sunken);
+  font-weight: 700;
+}
+
+.LexicalEditorTheme__tableCellSelected,
+.LexicalEditorTheme__tableSelection *::selection {
+  background: var(--ed-brand-wash);
+}
+
+.LexicalEditorTheme__tableCellActionButton {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  color: var(--ed-ink);
+}
+
+.LexicalEditorTheme__tableCellResizer {
+  inset-inline-end: -4px;
+}
+
+.LexicalEditorTheme__tableAddColumns,
+.LexicalEditorTheme__tableAddRows {
+  background: var(--ed-sunken);
+  border: 1px dashed var(--ed-line-strong);
+}
+
+.LexicalEditorTheme__tableAddColumns:hover,
+.LexicalEditorTheme__tableAddRows:hover {
+  background: var(--ed-brand-wash);
+}
+
+/* Upload node (image card) and relationship node. */
+.LexicalEditorTheme__upload,
+.LexicalEditorTheme__relationship {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-m);
+  box-shadow: none;
+}
+
+.LexicalEditorTheme__upload__card {
+  background: var(--ed-surface);
+}
+
+.LexicalEditorTheme__upload__collectionLabel,
+.LexicalEditorTheme__relationship__label {
+  color: var(--ed-muted);
+}
+
+.LexicalEditorTheme__upload__filename,
+.LexicalEditorTheme__relationship__title {
+  color: var(--ed-ink);
+  font-family: var(--font-latin);
+}
+
+.LexicalEditorTheme__upload__media img {
+  border-radius: var(--style-radius-s);
+}
+
+/* On a 375px screen the 450px-wide image card overflowed the editor and was clipped at the start edge. */
+.LexicalEditorTheme__upload,
+.LexicalEditorTheme__upload__contents,
+.LexicalEditorTheme__upload__card,
+.LexicalEditorTheme__upload__media,
+.LexicalEditorTheme__upload__media .thumbnail {
+  max-inline-size: 100%;
+}
+
+.LexicalEditorTheme__upload__media img {
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+/* Slash menu ("/" to insert blocks). */
+.slash-menu-popup {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-m);
+  box-shadow: 0 8px 24px rgb(17 24 39 / 0.12);
+}
+
+.slash-menu-popup__group-title {
+  color: var(--ed-muted);
+}
+
+.slash-menu-popup__item {
+  color: var(--ed-ink);
+  border-radius: var(--style-radius-s);
+}
+
+.slash-menu-popup__item--selected,
+.slash-menu-popup__item:hover {
+  background: var(--ed-brand-wash);
+  color: var(--ed-brand-text);
+}
+
+/* Drawers and modals (upload / link / relationship pickers, "create new"). */
+.drawer__content {
+  background: var(--ed-paper);
+}
+
+.drawer__header {
+  border-block-end: 1px solid var(--ed-line);
+}
+
+.drawer__header__title {
+  font-family: var(--ed-display);
+  color: var(--ed-ink);
+}
+
+.drawer__blur-bg {
+  background: var(--theme-overlay);
+}
+
+.confirmation-modal__wrapper,
+.payload__modal-item .confirmation-modal__content {
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: var(--style-radius-l);
 }

@@ -4,3 +4,5 @@
 
 /* App sources (apps/web/src). @edvora/ui registers its own @source. */
 @source '../../';
+
+/* Display face (Morabba): @font-face lives in @edvora/ui/styles.css (self-hosted, E-027/E-034). */

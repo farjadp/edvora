@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./classes": "./src/classes.ts",
     "./color": "./src/color.ts",
+    "./seal": "./src/seal.tsx",
     "./styles.css": "./src/styles.css"
   },
   "scripts": {

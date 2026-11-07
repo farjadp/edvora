@@ -1,6 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { en } from '@payloadcms/translations/languages/en'
 import { fa } from '@payloadcms/translations/languages/fa'
 import path from 'path'
@@ -20,6 +19,7 @@ import { Coupons } from './collections/Coupons'
 import { Courses } from './collections/Courses'
 import { Enrollments } from './collections/Enrollments'
 import { LearningEvents } from './collections/LearningEvents'
+import { ImportConnections, ImportJobs, ImportNonces, ImportRefs, Redirects } from './collections/Import'
 import { Leads } from './collections/Leads'
 import { Lessons } from './collections/Lessons'
 import { Media } from './collections/Media'
@@ -33,6 +33,8 @@ import { SubmissionFiles } from './collections/SubmissionFiles'
 import { Submissions } from './collections/Submissions'
 import { Tenants } from './collections/Tenants'
 import { Users } from './collections/Users'
+import { richTextEditor } from './lib/richText'
+import { IMPORT_QUEUE, importTasks } from './lib/wpimport/tasks'
 import { migrations } from './migrations'
 import type { Config } from './payload-types'
 
@@ -43,6 +45,15 @@ export default buildConfig({
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },
     meta: { titleSuffix: ' · Edvora' },
+    // E-031 (Seal): brand marks, the selected academy's accent colour, a permission-aware landing block.
+    // E-034: the login page wears the Seal card (academy seal as Logo, title before and the staff-door link after the form).
+    components: {
+      graphics: { Logo: '/components/admin/LoginSkin#LoginLogo', Icon: '/components/admin/Brand#Icon' },
+      beforeLogin: ['/components/admin/LoginSkin#BeforeLogin'],
+      afterLogin: ['/components/admin/LoginSkin#AfterLogin'],
+      header: ['/components/admin/TenantAccent#TenantAccent'],
+      beforeDashboard: ['/components/admin/DashboardHome#DashboardHome'],
+    },
     // Dates with `timezone: true` (drip release, assignment deadline) are entered in Tehran time and stored UTC.
     timezones: { supportedTimezones: [{ label: 'تهران (Asia/Tehran)', value: 'Asia/Tehran' }], defaultTimezone: 'Asia/Tehran' },
   },
@@ -75,8 +86,25 @@ export default buildConfig({
     Posts,
     Media,
     OtpCodes,
+    // E-032: WordPress import (ADR 011).
+    ImportConnections,
+    ImportNonces,
+    ImportJobs,
+    ImportRefs,
+    Redirects,
   ],
-  editor: lexicalEditor(),
+  // E-032: first use of the Payload jobs queue (ADR 011 §Resumability). Each import task works ≤ 20 s, then re-queues
+  // itself with its cursor. One app process runs the queue (IMPORT_QUEUE_AUTORUN=false on the others).
+  jobs: {
+    tasks: importTasks,
+    autoRun: [{ cron: process.env.IMPORT_QUEUE_CRON || '* * * * *', queue: IMPORT_QUEUE, limit: 5 }],
+    shouldAutoRun: () => process.env.IMPORT_QUEUE_AUTORUN !== 'false',
+    deleteJobOnComplete: true,
+    // Only server code queues or runs these tasks; nobody may through the REST API.
+    access: { run: () => false, queue: () => false, cancel: () => false },
+  },
+  // E-031: one full-featured Lexical editor for every rich-text field (see lib/richText.ts).
+  editor: richTextEditor,
   secret: process.env.PAYLOAD_SECRET ?? '',
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: postgresAdapter({
@@ -116,6 +144,12 @@ export default buildConfig({
         'submission-files': {},
         // E-028: gamification ledger (append-only).
         'learning-events': {},
+        // E-032: WordPress import.
+        'import-connections': {},
+        'import-nonces': {},
+        'import-jobs': {},
+        'import-refs': {},
+        redirects: {},
       },
       // No hard delete: academies are never removed, so never cascade-delete their records.
       cleanupAfterTenantDelete: false,

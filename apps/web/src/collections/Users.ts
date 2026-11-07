@@ -7,6 +7,7 @@ import { ROLES, ROLE_LABELS, isSuperAdmin } from '../access/roles'
 import { twoFactorEndpoints } from '../endpoints/twoFactor'
 import { auditChange } from '../hooks/audit'
 import { idOf } from '../lib/ids'
+import { richTextField, userTenants } from '../lib/richText'
 
 export const USER_STATUSES = [
   { value: 'active', label: { fa: 'فعال', en: 'Active' } },
@@ -173,6 +174,15 @@ export const Users: CollectionConfig = {
               validate: (v: unknown) => !v || (typeof v === 'string' && /^09\d{9}$/.test(v)) || 'شماره موبایل معتبر نیست',
             },
             {
+              // E-032 (ADR 011): a real contact email, separate from the login `email` (a placeholder for OTP students).
+              // Not unique, not used for auth, so an imported WordPress email can never collide with or take over a login.
+              name: 'contactEmail',
+              type: 'email',
+              label: { fa: 'ایمیل تماس', en: 'Contact email' },
+              admin: { description: 'For receipts and contact only. Not used to sign in.' },
+              access: { read: sensitive(true) },
+            },
+            {
               type: 'row',
               fields: [
                 {
@@ -217,7 +227,7 @@ export const Users: CollectionConfig = {
               fields: [
                 { name: 'showOnSite', type: 'checkbox', defaultValue: false, label: { fa: 'نمایش در سایت', en: 'Show on site' } },
                 { name: 'title', type: 'text', label: { fa: 'عنوان در صفحه دوره', en: 'Title on course pages' } },
-                { name: 'bio', type: 'textarea', label: { fa: 'معرفی', en: 'Bio' } },
+                richTextField({ name: 'bio', label: { fa: 'معرفی', en: 'Bio' }, tenantsOf: userTenants }),
               ],
             },
           ],

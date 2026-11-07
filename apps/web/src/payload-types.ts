@@ -44,7 +44,13 @@ export interface Config {
     posts: Post;
     media: Media;
     'otp-codes': OtpCode;
+    'import-connections': ImportConnection;
+    'import-nonces': ImportNonce;
+    'import-jobs': ImportJob;
+    'import-refs': ImportRef;
+    redirects: Redirect;
     'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -75,7 +81,13 @@ export interface Config {
     posts: PostsSelect<false> | PostsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'otp-codes': OtpCodesSelect<false> | OtpCodesSelect<true>;
+    'import-connections': ImportConnectionsSelect<false> | ImportConnectionsSelect<true>;
+    'import-nonces': ImportNoncesSelect<false> | ImportNoncesSelect<true>;
+    'import-jobs': ImportJobsSelect<false> | ImportJobsSelect<true>;
+    'import-refs': ImportRefsSelect<false> | ImportRefsSelect<true>;
+    redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -84,15 +96,28 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'payload-jobs-stats': PayloadJobsStat;
+  };
+  globalsSelect: {
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
   };
   user: User;
   jobs: {
-    tasks: unknown;
+    tasks: {
+      importMediaBatch: TaskImportMediaBatch;
+      importCommitBatch: TaskImportCommitBatch;
+      importSweep: TaskImportSweep;
+      importPurge: TaskImportPurge;
+      inline: {
+        input: unknown;
+        output: unknown;
+      };
+    };
     workflows: unknown;
   };
 }
@@ -142,7 +167,21 @@ export interface Tenant {
     enabled?: boolean | null;
     text?: string | null;
   };
-  manifesto?: string | null;
+  manifesto?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   services?:
     | {
         title: string;
@@ -278,6 +317,10 @@ export interface User {
   firstNameLatin?: string | null;
   lastNameLatin?: string | null;
   phone?: string | null;
+  /**
+   * For receipts and contact only. Not used to sign in.
+   */
+  contactEmail?: string | null;
   nationalCode?: string | null;
   birthDate?: string | null;
   city?: string | null;
@@ -288,7 +331,21 @@ export interface User {
   publicProfile?: {
     showOnSite?: boolean | null;
     title?: string | null;
-    bio?: string | null;
+    bio?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
   };
   status?: ('active' | 'suspended' | 'archived') | null;
   statusReason?: string | null;
@@ -417,6 +474,8 @@ export interface Role {
         | 'reports.learning'
         | 'settings.edit'
         | 'audit.view'
+        | 'import.view'
+        | 'import.run'
       )[]
     | null;
   /**
@@ -506,7 +565,21 @@ export interface Course {
   syllabus?:
     | {
         title: string;
-        description?: string | null;
+        description?: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        } | null;
         hours?: number | null;
         id?: string | null;
       }[]
@@ -522,7 +595,21 @@ export interface Course {
   faq?:
     | {
         question: string;
-        answer: string;
+        answer: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
         id?: string | null;
       }[]
     | null;
@@ -622,7 +709,22 @@ export interface Lesson {
    * HLS URL from ArvanCloud VOD. Served signed + watermarked in production.
    */
   videoUrl?: string | null;
-  notes?: string | null;
+  videoStatus?: ('ok' | 'transfer' | 'needs-action' | 'external') | null;
+  notes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   resources?:
     | {
         title: string;
@@ -728,6 +830,7 @@ export interface Order {
   total: number;
   couponCode?: string | null;
   status: 'pending' | 'partially_paid' | 'paid' | 'failed' | 'refunded' | 'cancelled';
+  source?: ('site' | 'import') | null;
   instalments?:
     | {
         index: number;
@@ -748,6 +851,8 @@ export interface Order {
         refId?: string | null;
         cardPan?: string | null;
         error?: string | null;
+        gateway?: string | null;
+        gatewayTitle?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -770,7 +875,21 @@ export interface Quiz {
    */
   lesson?: (number | null) | Lesson;
   status: 'draft' | 'published' | 'archived';
-  description?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   questions?:
     | {
         question: number | Question;
@@ -833,7 +952,21 @@ export interface Question {
   /**
    * Shown only when the quiz review setting is "full".
    */
-  explanation?: string | null;
+  explanation?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   archived?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -902,7 +1035,21 @@ export interface Assignment {
    * Optional. A required assignment on a lesson also blocks that lesson’s completion and is locked with it.
    */
   lesson?: (number | null) | Lesson;
-  description?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   dueAt: string;
   dueAt_tz: SupportedTimezones;
   maxScore: number;
@@ -944,7 +1091,21 @@ export interface Submission {
    */
   scoreInput?: string | null;
   score?: number | null;
-  feedback?: string | null;
+  feedback?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   gradedBy?: (number | null) | User;
   gradedAt?: string | null;
   updatedAt: string;
@@ -994,6 +1155,9 @@ export interface Certificate {
   issuedAt: string;
   status?: ('valid' | 'revoked') | null;
   pdf?: (number | null) | Media;
+  legacyId?: string | null;
+  legacyCode?: string | null;
+  legacyUrl?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1198,6 +1362,217 @@ export interface OtpCode {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "import-connections".
+ */
+export interface ImportConnection {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  label: string;
+  connectionId: string;
+  secretHash: string;
+  secretSealed: string;
+  job?: (number | null) | ImportJob;
+  expiresAt: string;
+  revokedAt?: string | null;
+  lastUsedAt?: string | null;
+  createdBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "import-jobs".
+ */
+export interface ImportJob {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  label?: string | null;
+  status:
+    | 'draft'
+    | 'ingesting'
+    | 'ready'
+    | 'dry-run'
+    | 'awaiting-confirm'
+    | 'media'
+    | 'committing'
+    | 'done'
+    | 'failed'
+    | 'rejected'
+    | 'cancelled';
+  mode: 'push' | 'bundle' | 'rest' | 'wxr';
+  connection?: (number | null) | ImportConnection;
+  site?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  manifest?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  mappers?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  choices?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  bundleFile?: string | null;
+  planFile?: string | null;
+  chunks?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  restSealed?: string | null;
+  cursors?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  counts?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  progress?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  report?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  summary?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  createdBy?: (number | null) | User;
+  confirmedBy?: (number | null) | User;
+  confirmedAt?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  purgeAfter?: string | null;
+  purgedAt?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "import-nonces".
+ */
+export interface ImportNonce {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  connection: number | ImportConnection;
+  nonce: string;
+  accepted?: boolean | null;
+  expiresAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "import-refs".
+ */
+export interface ImportRef {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  refKey: string;
+  site: string;
+  kind: string;
+  wpId: string;
+  targetCollection?: string | null;
+  targetId?: string | null;
+  targetUrl?: string | null;
+  sourceChecksum?: string | null;
+  writtenChecksum?: string | null;
+  status: 'linked' | 'held' | 'conflict' | 'skipped';
+  reason?: string | null;
+  heldData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  sourceUrl?: string | null;
+  job?: (number | null) | ImportJob;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects".
+ */
+export interface Redirect {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * Normalised old path, e.g. /course/برندسازی or /?p=12
+   */
+  from: string;
+  to: string;
+  code: number;
+  source: 'wp-import' | 'manual';
+  job?: (number | null) | ImportJob;
+  hits?: number | null;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1212,6 +1587,107 @@ export interface PayloadKv {
     | number
     | boolean
     | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs".
+ */
+export interface PayloadJob {
+  id: number;
+  /**
+   * Input data provided to the job
+   */
+  input?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
+  /**
+   * If hasError is true this job will not be retried
+   */
+  hasError?: boolean | null;
+  /**
+   * If hasError is true, this is the error that caused it
+   */
+  error?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Task execution log
+   */
+  log?:
+    | {
+        executedAt: string;
+        completedAt: string;
+        taskSlug: 'inline' | 'importMediaBatch' | 'importCommitBatch' | 'importSweep' | 'importPurge';
+        taskID: string;
+        input?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        output?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        state: 'failed' | 'succeeded';
+        error?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  taskSlug?: ('inline' | 'importMediaBatch' | 'importCommitBatch' | 'importSweep' | 'importPurge') | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1315,6 +1791,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'otp-codes';
         value: number | OtpCode;
+      } | null)
+    | ({
+        relationTo: 'import-connections';
+        value: number | ImportConnection;
+      } | null)
+    | ({
+        relationTo: 'import-nonces';
+        value: number | ImportNonce;
+      } | null)
+    | ({
+        relationTo: 'import-jobs';
+        value: number | ImportJob;
+      } | null)
+    | ({
+        relationTo: 'import-refs';
+        value: number | ImportRef;
+      } | null)
+    | ({
+        relationTo: 'redirects';
+        value: number | Redirect;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1461,6 +1957,7 @@ export interface UsersSelect<T extends boolean = true> {
   firstNameLatin?: T;
   lastNameLatin?: T;
   phone?: T;
+  contactEmail?: T;
   nationalCode?: T;
   birthDate?: T;
   city?: T;
@@ -1676,6 +2173,7 @@ export interface LessonsSelect<T extends boolean = true> {
   durationMinutes?: T;
   isFreePreview?: T;
   videoUrl?: T;
+  videoStatus?: T;
   notes?: T;
   resources?:
     | T
@@ -1900,6 +2398,9 @@ export interface CertificatesSelect<T extends boolean = true> {
   issuedAt?: T;
   status?: T;
   pdf?: T;
+  legacyId?: T;
+  legacyCode?: T;
+  legacyUrl?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1984,6 +2485,7 @@ export interface OrdersSelect<T extends boolean = true> {
   total?: T;
   couponCode?: T;
   status?: T;
+  source?: T;
   instalments?:
     | T
     | {
@@ -2005,6 +2507,8 @@ export interface OrdersSelect<T extends boolean = true> {
         refId?: T;
         cardPan?: T;
         error?: T;
+        gateway?: T;
+        gatewayTitle?: T;
         id?: T;
       };
   updatedAt?: T;
@@ -2117,11 +2621,147 @@ export interface OtpCodesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "import-connections_select".
+ */
+export interface ImportConnectionsSelect<T extends boolean = true> {
+  tenant?: T;
+  label?: T;
+  connectionId?: T;
+  secretHash?: T;
+  secretSealed?: T;
+  job?: T;
+  expiresAt?: T;
+  revokedAt?: T;
+  lastUsedAt?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "import-nonces_select".
+ */
+export interface ImportNoncesSelect<T extends boolean = true> {
+  tenant?: T;
+  connection?: T;
+  nonce?: T;
+  accepted?: T;
+  expiresAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "import-jobs_select".
+ */
+export interface ImportJobsSelect<T extends boolean = true> {
+  tenant?: T;
+  label?: T;
+  status?: T;
+  mode?: T;
+  connection?: T;
+  site?: T;
+  manifest?: T;
+  mappers?: T;
+  choices?: T;
+  bundleFile?: T;
+  planFile?: T;
+  chunks?: T;
+  restSealed?: T;
+  cursors?: T;
+  counts?: T;
+  progress?: T;
+  report?: T;
+  summary?: T;
+  createdBy?: T;
+  confirmedBy?: T;
+  confirmedAt?: T;
+  startedAt?: T;
+  finishedAt?: T;
+  purgeAfter?: T;
+  purgedAt?: T;
+  error?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "import-refs_select".
+ */
+export interface ImportRefsSelect<T extends boolean = true> {
+  tenant?: T;
+  refKey?: T;
+  site?: T;
+  kind?: T;
+  wpId?: T;
+  targetCollection?: T;
+  targetId?: T;
+  targetUrl?: T;
+  sourceChecksum?: T;
+  writtenChecksum?: T;
+  status?: T;
+  reason?: T;
+  heldData?: T;
+  sourceUrl?: T;
+  job?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects_select".
+ */
+export interface RedirectsSelect<T extends boolean = true> {
+  tenant?: T;
+  from?: T;
+  to?: T;
+  code?: T;
+  source?: T;
+  job?: T;
+  hits?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
   key?: T;
   data?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs_select".
+ */
+export interface PayloadJobsSelect<T extends boolean = true> {
+  input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
+  log?:
+    | T
+    | {
+        executedAt?: T;
+        completedAt?: T;
+        taskSlug?: T;
+        taskID?: T;
+        input?: T;
+        output?: T;
+        state?: T;
+        error?: T;
+        id?: T;
+      };
+  taskSlug?: T;
+  queue?: T;
+  waitUntil?: T;
+  processing?: T;
+  meta?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2157,6 +2797,34 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats".
+ */
+export interface PayloadJobsStat {
+  id: number;
+  stats?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats_select".
+ */
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
+  stats?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
 export interface CollectionsWidget {
@@ -2164,6 +2832,47 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskImportMediaBatch".
+ */
+export interface TaskImportMediaBatch {
+  input: {
+    jobId: number;
+    tenantId: number;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskImportCommitBatch".
+ */
+export interface TaskImportCommitBatch {
+  input: {
+    jobId: number;
+    tenantId: number;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskImportSweep".
+ */
+export interface TaskImportSweep {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskImportPurge".
+ */
+export interface TaskImportPurge {
+  input: {
+    jobId: number;
+    tenantId: number;
+  };
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

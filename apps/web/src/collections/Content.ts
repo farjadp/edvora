@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { allow, allowCreate, anyone, guard, nobody, requireForFields } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
+import { richTextField } from '../lib/richText'
 
 export const Testimonials: CollectionConfig = {
   slug: 'testimonials',
@@ -37,7 +38,7 @@ export const Posts: CollectionConfig = {
     { name: 'cover', type: 'upload', relationTo: 'media' },
     { name: 'author', type: 'text' },
     { name: 'publishedAt', type: 'date' },
-    { name: 'body', type: 'richText' },
+    richTextField({ name: 'body' }),
   ],
 }
 

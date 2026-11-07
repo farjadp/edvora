@@ -1,14 +1,26 @@
 import { formatJalali, toPersianDigits } from '@edvora/core'
 import Link from 'next/link'
+import { permanentRedirect } from 'next/navigation'
 import { Row } from '@edvora/ui'
 import { inputClass } from '@edvora/ui/classes'
 import { CourseArt, CourseCard } from '../../components/CourseCard'
 import { LeadForm } from '../../components/LeadForm'
 import { getOpenCohorts, getPosts, getPublishedCourses, getTestimonials } from '../../lib/queries'
+import { findRedirect, homeQueryPath } from '../../lib/redirects'
 import { getCurrentTenant } from '../../lib/tenant'
+import { hasRichText } from '@edvora/core/richtext'
+import { RichText } from '../../components/RichText'
 
-export default async function HomePage() {
+type HomeProps = { searchParams: Promise<Record<string, string | string[] | undefined>> }
+
+export default async function HomePage({ searchParams }: HomeProps) {
   const tenant = await getCurrentTenant()
+  // E-032: old WordPress object URLs (`/?p=12`, `/?page_id=3`, `/?product=…`) redirect before the page renders.
+  const legacy = homeQueryPath(await searchParams)
+  if (legacy) {
+    const to = await findRedirect(tenant.id, legacy)
+    if (to) permanentRedirect(to)
+  }
   const [courses, cohorts, testimonials, posts] = await Promise.all([
     getPublishedCourses(tenant.id),
     getOpenCohorts(tenant.id),
@@ -154,9 +166,9 @@ export default async function HomePage() {
       ) : null}
 
       {/* 5 · Manifesto */}
-      {tenant.manifesto ? (
+      {hasRichText(tenant.manifesto) ? (
         <section className="mx-auto max-w-4xl px-4 pt-20 text-center md:px-8">
-          <p className="whitespace-pre-line text-2xl font-bold leading-[1.9] md:text-3xl">{tenant.manifesto}</p>
+          <RichText data={tenant.manifesto} tenantId={tenant.id} className="text-2xl font-bold leading-[1.9] md:text-3xl" />
         </section>
       ) : null}
 

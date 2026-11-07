@@ -20,7 +20,8 @@ export type SnapshotQuestion = {
   options: SnapshotOption[]
   /** short answer only. */
   acceptedAnswers: string[]
-  explanation?: string | null
+  /** Lexical rich text (or legacy plain text in old snapshots). */
+  explanation?: unknown
 }
 
 export type QuizSnapshot = { questions: SnapshotQuestion[] }
@@ -110,7 +111,8 @@ export type BankQuestion = {
   options?: { id?: string | null; text: string; isCorrect?: boolean | null }[] | null
   correctAnswer?: 'true' | 'false' | null
   acceptedAnswers?: { answer?: string | null }[] | null
-  explanation?: string | null
+  /** Lexical rich text (or legacy plain text in old snapshots). */
+  explanation?: unknown
 }
 
 export const TRUE_FALSE_LABELS = { true: 'درست', false: 'نادرست' } as const
@@ -340,7 +342,8 @@ export type ReviewQuestion = PublicQuestion & {
   /** Only at level `full`. */
   correctOptionIds?: string[]
   acceptedAnswers?: string[]
-  explanation?: string | null
+  /** Lexical rich text (or legacy plain text in old snapshots). */
+  explanation?: unknown
 }
 
 export type AttemptReview = {

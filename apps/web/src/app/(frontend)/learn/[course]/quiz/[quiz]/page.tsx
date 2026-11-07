@@ -8,6 +8,8 @@ import { idOf } from '../../../../../../lib/ids'
 import { playView } from '../../../../../../lib/quizAttempts'
 import { getCurrentUser } from '../../../../../../lib/session'
 import { studentQuiz } from '../../../../../../lib/student'
+import { hasRichText } from '@edvora/core/richtext'
+import { RichText } from '../../../../../../components/RichText'
 
 type Props = { params: Promise<{ course: string; quiz: string }> }
 
@@ -47,7 +49,7 @@ export default async function QuizPage({ params }: Props) {
         ) : null}
       </p>
       <h1 className="mt-2 text-2xl font-black md:text-3xl">{quiz.title}</h1>
-      {quiz.description ? <p className="mt-3 whitespace-pre-line leading-8 text-muted">{quiz.description}</p> : null}
+      {hasRichText(quiz.description) ? <RichText data={quiz.description} tenantId={idOf(course.tenant) ?? 0} className="mt-3 leading-8 text-muted" /> : null}
 
       {!status.released ? (
         <div data-testid="quiz-locked" className="mt-6 rounded-2xl border border-line bg-surface p-6">

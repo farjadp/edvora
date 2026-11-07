@@ -37,6 +37,8 @@ export const PERMISSION_GROUPS = {
   messaging: ['sms.send_single', 'sms.broadcast', 'templates.edit'],
   reports: ['reports.sales', 'reports.finance', 'reports.learning'],
   academy: ['settings.edit', 'audit.view'],
+  /** E-032 (ADR 011): WordPress import. Academy-grantable; `import.run` writes data, `import.view` reads reports. */
+  migration: ['import.view', 'import.run'],
   /** Edvora staff only. Never grantable inside an academy. */
   platform: ['tenants.manage', 'tenants.credentials', 'impersonate'],
 } as const
@@ -100,12 +102,15 @@ export const PERMISSION_GROUP_LABELS: Record<PermissionGroup, { fa: string; en: 
   messaging: { fa: 'پیامک', en: 'Messaging' },
   reports: { fa: 'گزارش‌ها', en: 'Reports' },
   academy: { fa: 'آکادمی', en: 'Academy' },
+  migration: { fa: 'انتقال از وردپرس', en: 'WordPress import' },
   platform: { fa: 'پلتفرم ادورا', en: 'Platform' },
 }
 
 /** Human labels for keys whose meaning is not obvious from the key itself (role editor). */
 export const PERMISSION_LABELS: Partial<Record<Permission, { fa: string; en: string }>> = {
   'users.2fa.reset': { fa: 'بازنشانی تأیید دومرحله‌ای', en: 'Reset two-factor authentication' },
+  'import.view': { fa: 'دیدن گزارش‌های انتقال از وردپرس', en: 'View WordPress import reports' },
+  'import.run': { fa: 'اجرای انتقال از وردپرس', en: 'Run WordPress imports' },
 }
 
 // ---------------------------------------------------------------- Role templates

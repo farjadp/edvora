@@ -8,7 +8,7 @@
  * Idempotent: re-running updates existing records by their natural key.
  *   pnpm seed
  */
-import { ROLE_TEMPLATES, tomanToRial } from '@edvora/core'
+import { ROLE_TEMPLATES, plainTextToLexical as rt, tomanToRial } from '@edvora/core'
 import { dayStartsAt, tehranDayNumber, weekdayOf, xpKey } from '@edvora/core/gamification'
 import { randomBytes } from 'node:crypto'
 import { getPayload, type CollectionSlug, type Payload, type Where } from 'payload'
@@ -18,6 +18,7 @@ import { loadCourseState } from '../lib/learning'
 import { startAttempt, submitAttempt } from '../lib/quizAttempts'
 import config from '../payload.config'
 import type { Answers } from '@edvora/core'
+import { sealConnectionSecret } from '../lib/wpimport/secrets'
 
 async function upsert<T extends Record<string, unknown>>(payload: Payload, collection: CollectionSlug, where: Where, data: T) {
   const found = await payload.find({ collection, where, limit: 1, depth: 0, overrideAccess: true })
@@ -44,8 +45,9 @@ async function seedIba(payload: Payload) {
       enabled: true,
       text: 'تیم آموزش تا عادی شدن شرایط فقط به‌صورت آنلاین، ایمیل و تلفنی پاسخگوست.',
     },
-    manifesto:
+    manifesto: rt(
       'آکادمی برند دانشگاه نیست؛ دانشگاه‌ها در مدیریت بیش از حد نظری‌اند.\nآکادمی برند مدرسه کسب‌وکار هم نیست؛ آن‌ها به نمونه‌های خارجی تکیه دارند.\nروش ما: مباحثه به سبک حوزه، نگاه علمی دانشگاه و رویکرد کاربردی مدرسه کسب‌وکار.\n— شهریار شفیعی',
+    ),
     stats: [
       { value: '+26', label: 'سال تجربه' },
       { value: '+250', label: 'پروژه مشاوره برند' },
@@ -72,8 +74,9 @@ async function seedIba(payload: Payload) {
 
   const certificateFaq = {
     question: 'آیا این دوره مدرک دانشگاهی است؟',
-    answer:
+    answer: rt(
       'خیر. گواهی آکادمی برند ایران مدرک دانشگاهی نیست. این گواهی نشان می‌دهد دوره، پروژه نهایی و کارگاه فنی را با موفقیت گذرانده‌اید و با کد یکتای آن در صفحه استعلام قابل بررسی است.',
+    ),
   }
 
   await course('brand-mba', {
@@ -259,7 +262,7 @@ async function seedDemo(payload: Payload) {
       { title: 'ماژول ۱ — مبانی', hours: 6 },
       { title: 'ماژول ۲ — پروژه', hours: 8 },
     ],
-    faq: [{ question: 'آیا پرداخت واقعی است؟', answer: 'خیر، درگاه این آکادمی آزمایشی است.' }],
+    faq: [{ question: 'آیا پرداخت واقعی است؟', answer: rt('خیر، درگاه این آکادمی آزمایشی است.') }],
   })
   const cohort = await upsert(payload, 'cohorts', { and: [{ tenant: { equals: t } }, { course: { equals: course.id } }] }, {
     tenant: t, course: course.id, title: 'ورودی اول', startDate: new Date(Date.now() + 14 * DAY).toISOString(), schedule: 'دوشنبه‌ها ۱۸ تا ۲۰', seats: 30, mode: 'online', status: 'open',
@@ -277,7 +280,7 @@ async function seedDemo(payload: Payload) {
   for (const [i, spec] of lessonSpecs.entries()) {
     const lesson = await upsert(payload, 'lessons', { and: [{ course: { equals: course.id } }, { order: { equals: i + 1 } }] }, {
       tenant: t, course: course.id, title: spec.title, order: i + 1, module: spec.module, durationMinutes: 20 + i * 5, isFreePreview: i === 0,
-      notes: 'یادداشت نمونه جلسه.', drip: { days: null, releaseAt: null, ...spec.drip },
+      notes: rt('یادداشت نمونه جلسه.'), drip: { days: null, releaseAt: null, ...spec.drip },
     })
     lessonIds.push(lesson.id)
   }
@@ -302,7 +305,7 @@ async function seedDemoQuizAndAssignment(payload: Payload, t: number, courseId: 
       type: 'single',
       text: 'کدام مورد جزو چهار بخش تحلیل SWOT نیست؟',
       options: [{ text: 'نقاط قوت' }, { text: 'فرصت‌ها' }, { text: 'تهدیدها' }, { text: 'قیمت‌گذاری', isCorrect: true }],
-      explanation: 'SWOT از قوت‌ها، ضعف‌ها، فرصت‌ها و تهدیدها تشکیل می‌شود.',
+      explanation: rt('SWOT از قوت‌ها، ضعف‌ها، فرصت‌ها و تهدیدها تشکیل می‌شود.'),
     },
     {
       type: 'single',
@@ -313,7 +316,7 @@ async function seedDemoQuizAndAssignment(payload: Payload, t: number, courseId: 
       type: 'multiple',
       text: 'کدام موارد در SWOT عوامل بیرونی‌اند؟',
       options: [{ text: 'فرصت‌ها', isCorrect: true }, { text: 'تهدیدها', isCorrect: true }, { text: 'نقاط قوت' }, { text: 'نقاط ضعف' }],
-      explanation: 'فرصت‌ها و تهدیدها از محیط بیرون می‌آیند؛ قوت‌ها و ضعف‌ها درونی‌اند.',
+      explanation: rt('فرصت‌ها و تهدیدها از محیط بیرون می‌آیند؛ قوت‌ها و ضعف‌ها درونی‌اند.'),
     },
     {
       type: 'multiple',
@@ -335,7 +338,7 @@ async function seedDemoQuizAndAssignment(payload: Payload, t: number, courseId: 
     course: courseId,
     lesson: lessonId,
     title: 'آزمون جلسهٔ تحلیل بازار',
-    description: 'برای تکمیل جلسهٔ «تحلیل بازار» و باز شدن جلسهٔ بعد، در این آزمون قبول شوید.',
+    description: rt('برای تکمیل جلسهٔ «تحلیل بازار» و باز شدن جلسهٔ بعد، در این آزمون قبول شوید.'),
     status: 'published',
     required: true,
     passMark: 70,
@@ -353,7 +356,7 @@ async function seedDemoQuizAndAssignment(payload: Payload, t: number, courseId: 
     tenant: t,
     course: courseId,
     title: 'تکلیف: تحلیل SWOT یک کسب‌وکار',
-    description: 'یک کسب‌وکار واقعی یا فرضی انتخاب کنید و جدول SWOT آن را با دست‌کم دو مورد در هر بخش بنویسید. متن را همین‌جا بنویسید یا فایل PDF بفرستید.',
+    description: rt('یک کسب‌وکار واقعی یا فرضی انتخاب کنید و جدول SWOT آن را با دست‌کم دو مورد در هر بخش بنویسید. متن را همین‌جا بنویسید یا فایل PDF بفرستید.'),
     dueAt: new Date(Date.now() + 30 * DAY).toISOString(),
     maxScore: 20,
     passScore: 12,
@@ -481,7 +484,7 @@ async function seedDemoGamification(payload: Payload, t: number) {
       })
       // Graded by the academy (above the pass mark): only the final defense is left on the certificate path.
       await flushGamification()
-      await payload.update({ collection: 'submissions', id: sub.id, overrideAccess: true, data: { scoreInput: '17', feedback: 'تحلیل روشن و کامل.' } })
+      await payload.update({ collection: 'submissions', id: sub.id, overrideAccess: true, data: { scoreInput: '17', feedback: rt('تحلیل روشن و کامل.') } })
       await flushGamification()
     }
   }
@@ -554,6 +557,35 @@ async function seedDemoGamification(payload: Payload, t: number) {
   await upsert(payload, 'orders', { and: [{ tenant: { equals: t } }, { user: { equals: student.id } }, { course: { equals: course.id } }] }, orderData)
 }
 
+/**
+ * E-032 test data, demo academy only (never iba): the WordPress import connection the committed fixture bundles are
+ * signed with (`packages/integrations/src/wordpress/fixtures/*.edvora-bundle`, secret `edvora-fixture-secret`).
+ * Fixture-only secret, published in the repo on purpose; valid 30 days from each seed so e2e runs can upload the bundle.
+ */
+/** Demo-only image used by the rich-text e2e (QA-E032-12): a 1×1 PNG, created once. */
+async function seedDemoMedia(payload: Payload, t: number) {
+  const found = await payload.find({ collection: 'media', where: { and: [{ tenant: { equals: t } }, { alt: { equals: 'نمونه تصویر demo' } }] }, limit: 1, overrideAccess: true })
+  if (found.docs[0]) return
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+  await payload.create({ collection: 'media', data: { tenant: t, alt: 'نمونه تصویر demo' }, file: { data: png, mimetype: 'image/png', name: 'demo.png', size: png.length }, overrideAccess: true })
+}
+
+async function seedDemoImportConnection(payload: Payload, t: number) {
+  const connectionId = 'cnx_fixture'
+  const found = (await payload.find({ collection: 'import-connections', where: { connectionId: { equals: connectionId } }, limit: 1, depth: 0, overrideAccess: true })).docs[0]
+  if (found && found.tenant !== t && (typeof found.tenant !== 'object' || found.tenant?.id !== t)) throw new Error('cnx_fixture exists in another academy')
+  const data = {
+    tenant: t,
+    label: 'نمونهٔ آزمایشی (fixture)',
+    connectionId,
+    ...sealConnectionSecret('edvora-fixture-secret'),
+    expiresAt: new Date(Date.now() + 30 * DAY).toISOString(),
+    revokedAt: null,
+  }
+  if (found) await payload.update({ collection: 'import-connections', id: found.id, data, overrideAccess: true })
+  else await payload.create({ collection: 'import-connections', data, overrideAccess: true })
+}
+
 /** Role templates (ADR 006 §4) for one academy. Re-running resets the templates to the code definition. */
 async function seedRoleTemplates(payload: Payload, tenantId: number) {
   for (const t of ROLE_TEMPLATES) {
@@ -599,8 +631,11 @@ async function main() {
   if (wanted.has('demo')) ids.push(await seedDemo(payload))
   for (const t of ids) await seedRoleTemplates(payload, t)
   if (wanted.has('demo')) {
-    await seedDemoPeople(payload, ids[ids.length - 1]!)
-    await seedDemoGamification(payload, ids[ids.length - 1]!)
+    const demo = ids[ids.length - 1]!
+    await seedDemoPeople(payload, demo)
+    await seedDemoImportConnection(payload, demo)
+    await seedDemoMedia(payload, demo)
+    await seedDemoGamification(payload, demo)
   }
   await seedAdmin(payload, ids)
   await flushGamification()

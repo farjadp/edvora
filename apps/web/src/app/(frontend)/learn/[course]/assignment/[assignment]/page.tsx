@@ -8,6 +8,8 @@ import { docOf, idOf } from '../../../../../../lib/ids'
 import { getCurrentUser } from '../../../../../../lib/session'
 import { studentCourse } from '../../../../../../lib/student'
 import type { Media } from '../../../../../../payload-types'
+import { hasRichText } from '@edvora/core/richtext'
+import { RichText } from '../../../../../../components/RichText'
 
 type Props = { params: Promise<{ course: string; assignment: string }>; searchParams: Promise<{ saved?: string }> }
 
@@ -45,7 +47,7 @@ export default async function AssignmentPage({ params, searchParams }: Props) {
         {assignment.passScore != null ? ` · نمرهٔ قبولی ${faScore(assignment.passScore)}` : ''}
         {assignment.allowLate ? ' · تحویل با تأخیر پذیرفته می‌شود' : ''}
       </p>
-      {assignment.description ? <p className="mt-5 whitespace-pre-line leading-8">{assignment.description}</p> : null}
+      {hasRichText(assignment.description) ? <RichText data={assignment.description} tenantId={idOf(course.tenant) ?? 0} className="mt-5 leading-8" /> : null}
       {assignment.attachments?.length ? (
         <ul className="mt-4 grid gap-2 text-sm">
           {assignment.attachments.map((a) => {
@@ -72,12 +74,12 @@ export default async function AssignmentPage({ params, searchParams }: Props) {
                 نمره: {faScore(submission.score!)} از {fa(assignment.maxScore)} —{' '}
                 {assignmentPassed({ score: submission.score, passScore: assignment.passScore }) ? 'قبول' : 'قبول نشده'}
               </p>
-              {submission.feedback ? (
+              {hasRichText(submission.feedback) ? (
                 <div className="mt-3 rounded-2xl bg-sunken p-4">
                   <p className="text-xs font-bold text-muted">بازخورد مدرس</p>
-                  <p data-testid="submission-feedback" className="mt-1 whitespace-pre-line">
-                    {submission.feedback}
-                  </p>
+                  <div data-testid="submission-feedback" className="mt-1">
+                    <RichText data={submission.feedback} tenantId={idOf(course.tenant) ?? 0} />
+                  </div>
                 </div>
               ) : null}
             </>

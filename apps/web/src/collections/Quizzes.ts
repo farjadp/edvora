@@ -4,6 +4,7 @@ import { allow, allowCreate, anyOf, guard, nobody } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
 import { idOf } from '../lib/ids'
 import { throwFieldErrors } from '../lib/validation'
+import { richTextField } from '../lib/richText'
 
 const SCOPE = { course: 'course' }
 
@@ -99,7 +100,7 @@ export const Quizzes: CollectionConfig = {
         },
       ],
     },
-    { name: 'description', type: 'textarea', label: { fa: 'توضیح برای دانشجو', en: 'Instructions' } },
+    richTextField({ name: 'description', label: { fa: 'توضیح برای دانشجو', en: 'Instructions' } }),
     {
       name: 'questions',
       type: 'array',

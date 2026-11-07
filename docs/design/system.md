@@ -159,3 +159,30 @@ Other repeated patterns still inline in pages and candidates for the next pass: 
 (`rounded-full bg-ink text-bg`), link-styled brand buttons with different paddings (`not-found`, `payments/result`,
 `dashboard`, `learn`), the card container (`rounded-2xl border border-line bg-surface`), and `CourseCard` itself
 (needs a plain-props version and a `next/link` slot).
+
+## Payload `/admin` theme (E-031, Seal)
+
+The admin does not load Tailwind (its preflight fights Payload's reset), so it is themed with CSS variables in
+`apps/web/src/app/(payload)/custom.scss` (unlayered, so it beats Payload's `@layer payload-default`). Same paper / ink /
+hairline values as the site tokens above, in light and `data-theme='dark'`. Screenshots: `docs/design/e031/`.
+
+- **Payload variables overridden:** the `--color-base-*` ramp (warm neutrals; light theme), `--theme-elevation-*` (dark,
+  set directly because Payload reads the ramp backwards), `--theme-bg/-input-bg/-text/-border-color`, `--color-success-*`
+  (green instead of Payload's blue), `--color-error-500..600`, `--font-body`, `--base-body-size: 14`,
+  `--style-radius-s/m/l: 4/6/10px`, `--accessibility-outline` (2px focus colour).
+- **Own tokens (`--ed-*`):** `--ed-paper/surface/sunken/ink/muted/line/line-strong/ok/danger` (= site values),
+  `--ed-display` (Morabba, then Vazirmatn). Accent: `--ed-brand` (button fill), `--ed-brand-ink`, `--ed-brand-text` (links,
+  numerals, active nav; >=4.5:1 on that theme's surfaces), `--ed-brand-wash` (active nav tint), `--ed-focus`.
+- **Tenant accent:** `components/admin/TenantAccent` (`admin.components.header`) reads the academy selected in the nav
+  (cookie `payload-tenant`, only if the user may read it) and emits `--brand-solid`, `--brand-solid-ink`, `--brand-text`,
+  `--brand-wash`, `--focus` in a `<style>` element (no inline `style` attribute), derived with `@edvora/ui/color`. No academy
+  selected = Edvora default blue. Fallbacks live in `custom.scss`, so nothing breaks if the component is absent.
+- **Fonts:** Vazirmatn 400/500/700/900 and Space Grotesk 500/700 via `@fontsource` (imported in `(payload)/layout.tsx`);
+  Morabba 400/700/900 from `apps/web/public/fonts/morabba` through `@font-face` in `custom.scss`. Morabba only for page
+  titles, the wordmark and dashboard numerals. Gold (`--milestone`) is not used in the admin.
+- **Components (`components/admin/`):** `Brand` (`Logo` for login/nav, `Icon` for the breadcrumb: girih star + ring, `currentColor`),
+  `TenantAccent`, `DashboardHome` (`beforeDashboard`: greeting, up to four counts, quick links; each item only when Payload's
+  permission data allows `read` / `create`, counts run with `overrideAccess: false` and filter by the selected academy).
+  Classes: `ed-logo*`, `ed-seal`, `ed-dash*`. After adding admin components run `pnpm --filter @edvora/web generate:importmap`.
+- **Checks:** 375px list view had a 32px horizontal overflow (Payload's mobile table bleed); fixed with `min-inline-size: 0` on
+  `.table-wrap` / `.table`. `scrollWidth === clientWidth` on login, dashboard, list and edit at 375px, both themes.
