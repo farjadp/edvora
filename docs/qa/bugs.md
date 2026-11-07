@@ -35,6 +35,7 @@ Developer agents fix; QA re-tests and closes.
 Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); remove the marker when fixed.
 
 ## QA-E032-01 · A bundle from an expired connection is accepted and can be run
+- **Status:** fixed in `5d5afaa` (tech-lead) — `ingestBundle` uses `connectionUsable()`; QA test un-marked.
 - **Severity:** major (security; W1 "expires in 72 h", W3)
 - **Tenant:** demo (any)
 - **Steps:** create a connection; set `import_connections.expires_at` in the past; upload a bundle signed with its secret on `/staff/import`.
@@ -44,6 +45,7 @@ Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); re
 - **Suspected area:** `lib/wpimport/service.ts` `ingestBundle` only checks `revokedAt`; `rejectMessage` already has `connection_expired`. Use `connectionUsable()`.
 
 ## QA-E032-02 · After "add phone" / "keep or use WordPress version" the page does not refresh
+- **Status:** fixed in `d284b40` — hash-only redirects force a reload; actions add `?notice=…`; QA reload workarounds removed.
 - **Severity:** minor (action succeeds, admin gets no feedback)
 - **Steps:** open a dry-run report with held users, type a phone, click «افزودن شماره». Same for conflict buttons on the summary.
 - **Expected:** list updates (user leaves "held"), or a success notice.
@@ -52,6 +54,7 @@ Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); re
 - **Suspected area:** `actions.ts` `setHeldPhoneAction`, `resolveConflictAction`; `ImportForms.tsx` `useNavigate` (use `location.reload()` when only the hash differs, or drop the hash).
 
 ## QA-E032-03 · REST fallback can be aimed at private / loopback addresses (SSRF)
+- **Status:** fixed in `0b9ed41` — `checkPublicHost` (DNS-resolved, private/loopback/link-local refused) before every REST request and in the action; http://localhost only outside production; QA test un-marked. Residual: DNS rebinding between check and connect (global `fetch` cannot pin the address).
 - **Severity:** major (security)
 - **Steps:** as an academy admin with `import.run`, start a REST import with site URL `https://10.0.0.5`, `https://169.254.169.254`, `https://127.0.0.1:5432`, or (any host, even in production) `http://localhost:PORT`.
 - **Expected:** refused before any request; credentials never sent.
@@ -60,6 +63,7 @@ Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); re
 - **Suspected area:** `apps/web/.../import/actions.ts` `RestInput`, `packages/integrations/src/wordpress/sources.ts` `RestSource`. Reuse `isPrivateAddress` + `guardedLookup`; allow local hosts only when `NODE_ENV !== 'production'`.
 
 ## QA-E032-04 · Phone numbers with invisible direction marks / ZWNJ are "invalid"
+- **Status:** fixed in `8204cd0` — `normalizeIranMobile` strips U+200B–200F, U+202A–202E, U+2066–2069, BOM; QA test un-marked.
 - **Severity:** minor (login and import)
 - **Steps:** `normalizeIranMobile('‏09121234567')` (RLM), LRM, LRE…PDF, or ZWNJ inside the number.
 - **Expected:** `09121234567`. **Actual:** `null` (login says invalid; imported user is held). NBSP, BOM, tabs are fine.
@@ -67,18 +71,21 @@ Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); re
 - **Suspected area:** `packages/core/src/phone.ts` (strip U+200B–200F, U+202A–202E, U+2066–2069).
 
 ## QA-E032-05 · Horizontally scrollable tables are not keyboard accessible
+- **Status:** fixed in `d284b40` — scroll containers are `role="region"` with `tabIndex=0` and a label; QA test un-marked and the axe exclusion removed.
 - **Severity:** minor (a11y, serious by axe `scrollable-region-focusable`)
 - **Steps:** open a dry-run report at 375 px; run axe.
 - **Actual:** counts table and redirect preview sit in `.overflow-x-auto` boxes without `tabindex="0"` / role+label.
 - **Evidence:** `e2e/tests/wp-import-layout.spec.ts` (test.fail); `[job]/page.tsx` `CountsTable`, `RedirectTable`.
 
 ## QA-E032-06 · No cancel and no resume (W7p, W18)
+- **Status:** fixed in `f7495c3` — cancel (any non-final state, stops after the current batch, nothing deleted, audited) and resume (failed/cancelled → re-queued from the saved cursor; never-confirmed → re-planned). E2E: `wp-import.spec.ts`.
 - **Severity:** major (W18 is P1: "resume after failure")
 - **Steps:** look for cancel/resume controls on a `committing` or `failed` job.
 - **Actual:** no actions exist; status `cancelled` is never set. A job marked `failed` by `markFailed` cannot continue (the tasks only run for `media`/`committing`), the admin can only re-upload and start a new run (which is idempotent, so data is safe).
 - **Suspected area:** `actions.ts` (add cancel/resume), `service.ts`, `tasks.ts`.
 
 ## QA-E032-07 · Raw data of unfinished jobs is never purged automatically (W21)
+- **Status:** fixed in `f7495c3` — daily `importSweep` task purges raw data of failed/cancelled/rejected jobs and of jobs waiting > 30 days (marked cancelled), drafts > 7 days, and `done` jobs past `purgeAfter`. No e2e (time-based); logic in `commit.ts sweepImports`.
 - **Severity:** major (PII retention)
 - **Steps:** upload a bundle (or push) and leave it at `awaiting-confirm`, or let a job end `failed`/`cancelled`.
 - **Expected:** raw bundle / chunks / sealed REST credentials removed after the retention period.
@@ -86,18 +93,22 @@ Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); re
 - **Suspected area:** `commit.ts` `finishJob`/`purgeJob`, `tasks.ts` (add a sweep by `createdAt`/`updatedAt` for non-done jobs).
 
 ## QA-E032-08 · Connection stays valid after the import finished (W19)
+- **Status:** fixed in `f7495c3` — the job's connection is revoked (audited) when the job is done, cancelled or swept. A re-import uses "plan again with the same data" or a new connection.
 - **Severity:** minor (PRD marks it `[confirm]`)
 - **Actual:** after `done` the secret keeps working for the rest of the 72 h (push of new data starts a new run). Consider auto-revoke on finish or a visible "revoke now" prompt in the summary.
 
 ## QA-E032-09 · Plugin exports `post_password`; temp folder relies on `.htaccess`
+- **Status:** fixed in `a3ff6b1` — `post_password` unset; temp folder name 32 hex; `web.config` deny added; readme documents the nginx rule.
 - **Severity:** minor
 - **Actual:** `class-exporter.php` `fetch_posts` uses `SELECT p.*` and sends `post_password` (shared password of protected posts) in the bundle. The private temp folder (`uploads/edvora-migrator-<24 hex>/records-<24 hex>.ndjson`, uncompressed PII) is protected by `.htaccess` + `index.php` only; on nginx it is served if the URL is guessed (96-bit random, so low risk), and it is not deleted if the admin never downloads (cron cleans after 24 h).
 - **Suggested:** unset `post_password`; document nginx; optionally write the temp file outside `uploads` when possible.
 
 ## QA-E032-10 · Persian copy typo on the purge button
+- **Status:** fixed in `d284b40`.
 - **Severity:** minor. «حذف همین حالای دادهٔ خام» → «حذف همین حالا…» (`ImportForms.tsx` `PurgeButton`).
 
 ## QA-E032-11 · Several P1 stories are only partly built
+- **Status:** partly fixed in `d284b40` — W23 (dashboard notice + request after an import, stored as an `import-claim` lead and listed next to held users; admin links by entering the student's phone, audited, never by email), W8a "skip" (and "add phone"), W8b held-users CSV (`import.run`, audited), "plan again with the same data" on finished jobs. **Still open:** W8a "link B's orders to A", W8f inactive-users choice, W22a heads-up SMS, W24 go-live checklist / 10-URL test, W16 308-vs-301 and redirects to draft courses (documented decision).
 - **Severity:** major for W23 (P1), minor for the rest; listed so they are not mistaken for passes.
 - W23: no notice after OTP signup "if you bought on the old site, your phone may differ…" (nothing in login/dashboard).
 - W8a: only "add a phone"; no "skip B / link B's orders to A" choice. W8b: no "needs phone" CSV export. W8f: no inactive-users choice.
@@ -105,6 +116,7 @@ Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); re
 - W16: redirects answer 308 (documented decision) and imported courses are drafts, so an old URL redirects to a page that is 404 until the admin publishes.
 
 ## QA-E032-12 · `rich-text.spec.ts` fails on a freshly seeded database
+- **Status:** fixed in `d284b40` — demo seed creates `demo.png` (alt «نمونه تصویر demo»).
 - **Severity:** minor (test data; pre-existing from E-031, found during the E-032 full run)
 - **Steps:** new DB, `payload migrate`, `pnpm seed`, `pnpm e2e`.
 - **Actual:** `src/seed/e2e-richtext.ts` throws `Not found: demo media` because it expects a `demo.png` media row in demo that no seed creates. The spec then fails in `beforeAll`.
