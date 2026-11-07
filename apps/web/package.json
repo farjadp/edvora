@@ -11,7 +11,8 @@
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
-    "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/run.ts"
+    "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/run.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@edvora/core": "workspace:*",
@@ -45,6 +46,7 @@
     "@types/react-dom": "19.2.3",
     "tailwindcss": "^4.1.17",
     "tsx": "^4.20.6",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^4.1.12"
   }
 }

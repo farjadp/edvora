@@ -1,5 +1,10 @@
 import { z } from 'zod'
 
+/** `KEY=` in a copied .env.example means "not set", not "an empty value to validate". */
+const blank = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v)
+const optionalUrl = z.preprocess(blank, z.string().url().optional())
+const optionalText = z.preprocess(blank, z.string().optional())
+
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
   PAYLOAD_SECRET: z.string().min(8),
@@ -17,23 +22,31 @@ const schema = z.object({
   KAVENEGAR_SENDER: z.string().optional(),
   KAVENEGAR_OTP_TEMPLATE: z.string().default('verify'),
   // E-033 live classes (ADR 012). One BBB server per Edvora instance, shared by its academies.
-  LIVE_CLASS_PROVIDER: z.enum(['mock', 'bigbluebutton']).default('mock'),
-  LIVE_CLASS_MOCK_SECRET: z.string().optional(),
-  BBB_URL: z.string().url().optional(),
-  BBB_SECRET: z.string().optional(),
-  BBB_CHECKSUM: z.enum(['sha1', 'sha256', 'sha512']).default('sha256'),
+  LIVE_CLASS_PROVIDER: z.preprocess(blank, z.enum(['mock', 'bigbluebutton']).default('mock')),
+  LIVE_CLASS_MOCK_SECRET: optionalText,
+  BBB_URL: optionalUrl,
+  BBB_SECRET: optionalText,
+  BBB_CHECKSUM: z.preprocess(blank, z.enum(['sha1', 'sha256', 'sha512']).default('sha256')),
   // E-017 object storage: mock (memory) or any S3-compatible service (ArvanCloud in production, SeaweedFS locally).
-  STORAGE_PROVIDER: z.enum(['mock', 's3']).default('mock'),
-  S3_ENDPOINT: z.string().url().optional(),
-  S3_BUCKET: z.string().optional(),
-  S3_ACCESS_KEY_ID: z.string().optional(),
-  S3_SECRET_ACCESS_KEY: z.string().optional(),
-  S3_REGION: z.string().default('default'),
+  STORAGE_PROVIDER: z.preprocess(blank, z.enum(['mock', 's3']).default('mock')),
+  S3_ENDPOINT: optionalUrl,
+  S3_BUCKET: optionalText,
+  S3_ACCESS_KEY_ID: optionalText,
+  S3_SECRET_ACCESS_KEY: optionalText,
+  S3_REGION: z.preprocess(blank, z.string().default('default')),
   /** Media (images, PDFs) in S3 too. Off = local disk as before. */
   S3_MEDIA: z
     .string()
     .optional()
     .transform((v) => v === 'true'),
+}).superRefine((e, ctx) => {
+  // Real providers need their settings; the mocks need nothing (CI and local dev run on mocks).
+  const need = (when: boolean, keys: (keyof typeof e)[], why: string) => {
+    if (!when) return
+    for (const k of keys) if (!e[k]) ctx.addIssue({ code: 'custom', path: [k], message: `required when ${why}` })
+  }
+  need(e.LIVE_CLASS_PROVIDER === 'bigbluebutton', ['BBB_URL', 'BBB_SECRET'], 'LIVE_CLASS_PROVIDER=bigbluebutton')
+  need(e.STORAGE_PROVIDER === 's3', ['S3_ENDPOINT', 'S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'], 'STORAGE_PROVIDER=s3')
 })
 
 export type Env = z.infer<typeof schema>

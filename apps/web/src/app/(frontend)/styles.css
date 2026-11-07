@@ -4,3 +4,23 @@
 
 /* App sources (apps/web/src). @edvora/ui registers its own @source. */
 @source '../../';
+
+/* Display face (Morabba) for login titles (E-034). Self-hosted; downloaded only by pages that use `font-display`. */
+@font-face {
+  font-family: 'Morabba';
+  src: url('/fonts/morabba/400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('/fonts/morabba/700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('/fonts/morabba/900.woff2') format('woff2');
+  font-weight: 900;
+  font-display: swap;
+}

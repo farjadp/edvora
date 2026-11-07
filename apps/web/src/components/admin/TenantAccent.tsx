@@ -13,7 +13,12 @@ const DEFAULT_BRAND: Hex = '#1A56DB'
  */
 export async function TenantAccent({ payload }: ServerProps) {
   const { tenant } = await getAdminTenantContext(payload)
-  const brand = isHex(tenant?.primaryColor) ? tenant.primaryColor : DEFAULT_BRAND
+  return <style>{adminAccentCss(tenant?.primaryColor)}</style>
+}
+
+/** The accent variables for one academy colour (shared with the login skin, which resolves the academy by Host). */
+export function adminAccentCss(primaryColor: string | null | undefined): string {
+  const brand: Hex = isHex(primaryColor) ? primaryColor : DEFAULT_BRAND
   const p = tenantPalette(brand, DEFAULT_BRAND)
   const textLight = ensureContrast(brand, SURFACES.light, '#000000', 4.5)
   const textDark = ensureContrast(brand, SURFACES.dark, '#ffffff', 4.5)
@@ -21,8 +26,8 @@ export async function TenantAccent({ payload }: ServerProps) {
   const washDark = mix('#151820', brand, 0.22)
   // Dark theme: a fill that is still visible (>=3:1) against the dark surfaces, with readable text on it.
   const solidDark = ensureContrast(brand, SURFACES.dark, '#ffffff', 3)
-  const css =
+  return (
     `html:root{--brand:${p.brand};--brand-solid:${p.brand};--brand-solid-ink:${p.brandInk};--brand-text:${textLight};--brand-wash:${washLight};--focus:${p.focus}}` +
     `html:root[data-theme='dark']{--brand-solid:${solidDark};--brand-solid-ink:${readableInk(solidDark)};--brand-text:${textDark};--brand-wash:${washDark};--focus:${p.focusDark}}`
-  return <style>{css}</style>
+  )
 }

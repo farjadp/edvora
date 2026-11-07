@@ -93,6 +93,19 @@ export const Lessons: CollectionConfig = {
       access: { read: contentRead },
       admin: { description: 'HLS URL from ArvanCloud VOD. Served signed + watermarked in production.' },
     },
+    {
+      // E-032 (ADR 011, W9b): state of a lesson's video after a WordPress import. Empty = nothing to do.
+      name: 'videoStatus',
+      type: 'select',
+      label: { fa: 'وضعیت ویدیو', en: 'Video status' },
+      options: [
+        { value: 'ok', label: { fa: 'آماده', en: 'Ready' } },
+        { value: 'transfer', label: { fa: 'باید به سرویس ویدیو منتقل شود', en: 'Needs transfer to VOD' } },
+        { value: 'needs-action', label: { fa: 'نیاز به بارگذاری دستی', en: 'Needs manual upload' } },
+        { value: 'external', label: { fa: 'میزبان بیرونی (بدون محافظت)', en: 'External host (unprotected)' } },
+      ],
+      admin: { position: 'sidebar' },
+    },
     richTextField({ name: 'notes', label: { fa: 'یادداشت جلسه', en: 'Lesson notes' }, access: { read: contentRead } }),
     {
       name: 'resources',
