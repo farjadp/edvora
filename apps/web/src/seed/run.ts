@@ -9,9 +9,15 @@
  *   pnpm seed
  */
 import { ROLE_TEMPLATES, plainTextToLexical as rt, tomanToRial } from '@edvora/core'
+import { dayStartsAt, tehranDayNumber, weekdayOf, xpKey } from '@edvora/core/gamification'
 import { randomBytes } from 'node:crypto'
 import { getPayload, type CollectionSlug, type Payload, type Where } from 'payload'
+import { FOLLOW_UP_CONTEXT } from '../collections/Leads'
+import { flushGamification, onLessonMarked, onLessonWatched, refreshEnrollmentGamification } from '../lib/gamification'
+import { loadCourseState } from '../lib/learning'
+import { startAttempt, submitAttempt } from '../lib/quizAttempts'
 import config from '../payload.config'
+import type { Answers } from '@edvora/core'
 import { sealConnectionSecret } from '../lib/wpimport/secrets'
 
 async function upsert<T extends Record<string, unknown>>(payload: Payload, collection: CollectionSlug, where: Where, data: T) {
@@ -234,6 +240,8 @@ async function seedDemo(payload: Payload) {
     certificatePrefix: 'ED',
     notice: { enabled: true, text: 'این یک آکادمی نمونه است. پرداخت‌ها آزمایشی‌اند.' },
     stats: [{ value: '3', label: 'دوره نمونه' }],
+    // E-028: on, with the PRD defaults (leaderboard stays off). IBA keeps the defaults untouched.
+    gamification: { enabled: true },
   })
   const t = tenant.id
   const course = await upsert(payload, 'courses', { and: [{ tenant: { equals: t } }, { slug: { equals: 'demo-program' } }] }, {
@@ -388,6 +396,167 @@ async function seedDemoPeople(payload: Payload, t: number) {
   }
 }
 
+const HOUR = 60 * 60 * 1000
+
+/** Demo staff with a password from SEED_DEMO_STAFF_PASSWORD (local/test only); random = no password login. */
+async function ensureStaff(payload: Payload, t: number, email: string, name: string, roleKey: string) {
+  const role = (await payload.find({ collection: 'roles', where: { and: [{ tenant: { equals: t } }, { key: { equals: roleKey } }] }, limit: 1, overrideAccess: true })).docs[0]
+  if (!role) throw new Error(`Missing role ${roleKey}`)
+  const password = process.env.SEED_DEMO_STAFF_PASSWORD || randomBytes(24).toString('base64url')
+  const found = (await payload.find({ collection: 'users', where: { email: { equals: email } }, limit: 1, overrideAccess: true })).docs[0]
+  const user = found
+    ? await payload.update({ collection: 'users', id: found.id, overrideAccess: true, data: { name, tenants: [{ tenant: t }], ...(process.env.SEED_DEMO_STAFF_PASSWORD ? { password } : {}) } })
+    : await payload.create({ collection: 'users', overrideAccess: true, data: { email, name, password, tenants: [{ tenant: t }] } })
+  await upsert(payload, 'memberships', { and: [{ tenant: { equals: t } }, { user: { equals: user.id } }] }, { tenant: t, user: user.id, roles: [role.id], status: 'active', note: `Demo ${roleKey} (E-028 test data)` })
+  return user
+}
+
+/**
+ * E-028 demo data (demo tenant only, all fake): a second student whose last five weeks went through the REAL code
+ * paths with a simulated clock (player beacons, a passed quiz, an on-time assignment, a grade), an advisor with
+ * follow-ups over the last working days, and a finance user with one order in the inbox.
+ * Idempotent: the student history is written once (ledger keys); leads and the order are upserted by natural key.
+ */
+async function seedDemoGamification(payload: Payload, t: number) {
+  const ctx = { payload }
+  const course = (await payload.find({ collection: 'courses', where: { and: [{ tenant: { equals: t } }, { slug: { equals: 'demo-program' } }] }, limit: 1, overrideAccess: true })).docs[0]
+  const cohort = course && (await payload.find({ collection: 'cohorts', where: { and: [{ tenant: { equals: t } }, { course: { equals: course.id } }] }, limit: 1, overrideAccess: true })).docs[0]
+  const tenant = await payload.findByID({ collection: 'tenants', id: t, overrideAccess: true })
+  if (!course || !cohort) return
+
+  // ---- Student with five weeks of history.
+  const phone = '09129990002'
+  const email = `${phone}@phone.demo.edvora.local`
+  const existingUser = (await payload.find({ collection: 'users', where: { email: { equals: email } }, limit: 1, overrideAccess: true })).docs[0]
+  const student =
+    existingUser ??
+    (await payload.create({ collection: 'users', overrideAccess: true, data: { email, phone, name: 'دانشجوی نمونهٔ پیشرفت', roles: ['student'], password: randomBytes(24).toString('base64url'), tenants: [{ tenant: t }] } }))
+  const today = tehranDayNumber(new Date())
+  // Saturday (start of the Jalali week) four weeks before this week, 10:00 Tehran.
+  const week0 = today - ((weekdayOf(today) - 6 + 7) % 7) - 28
+  const at = (day: number, hour: number) => new Date(dayStartsAt(week0 + day).getTime() + hour * HOUR)
+  let enrollment =
+    (await payload.find({ collection: 'enrollments', where: { and: [{ user: { equals: student.id } }, { course: { equals: course.id } }] }, limit: 1, overrideAccess: true })).docs[0] ??
+    (await payload.create({ collection: 'enrollments', overrideAccess: true, data: { tenant: t, user: student.id, course: course.id, cohort: cohort.id, status: 'active', enrolledAt: at(0, 9).toISOString() } }))
+  const lessons = (await payload.find({ collection: 'lessons', where: { course: { equals: course.id } }, sort: 'order', limit: 10, overrideAccess: true })).docs
+  const already = (await payload.find({ collection: 'learning-events', where: { and: [{ tenant: { equals: t } }, { idempotencyKey: { equals: xpKey.lesson(enrollment.id, lessons[0]!.id) } }] }, limit: 1, overrideAccess: true })).docs[0]
+
+  if (!already && lessons.length >= 5) {
+    const fresh = async () => (enrollment = await payload.findByID({ collection: 'enrollments', id: enrollment.id, depth: 0, overrideAccess: true }))
+    /** Plays a lesson to the end with 60-second beacons starting at `start` (the real beacon path). */
+    const watch = async (lesson: (typeof lessons)[number], start: Date) => {
+      const beats = Math.ceil(((lesson.durationMinutes ?? 20) * 60 * 0.92) / 60)
+      for (let i = 0; i <= beats; i++) {
+        const now = new Date(start.getTime() + i * 60_000)
+        const e = await fresh()
+        const state = await loadCourseState(ctx, { tenantId: t, course, enrollment: e, now })
+        await onLessonWatched(ctx, { tenant, enrollment: e, lesson, state, playedSeconds: 60, durationSeconds: null, now })
+      }
+    }
+    // Week 1: lessons 1 and 5 (two learning days).
+    await watch(lessons[0]!, at(0, 10))
+    await watch(lessons[4]!, at(2, 18))
+    // Week 2: the required quiz on lesson 2 (passed first try), lesson 2 marked complete, then lesson 3.
+    const quiz = (await payload.find({ collection: 'quizzes', where: { and: [{ tenant: { equals: t } }, { lesson: { equals: lessons[1]!.id } }] }, limit: 1, overrideAccess: true })).docs[0]
+    if (quiz) {
+      const quizAt = at(7, 19)
+      const attempt = await startAttempt(ctx, { tenantId: t, quiz, enrollment: await fresh(), attempts: [], extraAttempts: 0, now: quizAt })
+      const snapshot = attempt.snapshot as { questions: { id: string; type: string; options: { id: string; correct: boolean }[]; acceptedAnswers: string[] }[] }
+      const answers: Answers = Object.fromEntries(
+        snapshot.questions.map((q) => [q.id, q.type === 'short' ? { text: q.acceptedAnswers[0] ?? '' } : { optionIds: q.options.filter((o) => o.correct).map((o) => o.id) }]),
+      )
+      await submitAttempt(ctx, attempt, quiz, answers, new Date(quizAt.getTime() + 8 * 60_000))
+      const e = await fresh()
+      const markAt = new Date(quizAt.getTime() + 10 * 60_000)
+      const state = await loadCourseState(ctx, { tenantId: t, course, enrollment: e, now: markAt })
+      const updated = await payload.update({ collection: 'enrollments', id: e.id, overrideAccess: true, data: { completedLessons: [...state.completed, lessons[1]!.id] } })
+      await onLessonMarked(ctx, { tenant, enrollment: updated, lesson: lessons[1]!, state, now: markAt })
+    }
+    await watch(lessons[2]!, at(9, 20))
+    // Week 3: lesson 4 and the assignment, submitted before the deadline.
+    await watch(lessons[3]!, at(14, 11))
+    const assignment = (await payload.find({ collection: 'assignments', where: { and: [{ tenant: { equals: t } }, { course: { equals: course.id } }] }, limit: 1, overrideAccess: true })).docs[0]
+    if (assignment) {
+      const sub = await payload.create({
+        collection: 'submissions',
+        overrideAccess: true,
+        data: { assignment: assignment.id, user: student.id, enrollment: enrollment.id, text: 'نمونهٔ تحویل: جدول SWOT یک کافهٔ محلی با دو مورد در هر بخش.', submittedAt: at(16, 21).toISOString(), late: false },
+      })
+      // Graded by the academy (above the pass mark): only the final defense is left on the certificate path.
+      await flushGamification()
+      await payload.update({ collection: 'submissions', id: sub.id, overrideAccess: true, data: { scoreInput: '17', feedback: rt('تحلیل روشن و کامل.') } })
+      await flushGamification()
+    }
+  }
+  await refreshEnrollmentGamification(ctx, enrollment.id)
+
+  // ---- Advisor with follow-ups (working days Sat–Wed; Thu/Fri are the default days off).
+  const advisor = await ensureStaff(payload, t, 'advisor@demo.edvora.local', 'مشاور نمونه', 'advisor')
+  await ensureStaff(payload, t, 'finance@demo.edvora.local', 'کارشناس مالی نمونه', 'finance')
+  const followDays = Array.from({ length: 8 }, (_, i) => today - 8 + i).filter((d) => ![4, 5].includes(weekdayOf(d)))
+  const nowMs = Date.now()
+  const todayStart = dayStartsAt(today).getTime()
+  const leadSpecs: { n: number; history: number[]; next: number | null; handledToday?: boolean }[] = [
+    { n: 1, history: followDays.filter((_, i) => i % 2 === 0), next: today + 2, handledToday: true },
+    { n: 2, history: followDays.filter((_, i) => i % 2 === 1), next: today + 3 },
+    { n: 3, history: [], next: today, handledToday: true },
+    { n: 4, history: [], next: today },
+    { n: 5, history: [], next: today + 1 },
+  ]
+  for (const spec of leadSpecs) {
+    const entries = spec.history.map((d, i) => ({
+      at: new Date(dayStartsAt(d).getTime() + 11 * HOUR).toISOString(),
+      outcome: i % 3 === 1 ? 'no_answer' : 'reached',
+      by: advisor.id,
+      dueAt: new Date(dayStartsAt(d).getTime() + 9 * HOUR).toISOString(),
+      note: null,
+    }))
+    if (spec.handledToday) entries.push({ at: new Date(Math.max(todayStart + 60_000, nowMs - 30 * 60_000)).toISOString(), outcome: 'reached', by: advisor.id, dueAt: new Date(todayStart).toISOString(), note: null })
+    const last = entries[entries.length - 1]
+    const data = {
+      tenant: t,
+      name: `سرنخ نمونه ${['۱', '۲', '۳', '۴', '۵'][spec.n - 1]}`,
+      phone: `0912999010${spec.n}`,
+      course: course.id,
+      status: spec.history.length || spec.handledToday ? 'follow_up' : 'contacted',
+      advisor: advisor.id,
+      message: 'داده آزمایشی آکادمی نمونه.',
+      nextFollowUpAt: spec.next === null ? null : new Date(dayStartsAt(spec.next).getTime() + (spec.next === today ? 60_000 : 10 * HOUR)).toISOString(),
+      followUps: entries,
+      lastOutcome: last?.outcome ?? null,
+      lastOutcomeAt: last?.at ?? null,
+      lastOutcomeBy: last ? advisor.id : null,
+    }
+    const found = (await payload.find({ collection: 'leads', where: { and: [{ tenant: { equals: t } }, { phone: { equals: data.phone } }] }, limit: 1, overrideAccess: true })).docs[0]
+    const context = { [FOLLOW_UP_CONTEXT]: true }
+    if (found) await payload.update({ collection: 'leads', id: found.id, overrideAccess: true, context, data: data as never })
+    else await payload.create({ collection: 'leads', overrideAccess: true, context, data: data as never })
+  }
+
+  // ---- One instalment order for the finance inbox: #1 paid, #2 overdue with a failed gateway attempt, #3 later.
+  const part = tomanToRial(4_000_000)
+  const orderData = {
+    tenant: t,
+    user: student.id,
+    course: course.id,
+    cohort: cohort.id,
+    subtotal: part * 3,
+    discount: 0,
+    total: part * 3,
+    status: 'partially_paid',
+    instalments: [
+      { index: 0, amount: part, dueDate: at(0, 9).toISOString(), status: 'paid', paidAt: at(0, 9).toISOString() },
+      { index: 1, amount: part, dueDate: new Date(todayStart - 5 * DAY).toISOString(), status: 'pending' },
+      { index: 2, amount: part, dueDate: new Date(todayStart + 25 * DAY).toISOString(), status: 'pending' },
+    ],
+    payments: [
+      { instalmentIndex: 0, provider: 'mock', authority: 'DEMO-E028-0', amount: part, status: 'verified', refId: 'DEMO-REF-0' },
+      { instalmentIndex: 1, provider: 'mock', authority: 'DEMO-E028-1', amount: part, status: 'failed', error: 'Demo: cancelled by payer' },
+    ],
+  }
+  await upsert(payload, 'orders', { and: [{ tenant: { equals: t } }, { user: { equals: student.id } }, { course: { equals: course.id } }] }, orderData)
+}
+
 /**
  * E-032 test data, demo academy only (never iba): the WordPress import connection the committed fixture bundles are
  * signed with (`packages/integrations/src/wordpress/fixtures/*.edvora-bundle`, secret `edvora-fixture-secret`).
@@ -461,10 +630,15 @@ async function main() {
   if (wanted.has('iba')) ids.push(await seedIba(payload))
   if (wanted.has('demo')) ids.push(await seedDemo(payload))
   for (const t of ids) await seedRoleTemplates(payload, t)
-  if (wanted.has('demo')) await seedDemoPeople(payload, ids[ids.length - 1]!)
-  if (wanted.has('demo')) await seedDemoImportConnection(payload, ids[ids.length - 1]!)
-  if (wanted.has('demo')) await seedDemoMedia(payload, ids[ids.length - 1]!)
+  if (wanted.has('demo')) {
+    const demo = ids[ids.length - 1]!
+    await seedDemoPeople(payload, demo)
+    await seedDemoImportConnection(payload, demo)
+    await seedDemoMedia(payload, demo)
+    await seedDemoGamification(payload, demo)
+  }
   await seedAdmin(payload, ids)
+  await flushGamification()
   console.info(`Seed complete: tenants ${[...wanted].join(' + ')}, role templates`)
   process.exit(0)
 }

@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { allow, allowCreate, anyone, guard, nobody, requireForFields } from '../access/permissions'
+import { breaksField } from '../fields/gamification'
 import { auditChange } from '../hooks/audit'
 
 export const Cohorts: CollectionConfig = {
@@ -54,5 +55,6 @@ export const Cohorts: CollectionConfig = {
         { name: 'priceOverride', type: 'number', min: 0, admin: { description: 'Rials. Leave empty to use course price.' } },
       ],
     },
+    breaksField('Cohort breaks (E-028): weeks that touch one are neutral for this cohort’s weekly rhythm.'),
   ],
 }

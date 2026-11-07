@@ -19,6 +19,7 @@ import { OtpCodes, Posts, Testimonials } from './collections/Content'
 import { Coupons } from './collections/Coupons'
 import { Courses } from './collections/Courses'
 import { Enrollments } from './collections/Enrollments'
+import { LearningEvents } from './collections/LearningEvents'
 import { ImportConnections, ImportJobs, ImportNonces, ImportRefs, Redirects } from './collections/Import'
 import { Leads } from './collections/Leads'
 import { Lessons } from './collections/Lessons'
@@ -82,6 +83,7 @@ export default buildConfig({
     Attendance,
     LiveEvents,
     Certificates,
+    LearningEvents,
     Leads,
     Orders,
     Coupons,
@@ -160,6 +162,8 @@ export default buildConfig({
         assignments: {},
         submissions: {},
         'submission-files': {},
+        // E-028: gamification ledger (append-only).
+        'learning-events': {},
         // E-033: live classes (ADR 012).
         'live-sessions': {},
         attendance: {},

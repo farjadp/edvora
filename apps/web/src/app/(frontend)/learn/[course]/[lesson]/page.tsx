@@ -5,6 +5,9 @@ import { after } from 'next/server'
 import { markLessonComplete } from '../../../actions'
 import { lockText } from '../../../../../components/learn/labels'
 import { LessonList } from '../../../../../components/learn/LessonList'
+import { LessonStatus } from '../../../../../components/learn/LessonStatus'
+import { LessonVideo } from '../../../../../components/learn/LessonVideo'
+import { getStudentCourseGamification } from '../../../../../lib/gamificationQueries'
 import { docOf, idOf } from '../../../../../lib/ids'
 import { blockersFor } from '../../../../../lib/learning'
 import { getPayloadClient } from '../../../../../lib/payload'
@@ -77,6 +80,12 @@ export default async function LessonPage({ params }: Props) {
     })
   }
 
+  // E-028: server-confirmed progress for the completion block. Null view = gamification off (tick + sentence only).
+  const gamView = enrolled && unlockedForStudent ? await getStudentCourseGamification(course.slug).catch(() => null) : null
+  const gamOn = gamView?.flags.students ? gamView : null
+  const lessonIndex = lessons.findIndex((l) => l.id === lesson.id)
+  const nextLesson = lessons.slice(lessonIndex + 1).find((l) => state?.locks.get(String(l.id))?.state === 'open') ?? null
+
   return (
     <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 pt-8 md:px-8 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="min-w-0">
@@ -94,7 +103,7 @@ export default async function LessonPage({ params }: Props) {
         <div className="mt-3 grid aspect-video place-items-center overflow-hidden rounded-3xl bg-ink text-bg">
           {canWatch && lesson.videoUrl ? (
             // Production: signed ArvanCloud VOD URL with a watermark of the student's name/phone.
-            <video src={lesson.videoUrl} controls controlsList="nodownload" className="size-full" />
+            <LessonVideo src={lesson.videoUrl} lessonId={lesson.id} track={enrolled && unlockedForStudent && !preview} />
           ) : canWatch ? (
             <p className="text-sm opacity-70">ویدیوی این جلسه هنوز بارگذاری نشده است.</p>
           ) : lockedByDrip && lock?.state === 'locked' ? (
@@ -121,6 +130,30 @@ export default async function LessonPage({ params }: Props) {
         ) : null}
 
         <h1 className="mt-6 text-2xl font-black md:text-3xl">{lesson.title}</h1>
+
+        {enrolled && unlockedForStudent ? (
+          <LessonStatus
+            lessonId={lesson.id}
+            initiallyCompleted={completed.has(lesson.id)}
+            progress={state?.progress ?? 0}
+            completedCount={completed.size}
+            totalLessons={lessons.length}
+            next={nextLesson ? { href: `/learn/${course.slug}/${nextLesson.id}`, title: nextLesson.title } : null}
+            dashboardHref="/dashboard"
+            gam={
+              gamOn
+                ? {
+                    xp: gamOn.flags.xp,
+                    streak: gamOn.flags.streak,
+                    badges: gamOn.flags.badges,
+                    celebrations: gamOn.flags.celebrations,
+                    week: gamOn.rings.week ? { days: gamOn.rings.week.days, goal: gamOn.rings.week.goal } : null,
+                    badgesEarned: (gamOn.badges ?? []).map((b) => ({ key: b.key, name: b.name })),
+                  }
+                : null
+            }
+          />
+        ) : null}
 
         {enrolled && unlockedForStudent ? (
           <form action={markLessonComplete} className="mt-4 flex flex-wrap items-center gap-3">
@@ -151,7 +184,7 @@ export default async function LessonPage({ params }: Props) {
                 return (
                   <li key={r.id ?? r.title}>
                     {file?.url ? (
-                      <a href={file.url} className="text-brand hover:underline">
+                      <a href={file.url} className="text-brand-text hover:underline">
                         {r.title}
                       </a>
                     ) : (
@@ -185,7 +218,7 @@ export default async function LessonPage({ params }: Props) {
 
       <aside className="lg:sticky lg:top-24 lg:self-start">
         {enrolled ? (
-          <Link href={`/learn/${course.slug}`} className="mb-3 inline-block text-sm font-bold text-brand hover:underline">
+          <Link href={`/learn/${course.slug}`} className="mb-3 inline-block text-sm font-bold text-brand-text hover:underline">
             فهرست دوره، آزمون‌ها و تکالیف
           </Link>
         ) : null}

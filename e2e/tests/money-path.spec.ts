@@ -12,7 +12,7 @@ test.describe('demo tenant money path', () => {
   test('OTP login → 4 instalments + TEST20 → pay two instalments → lesson → logout', async ({ page }) => {
     await test.step('phone OTP login with the dev code on screen', async () => {
       await login(page, DEMO, phone)
-      await expect(page.getByRole('heading', { name: 'دانشجوی تست' })).toBeVisible()
+      await expect(page.getByTestId('dashboard-greeting')).toContainText('سلام، دانشجوی تست') // profile first name, else the full display name
     })
 
     await test.step('checkout demo-program, 4 instalments, coupon TEST20', async () => {
@@ -49,7 +49,7 @@ test.describe('demo tenant money path', () => {
     })
 
     await test.step('mark a lesson watched', async () => {
-      await page.getByRole('link', { name: /معرفی دوره/ }).click()
+      await page.getByRole('link', { name: 'ادامهٔ یادگیری' }).click() // E-028: the dashboard CTA no longer carries the lesson title
       await page.waitForURL(`${DEMO}/learn/demo-program/**`)
       await page.getByRole('button', { name: 'علامت‌گذاری به‌عنوان دیده‌شده' }).click()
       await expect(page.getByRole('button', { name: '✓ دیده شد' })).toBeDisabled()
