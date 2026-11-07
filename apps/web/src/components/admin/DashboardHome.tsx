@@ -1,34 +1,39 @@
 import { toPersianDigits } from '@edvora/core/digits'
 import type { ServerProps } from 'payload'
-import { PERIOD_DAYS, getOverview, type CollAccess } from '../../lib/consoleData'
-import { getAdminTenantContext } from '../../lib/adminTenant'
+import { PERIOD_DAYS, getOverview, scopeLabel, staffAccess, type CollAccess } from '../../lib/consoleData'
+import { getAdminConsoleContext } from '../../lib/adminTenant'
+import { payloadAllows } from '../../lib/consoleNav'
 import { Activity, Alerts, BarsBlock, DonutBlock, Empty, Kpis, Panel, Quick, SummaryBlock } from './console'
 
 /**
  * Admin landing (E-035): greeting, 4 KPIs, alerts, recent events, charts, quick actions, financial summary, all from
  * real data (`getOverview`, shared with /staff/overview). What shows is driven by Payload's own `permissions` for this
- * user and every query runs with the collection's access rules (`overrideAccess: false`). Scope: the academy picked in
- * the nav selector, else every academy the user may read.
+ * user and their membership permissions; every query runs with the collection's access rules (`overrideAccess: false`).
+ * Scope (`ConsoleScope`, labelled in the eyebrow): the academy picked in the nav selector; else the academies the
+ * person is staff in; else, for an Edvora platform admin only, the whole platform.
  */
 export async function DashboardHome({ payload, permissions, user: serverUser }: ServerProps) {
-  const { user, tenant } = await getAdminTenantContext(payload)
-  if (!user) return null
-  const can = (slug: string, action: 'read' | 'create') => permissions?.collections?.[slug]?.[action] === true
+  const ctx = await getAdminConsoleContext(payload)
+  if (!ctx) return null
+  const { user, tenant, scope } = ctx
+  // Both gates: Payload's own permission for the collection AND the staff permission behind the number.
+  const can = (slug: string, action: 'read' | 'create') => payloadAllows(permissions, slug, action)
+  const staff = staffAccess(ctx.who)
   const access: CollAccess = {
-    orders: can('orders', 'read'),
-    enrollments: can('enrollments', 'read'),
-    leads: can('leads', 'read'),
-    submissions: can('submissions', 'read'),
+    orders: staff.orders && can('orders', 'read'),
+    enrollments: staff.enrollments && can('enrollments', 'read'),
+    leads: staff.leads && can('leads', 'read'),
+    submissions: staff.submissions && can('submissions', 'read'),
     create: { courses: can('courses', 'create'), coupons: can('coupons', 'create'), posts: can('posts', 'create'), users: can('users', 'create') },
   }
-  const data = await getOverview({ payload, user, tenantId: tenant?.id ?? null }, access)
+  const data = await getOverview({ payload, user, scope, req: ctx.req }, access)
   const name = (serverUser as { name?: string | null } | undefined)?.name?.trim() || user.email
 
   return (
     <section className="c-dash" aria-labelledby="c-dash-title">
       <header className="c-dash__head">
         <div>
-          <p className="c-eyebrow">{tenant ? tenant.name : 'همهٔ آکادمی‌هایی که به آن‌ها دسترسی دارید'}</p>
+          <p className="c-eyebrow" data-scope={scope.kind}>{scopeLabel(scope, tenant?.name)}</p>
           <h1 id="c-dash-title" className="c-dash__title">
             سلام، {name}
           </h1>
@@ -71,7 +76,7 @@ export async function DashboardHome({ payload, permissions, user: serverUser }: 
             <Quick items={data.quick} />
           </Panel>
           {data.summary ? (
-            <Panel title="خلاصهٔ مالی ۳۰ روز اخیر" id="c-h-summary">
+            <Panel title="سفارش‌های ۳۰ روز اخیر" id="c-h-summary">
               <SummaryBlock s={data.summary} />
             </Panel>
           ) : null}

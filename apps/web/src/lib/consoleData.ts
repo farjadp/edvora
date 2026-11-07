@@ -1,35 +1,62 @@
 import 'server-only'
 import { formatJalali, formatToman, rial } from '@edvora/core'
+import { PERIOD_DAYS, periodDelta, settledPayments, sharePct, trendOf, trendSince, type DatedValue, type Trend } from '@edvora/core/console'
 import { toPersianDigits } from '@edvora/core/digits'
+import { meets, type StaffPerms } from '@edvora/core/staff'
+import { financeInbox } from '@edvora/core/staff-goals'
 import type { ActivityItem, AlertItem, BarSeries, DonutSegment, KpiCardProps, KpiDelta, PageLink, QuickAction } from '@edvora/ui/console'
 import type { CollectionSlug, Payload, PayloadRequest, TypedUser, Where } from 'payload'
 import { ENROLLMENT_STATUS, LEAD_STATUS, ORDER_STATUS, SUBMISSION_STATUS, pill } from './consoleLabels'
 import { docOf } from './ids'
+import type { StaffSession } from './staff'
 import type { Course, Order, User } from '../payload-types'
 
 /**
  * Console data (E-035): real, tenant-filtered numbers for the /staff desks and the /admin dashboard.
- * Every query names the tenant explicitly (AGENTS.md) AND runs with `overrideAccess: false` as the signed-in user, so
- * the collections' own access rules (scoped instructors, advisors' own leads) still apply. Nothing is invented: no
- * data means an empty state. Period for every delta and sparkline: the last 30 days against the 30 days before;
- * sparklines show the last 14 days; the bar chart compares the last 7 days with the 7 before.
+ * Every query (1) names the academy scope explicitly (AGENTS.md) and (2) runs with `overrideAccess: false` as the
+ * signed-in user, so the collections' own access rules (scoped instructors, advisors' own leads) still apply.
+ * Nothing is invented: no data means an empty state. Period math and Tehran-day bucketing live in
+ * `@edvora/core/console` (unit-tested): last 30 Tehran days vs the 30 before; sparklines 14 days; bars 7 vs 7.
  */
+export type ConsoleScope =
+  /** One academy: /staff (from the Host) or the academy picked in the /admin selector. */
+  | { kind: 'academy'; tenantId: number }
+  /** /admin without a selection, academy staff: the academies on the user's own record (never more). */
+  | { kind: 'mine'; tenantIds: number[] }
+  /** /admin without a selection, Edvora platform admin only: every academy on the platform (labelled as such). */
+  | { kind: 'platform' }
+
 export type DataCtx = {
   payload: Payload
   user: TypedUser
-  /** Selected academy. Null (platform admin without a selection) = every academy the user may read. */
-  tenantId: number | null
+  scope: ConsoleScope
   req?: PayloadRequest
 }
 
 const DAY = 86_400_000
-export const PERIOD_DAYS = 30
+export { PERIOD_DAYS }
 export const fa = (n: number | string) => toPersianDigits(String(n))
 export const faNum = (n: number) => toPersianDigits(Math.round(n).toLocaleString('en-US').replace(/,/g, '٬'))
 
+/** Upper bound for the rows one chart reads (createdAt / instalments only). Above it the chart says so. */
+export const TREND_CAP = 10_000
+
 const acc = (c: DataCtx) => ({ overrideAccess: false as const, ...(c.req ? { req: c.req } : { user: c.user }) })
-export const tenantWhere = (c: DataCtx): Where[] => (c.tenantId != null ? [{ tenant: { equals: c.tenantId } }] : [])
-const and = (c: DataCtx, ...w: Where[]): Where => ({ and: [...tenantWhere(c), ...w] })
+
+/** The explicit academy filter for a scope. `mine` with no academies matches nothing (default deny). */
+export function tenantWhere(scope: ConsoleScope): Where[] {
+  if (scope.kind === 'academy') return [{ tenant: { equals: scope.tenantId } }]
+  if (scope.kind === 'mine') return [{ tenant: { in: scope.tenantIds.length ? scope.tenantIds : [-1] } }]
+  return []
+}
+const and = (c: DataCtx, ...w: Where[]): Where => ({ and: [...tenantWhere(c.scope), ...w] })
+
+/** Eyebrow text for the /admin scope, so an aggregate is never mistaken for one academy. */
+export function scopeLabel(scope: ConsoleScope, academyName?: string | null): string {
+  if (scope.kind === 'academy') return academyName ?? 'آکادمی انتخاب‌شده'
+  if (scope.kind === 'platform') return 'همهٔ آکادمی‌های ادورا (آکادمی انتخاب نشده؛ برای یک آکادمی از فهرست کناری انتخاب کنید)'
+  return 'همهٔ آکادمی‌هایی که در آن‌ها عضو هستید'
+}
 
 type Collection = 'orders' | 'enrollments' | 'leads' | 'submissions' | 'certificates' | 'quiz-attempts'
 
@@ -44,66 +71,61 @@ export async function count(c: DataCtx, collection: CollectionSlug, ...w: Where[
   }
 }
 
-export type Trend = {
-  /** Last 30 days / the 30 before. */
-  current: number
-  previous: number
-  /** Last 14 days, oldest first. */
-  spark: number[]
-  /** Last 7 / the 7 before, oldest first. */
-  week: number[]
-  weekBefore: number[]
-}
+export type ConsoleTrend = Trend & { /** More rows than TREND_CAP: the numbers are a lower bound. */ capped: boolean }
 
-type Dated = { createdAt: string }
-
-/** One query: createdAt (and an optional weight) of everything in the last 60 days, bucketed by day. */
-export async function trend(c: DataCtx, collection: Collection, opts: { where?: Where; weight?: (d: never) => number; now?: Date } = {}): Promise<Trend | null> {
+/** Records created per Tehran day: one bounded query that reads `createdAt` only. */
+export async function trend(c: DataCtx, collection: Collection, opts: { where?: Where; now?: Date } = {}): Promise<ConsoleTrend | null> {
   const now = opts.now ?? new Date()
-  const since = new Date(now.getTime() - 2 * PERIOD_DAYS * DAY).toISOString()
-  let docs: Dated[]
   try {
     const r = await c.payload.find({
       collection,
-      where: and(c, { createdAt: { greater_than_equal: since } }, ...(opts.where ? [opts.where] : [])),
+      where: and(c, { createdAt: { greater_than_equal: trendSince(now).toISOString() } }, ...(opts.where ? [opts.where] : [])),
       depth: 0,
-      limit: 5000,
+      limit: TREND_CAP,
       pagination: false,
-      ...(opts.weight ? {} : { select: { createdAt: true } as never }),
+      select: { createdAt: true } as never,
       ...acc(c),
     })
-    docs = r.docs as unknown as Dated[]
+    const docs = r.docs as unknown as { createdAt: string }[]
+    return { ...trendOf(docs.map((d): DatedValue => ({ at: d.createdAt })), now), capped: docs.length >= TREND_CAP }
   } catch (err) {
     c.payload.logger.error({ err, msg: `console: trend ${collection} failed` })
     return null
   }
-  const days = new Array<number>(2 * PERIOD_DAYS).fill(0)
-  for (const d of docs) {
-    const ago = Math.floor((now.getTime() - new Date(d.createdAt).getTime()) / DAY)
-    if (ago >= 0 && ago < days.length) days[ago]! += opts.weight ? opts.weight(d as never) : 1
-  }
-  const sum = (a: number[]) => a.reduce((n, v) => n + v, 0)
-  const oldestFirst = (from: number, to: number) => days.slice(from, to).reverse()
-  return {
-    current: sum(days.slice(0, PERIOD_DAYS)),
-    previous: sum(days.slice(PERIOD_DAYS)),
-    spark: oldestFirst(0, 14),
-    week: oldestFirst(0, 7),
-    weekBefore: oldestFirst(7, 14),
+}
+
+/**
+ * Settled money (integer rials) per Tehran day: PAID instalments by `paidAt`, on any order (fully or partly paid).
+ * One bounded query over orders that have an instalment paid in the window; reads `instalments` only.
+ */
+export async function settledTrend(c: DataCtx, now = new Date()): Promise<ConsoleTrend | null> {
+  try {
+    const r = await c.payload.find({
+      collection: 'orders',
+      where: and(c, { 'instalments.paidAt': { greater_than_equal: trendSince(now).toISOString() } }),
+      depth: 0,
+      limit: TREND_CAP,
+      pagination: false,
+      select: { instalments: true } as never,
+      ...acc(c),
+    })
+    const docs = r.docs as unknown as Pick<Order, 'instalments'>[]
+    return { ...trendOf(settledPayments(docs), now), capped: docs.length >= TREND_CAP }
+  } catch (err) {
+    c.payload.logger.error({ err, msg: 'console: settled trend failed' })
+    return null
   }
 }
 
 export const PERIOD_NOTE = `نسبت به ${fa(PERIOD_DAYS)} روز قبل`
 
-/** This period against the previous one. No baseline = no percentage (never divide by zero or invent one). */
+/** This period against the previous one, as KPI text (math in `periodDelta`). */
 export function deltaOf(current: number, previous: number, goodWhen: 'up' | 'down' = 'up'): KpiDelta {
-  if (previous === 0) {
-    return { text: current === 0 ? 'بدون رویداد' : 'بدون دورهٔ قبل برای مقایسه', trend: 'flat', tone: 'neutral', note: '' }
-  }
-  const pct = Math.round(((current - previous) / previous) * 100)
-  if (pct === 0) return { text: 'بدون تغییر', trend: 'flat', tone: 'neutral', note: PERIOD_NOTE }
-  const up = pct > 0
-  return { text: `${fa(Math.abs(pct))}٪ ${up ? 'بیشتر' : 'کمتر'}`, trend: up ? 'up' : 'down', tone: up === (goodWhen === 'up') ? 'ok' : 'danger', note: PERIOD_NOTE }
+  const d = periodDelta(current, previous, goodWhen)
+  if (d.kind === 'empty') return { text: 'بدون رویداد', trend: 'flat', tone: 'neutral', note: '' }
+  if (d.kind === 'no-baseline') return { text: 'بدون دورهٔ قبل برای مقایسه', trend: 'flat', tone: 'neutral', note: '' }
+  if (d.kind === 'same') return { text: 'بدون تغییر', trend: 'flat', tone: 'neutral', note: PERIOD_NOTE }
+  return { text: `${fa(d.pct)}٪ ${d.trend === 'up' ? 'بیشتر' : 'کمتر'}`, trend: d.trend, tone: d.good ? 'ok' : 'danger', note: PERIOD_NOTE }
 }
 
 export const sparkLabel = (what: string) => `${what}، روند ${fa(14)} روز گذشته`
@@ -177,29 +199,55 @@ export type OverviewData = {
 }
 
 const WEEK_LABELS = ['۶ روز پیش', '۵', '۴', '۳', '۲', 'دیروز', 'امروز']
+/** Order states that still carry (or carried) money; cancelled/refunded/failed orders are not "sales". */
+const LIVE_ORDERS = ['paid', 'partially_paid', 'pending'] as const
+
+/** Open orders → the E-028 finance-inbox counts (same rule as /staff/finance: Tehran days, last gateway attempt). */
+async function openOrderInbox(c: DataCtx, now: Date) {
+  try {
+    const r = await c.payload.find({
+      collection: 'orders',
+      where: and(c, { status: { in: ['pending', 'partially_paid'] } }),
+      depth: 0,
+      limit: TREND_CAP,
+      pagination: false,
+      select: { status: true, instalments: true, payments: true } as never,
+      ...acc(c),
+    })
+    const docs = r.docs as unknown as Pick<Order, 'id' | 'status' | 'instalments' | 'payments'>[]
+    return financeInbox({
+      now,
+      orders: docs.map((o) => ({
+        id: o.id,
+        status: o.status,
+        instalments: (o.instalments ?? []).map((i) => ({ index: i.index, amount: i.amount, dueDate: i.dueDate, status: i.status })),
+        payments: (o.payments ?? []).map((p) => ({ instalmentIndex: p.instalmentIndex, status: p.status })),
+      })),
+    })
+  } catch (err) {
+    c.payload.logger.error({ err, msg: 'console: open orders failed' })
+    return null
+  }
+}
 
 export async function getOverview(c: DataCtx, a: CollAccess, now = new Date()): Promise<OverviewData> {
-  const orderWeight = (o: Pick<Order, 'total'>) => o.total
-  const [enrol, sales, leads, subs, openOrders, enrolActive, orderMix, leadsNoFollow, subsWaiting] = await Promise.all([
+  const since30 = new Date(now.getTime() - PERIOD_DAYS * DAY).toISOString()
+  const [enrol, sales, leads, subs, inbox, activeTotal, enrolActive, orderMix, leadsNoFollow, subsWaiting] = await Promise.all([
     a.enrollments ? trend(c, 'enrollments', { now }) : null,
-    a.orders ? trend(c, 'orders', { where: { status: { equals: 'paid' } }, weight: orderWeight as never, now }) : null,
+    a.orders ? settledTrend(c, now) : null,
     a.leads ? trend(c, 'leads', { now }) : null,
     a.submissions ? trend(c, 'submissions', { now }) : null,
-    a.orders
-      ? c.payload
-          .find({ collection: 'orders', where: and(c, { status: { in: ['pending', 'partially_paid'] } }), depth: 0, limit: 5000, pagination: false, select: { instalments: true, status: true } as never, ...acc(c) })
-          .then((r) => r.docs as unknown as Pick<Order, 'instalments'>[])
-          .catch(() => null)
-      : null,
+    a.orders ? openOrderInbox(c, now) : null,
+    a.enrollments ? count(c, 'enrollments', { status: { equals: 'active' } }) : null,
     a.enrollments
       ? c.payload
-          .find({ collection: 'enrollments', where: and(c, { status: { equals: 'active' } }), depth: 0, limit: 5000, pagination: false, select: { course: true } as never, ...acc(c) })
+          .find({ collection: 'enrollments', where: and(c, { status: { equals: 'active' } }), depth: 0, limit: TREND_CAP, pagination: false, select: { course: true } as never, ...acc(c) })
           .then((r) => r.docs as unknown as { course: number | Course }[])
           .catch(() => null)
       : null,
     a.orders
       ? c.payload
-          .find({ collection: 'orders', where: and(c, { createdAt: { greater_than_equal: new Date(now.getTime() - PERIOD_DAYS * DAY).toISOString() } }), depth: 0, limit: 5000, pagination: false, select: { total: true, status: true } as never, ...acc(c) })
+          .find({ collection: 'orders', where: and(c, { createdAt: { greater_than_equal: since30 } }, { status: { in: [...LIVE_ORDERS] } }), depth: 0, limit: TREND_CAP, pagination: false, select: { total: true, status: true } as never, ...acc(c) })
           .then((r) => r.docs as unknown as Pick<Order, 'total' | 'status'>[])
           .catch(() => null)
       : null,
@@ -207,32 +255,28 @@ export async function getOverview(c: DataCtx, a: CollAccess, now = new Date()): 
     a.submissions ? count(c, 'submissions', { status: { equals: 'submitted' } }) : null,
   ])
 
-  const overdue = openOrders
-    ? openOrders.reduce((n, o) => n + (o.instalments ?? []).filter((i) => i.status !== 'paid' && new Date(i.dueDate).getTime() < now.getTime()).length, 0)
-    : null
-
   // KPIs ---------------------------------------------------------------
   const kpis: OverviewData['kpis'] = []
   if (enrol) kpis.push({ key: 'enrol', label: 'ثبت‌نام‌های تازه', value: fa(enrol.current), icon: 'enrol', delta: deltaOf(enrol.current, enrol.previous), spark: { values: enrol.spark, label: sparkLabel('ثبت‌نام‌ها') }, href: '/admin/collections/enrollments' })
   if (sales) {
-    const paidShare = orderMix && orderMix.length ? (orderMix.filter((o) => o.status === 'paid').length / orderMix.length) * 100 : null
+    const paidShare = orderMix && orderMix.length ? sharePct(orderMix.filter((o) => o.status === 'paid').length, orderMix.length) : null
     kpis.push({
       key: 'sales',
       label: 'فروش تسویه‌شده',
       value: formatToman(rial(sales.current), { unit: false }),
       icon: 'card',
       delta: deltaOf(sales.current, sales.previous),
-      spark: { values: sales.spark, label: sparkLabel('فروش'), tone: 2 },
-      progress: paidShare === null ? undefined : { pct: paidShare, text: `${fa(Math.round(paidShare))}٪ سفارش‌های این دوره پرداخت‌شده`, tone: 'ok' },
+      spark: { values: sales.spark, label: sparkLabel('مبلغ دریافت‌شده'), tone: 2 },
+      progress: paidShare === null ? undefined : { pct: paidShare, text: `${fa(paidShare)}٪ سفارش‌های این دوره کامل پرداخت شده`, tone: 'ok' },
       href: '/admin/collections/orders',
-      hint: 'تومان',
+      hint: 'تومان، قسط‌های پرداخت‌شده در این دوره',
     })
   }
   if (leads) {
     kpis.push({ key: 'leads', label: 'سرنخ‌های تازه', value: fa(leads.current), icon: 'leads', delta: deltaOf(leads.current, leads.previous), spark: { values: leads.spark, label: sparkLabel('سرنخ‌ها'), tone: 3 }, href: '/admin/collections/leads' })
   }
-  if (overdue !== null) {
-    kpis.push({ key: 'overdue', label: 'اقساط سررسیدگذشته', value: fa(overdue), icon: 'clock', hint: overdue === 0 ? 'همهٔ اقساط به‌روز است.' : 'هنوز پرداخت نشده؛ همین حالا', href: '/admin/collections/orders' })
+  if (inbox) {
+    kpis.push({ key: 'overdue', label: 'اقساط سررسیدگذشته', value: fa(inbox.overdue), icon: 'clock', hint: inbox.overdue === 0 ? 'قسط عقب‌افتاده‌ای نیست.' : 'قسط سفارش‌های نیمه‌پرداخت که موعدش گذشته', href: '/admin/collections/orders' })
   }
   if (subsWaiting !== null && kpis.length < 4) {
     kpis.push({ key: 'grading', label: 'تکلیف در انتظار نمره', value: fa(subsWaiting), icon: 'grading', delta: subs ? deltaOf(subs.current, subs.previous, 'up') : undefined, spark: subs ? { values: subs.spark, label: sparkLabel('تحویل تکالیف'), tone: 4 } : undefined, href: '/admin/collections/submissions' })
@@ -240,7 +284,7 @@ export async function getOverview(c: DataCtx, a: CollAccess, now = new Date()): 
 
   // Donut: active enrolments by course -----------------------------------
   let donut: OverviewData['donut'] = null
-  if (enrolActive) {
+  if (enrolActive && enrolActive.length) {
     const byCourse = new Map<number, number>()
     for (const e of enrolActive) {
       const id = typeof e.course === 'object' ? e.course.id : e.course
@@ -248,18 +292,16 @@ export async function getOverview(c: DataCtx, a: CollAccess, now = new Date()): 
     }
     const top = [...byCourse.entries()].sort((x, y) => y[1] - x[1]).slice(0, 4)
     const titles = new Map<number, string>()
-    if (top.length) {
-      try {
-        const cs = await c.payload.find({ collection: 'courses', where: { id: { in: top.map(([id]) => id) } }, depth: 0, limit: 10, pagination: false, select: { title: true } as never, ...acc(c) })
-        for (const d of cs.docs as unknown as Pick<Course, 'id' | 'title'>[]) titles.set(d.id, d.title)
-      } catch {
-        /* titles fall back to «دوره» */
-      }
+    try {
+      const cs = await c.payload.find({ collection: 'courses', where: and(c, { id: { in: top.map(([id]) => id) } }), depth: 0, limit: 10, pagination: false, select: { title: true } as never, ...acc(c) })
+      for (const d of cs.docs as unknown as Pick<Course, 'id' | 'title'>[]) titles.set(d.id, d.title)
+    } catch {
+      /* titles fall back to «دوره» */
     }
-    const rest = [...byCourse.values()].reduce((n, v) => n + v, 0) - top.reduce((n, [, v]) => n + v, 0)
+    const rest = enrolActive.length - top.reduce((n, [, v]) => n + v, 0)
     const segs: (DonutSegment & { display: string })[] = top.map(([id, v]) => ({ label: titles.get(id) ?? 'دوره', value: v, display: fa(v) }))
     if (rest > 0) segs.push({ label: 'سایر دوره‌ها', value: rest, display: fa(rest) })
-    donut = { segments: segs, centerValue: fa(enrolActive.length), centerLabel: 'ثبت‌نام فعال' }
+    donut = { segments: segs, centerValue: fa(activeTotal ?? enrolActive.length), centerLabel: 'ثبت‌نام فعال' }
   }
 
   // Bars: last 7 days vs the 7 before ------------------------------------
@@ -279,7 +321,9 @@ export async function getOverview(c: DataCtx, a: CollAccess, now = new Date()): 
 
   // Alerts: only counts backed by real fields -----------------------------
   const alerts: AlertItem[] = []
-  if (overdue) alerts.push({ key: 'overdue', icon: 'clock', title: `${fa(overdue)} قسط سررسیدگذشته`, detail: 'سفارش‌هایی که قسطشان از موعد گذشته و هنوز پرداخت نشده.', pill: { tone: 'danger', label: 'مالی' }, action: { label: 'بررسی', href: '/admin/collections/orders' } })
+  if (inbox?.overdue) alerts.push({ key: 'overdue', icon: 'clock', title: `${fa(inbox.overdue)} قسط سررسیدگذشته`, detail: 'قسط سفارش‌های نیمه‌پرداخت که موعدش گذشته و هنوز پرداخت نشده.', pill: { tone: 'danger', label: 'مالی' }, action: { label: 'بررسی', href: '/staff/finance' } })
+  if (inbox && inbox.toVerify + inbox.needsAttention > 0)
+    alerts.push({ key: 'payments', icon: 'alert', title: `${fa(inbox.toVerify + inbox.needsAttention)} پرداخت نیازمند بررسی`, detail: 'پرداخت‌های در انتظار تأیید یا تلاش‌های ناموفق درگاه.', pill: { tone: 'warn', label: 'مالی' }, action: { label: 'صندوق مالی', href: '/staff/finance' } })
   if (subsWaiting) alerts.push({ key: 'grading', icon: 'grading', title: `${fa(subsWaiting)} تکلیف در انتظار نمره`, detail: 'تحویل‌هایی که هنوز نمره نگرفته‌اند.', pill: { tone: 'warn', label: 'آموزش' }, action: { label: 'نمره‌دهی', href: '/admin/collections/submissions?where[status][equals]=submitted' } })
   if (leadsNoFollow) alerts.push({ key: 'leads', icon: 'phone', title: `${fa(leadsNoFollow)} سرنخ جدید بدون زمان پیگیری`, detail: 'وضعیت «جدید» و بدون تاریخ پیگیری.', pill: { tone: 'info', label: 'مشتریان' }, action: { label: 'پیگیری', href: '/admin/collections/leads?where[status][equals]=new' } })
 
@@ -323,7 +367,7 @@ export async function getOverview(c: DataCtx, a: CollAccess, now = new Date()): 
   }
   const activity = events.sort((x, y) => y.at - x.at).slice(0, 7).map(({ at: _at, ...rest }) => rest)
 
-  // Financial summary (30 days) ------------------------------------------------
+  // Orders placed in the last 30 days, by state (value = order totals, integer rials) ------------------------------
   let summary: OverviewData['summary'] = null
   if (orderMix && orderMix.length) {
     const sumBy = (st: string) => orderMix.filter((o) => o.status === st).reduce((n, o) => n + o.total, 0)
@@ -331,17 +375,17 @@ export async function getOverview(c: DataCtx, a: CollAccess, now = new Date()): 
     const part = sumBy('partially_paid')
     const pend = sumBy('pending')
     const total = paid + part + pend
-    const pct = (v: number) => (total ? (v / total) * 100 : 0)
     summary = {
       totalValue: formatToman(rial(total)),
       rows: [
-        { label: 'تسویه‌شده', value: formatToman(rial(paid)), pct: pct(paid), tone: 'ok' },
-        { label: 'اقساط در جریان', value: formatToman(rial(part)), pct: pct(part), tone: 'brand' },
-        { label: 'در انتظار پرداخت', value: formatToman(rial(pend)), pct: pct(pend), tone: 'warn' },
+        { label: 'کامل پرداخت‌شده', value: formatToman(rial(paid)), pct: sharePct(paid, total), tone: 'ok' },
+        { label: 'در حال پرداخت اقساط', value: formatToman(rial(part)), pct: sharePct(part, total), tone: 'brand' },
+        { label: 'در انتظار پرداخت', value: formatToman(rial(pend)), pct: sharePct(pend, total), tone: 'warn' },
       ],
       footer: [
         { label: 'تعداد سفارش', value: fa(orderMix.length) },
-        { label: 'میانگین هر سفارش', value: formatToman(rial(Math.round(orderMix.reduce((n, o) => n + o.total, 0) / orderMix.length))) },
+        // Integer rials: floor the mean (never a float into rial()).
+        { label: 'میانگین هر سفارش', value: formatToman(rial(Math.floor(total / orderMix.length))) },
       ],
     }
   }
@@ -351,22 +395,22 @@ export async function getOverview(c: DataCtx, a: CollAccess, now = new Date()): 
 
 /* ---------------------------------------------------------------- Staff helpers */
 
-import { meets } from '@edvora/core/staff'
-import type { StaffPerms } from '@edvora/core/staff'
-import type { StaffSession } from './staff'
-
 /** DataCtx for a settled staff session (the academy comes from the Host header, never from the request body). */
 export function staffCtx(s: StaffSession & { user: User; req: PayloadRequest }): DataCtx {
-  return { payload: s.req.payload, user: s.req.user as TypedUser, tenantId: s.tenant.id, req: s.req }
+  return { payload: s.req.payload, user: s.req.user as TypedUser, scope: { kind: 'academy', tenantId: s.tenant.id }, req: s.req }
 }
 
 const has = (who: StaffPerms, ...keys: string[]) => meets(who, { any: keys })
 
-/** What the person may see, from the staff permissions (cosmetic; the queries still run under access rules). */
+/**
+ * Which overview blocks to build, from the person's real permissions (memberships), for /staff and /admin alike.
+ * Mirrors each collection's staff read rule (Payload's own `read` is also true for one's OWN orders/enrolments,
+ * which would turn a sales KPI into "my purchases"). Cosmetic: the queries still run under access rules.
+ */
 export function staffAccess(who: StaffPerms): CollAccess {
   return {
     orders: has(who, 'orders.view'),
-    enrollments: has(who, 'enrollments.view'),
+    enrollments: has(who, 'enrollments.view', 'enrollments.manage'),
     leads: has(who, 'leads.view'),
     submissions: has(who, 'submissions.grade'),
     create: { courses: has(who, 'courses.edit'), coupons: has(who, 'coupons.manage'), posts: has(who, 'content.edit'), users: has(who, 'users.create') },

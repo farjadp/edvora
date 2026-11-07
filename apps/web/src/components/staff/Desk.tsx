@@ -78,8 +78,8 @@ export function OverviewPanels({ data }: { data: OverviewData }) {
               <QuickActions items={data.quick} />
             </Panel>
             {data.summary ? (
-              <Panel title="خلاصهٔ مالی ۳۰ روز اخیر" headingId="h-summary">
-                <SummaryCard totalLabel="مجموع سفارش‌های باز و تسویه‌شده" totalValue={data.summary.totalValue} rows={data.summary.rows} footer={data.summary.footer} />
+              <Panel title="سفارش‌های ۳۰ روز اخیر" headingId="h-summary">
+                <SummaryCard totalLabel="ارزش سفارش‌های ثبت‌شده در این دوره" totalValue={data.summary.totalValue} rows={data.summary.rows} footer={data.summary.footer} />
               </Panel>
             ) : null}
           </>

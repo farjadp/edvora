@@ -1,7 +1,7 @@
 import { formatJalali } from '@edvora/core'
 import { DataTable, DonutWithLegend, EmptyState, EntityCell, FilterBar, FilterSearch, FilterSelect, KpiCard, KpiGrid, Pagination, Panel, Pill, QuickActions, type Column } from '@edvora/ui/console'
 import type { PayloadRequest, Where } from 'payload'
-import { PERIOD_DAYS, PAGE_SIZE, count, deltaOf, fa, one, pageParam, pagerOf, sortHref, sortOf, sparkLabel, staffCtx, trend } from '../../../lib/consoleData'
+import { PERIOD_DAYS, PAGE_SIZE, count, deltaOf, fa, one, pageParam, pagerOf, sortHref, sortOf, sparkLabel, staffCtx, trend, has } from '../../../lib/consoleData'
 import { SUBMISSION_STATUS, pill } from '../../../lib/consoleLabels'
 import { docOf } from '../../../lib/ids'
 import type { StaffSession } from '../../../lib/staff'
@@ -23,13 +23,16 @@ export async function TeachingDesk({ s, sp }: Props) {
   if (status in SUBMISSION_STATUS) where.push({ status: { equals: status } })
   if (q) where.push({ or: [{ 'user.name': { contains: q } }, { 'user.email': { contains: q } }] })
 
+  // Submissions/attempts read access also covers one's OWN work as a student; the desk needs the staff permission.
+  const grade = has(s, 'submissions.grade')
+  const results = has(s, 'enrollments.view', 'quizzes.manage')
   const [subs, attempts, waiting, late, list, mix] = await Promise.all([
-    trend(c, 'submissions'),
-    trend(c, 'quiz-attempts'),
-    count(c, 'submissions', { status: { equals: 'submitted' } }),
-    count(c, 'submissions', { status: { equals: 'submitted' } }, { late: { equals: true } }),
-    s.req.payload.find({ collection: 'submissions', where: { and: where }, sort: sorted.sort, page, limit: PAGE_SIZE, depth: 1, overrideAccess: false, req: s.req }).catch(() => null),
-    Promise.all(Object.keys(SUBMISSION_STATUS).map(async (k) => ({ k, n: await count(c, 'submissions', { status: { equals: k } }) }))),
+    grade ? trend(c, 'submissions') : null,
+    results ? trend(c, 'quiz-attempts') : null,
+    grade ? count(c, 'submissions', { status: { equals: 'submitted' } }) : null,
+    grade ? count(c, 'submissions', { status: { equals: 'submitted' } }, { late: { equals: true } }) : null,
+    grade ? s.req.payload.find({ collection: 'submissions', where: { and: where }, sort: sorted.sort, page, limit: PAGE_SIZE, depth: 1, overrideAccess: false, req: s.req }).catch(() => null) : null,
+    grade ? Promise.all(Object.keys(SUBMISSION_STATUS).map(async (k) => ({ k, n: await count(c, 'submissions', { status: { equals: k } }) }))) : [],
   ])
   const segs = mix.filter((m) => (m.n ?? 0) > 0).map((m) => ({ label: SUBMISSION_STATUS[m.k]!.label, value: m.n ?? 0, display: fa(m.n ?? 0) }))
   const total = segs.reduce((n, x) => n + x.value, 0)

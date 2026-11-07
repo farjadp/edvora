@@ -1,7 +1,7 @@
 import { formatJalali, formatToman, rial } from '@edvora/core'
 import { Pill, DataTable, EmptyState, EntityCell, FilterBar, FilterSelect, FilterSearch, KpiCard, KpiGrid, Pagination, Panel, AlertList, DonutWithLegend, type AlertItem, type Column } from '@edvora/ui/console'
 import type { PayloadRequest, Where } from 'payload'
-import { PERIOD_DAYS, PAGE_SIZE, deltaOf, fa, one, pageParam, pagerOf, sortHref, sortOf, sparkLabel, staffCtx, trend, count } from '../../../lib/consoleData'
+import { PERIOD_DAYS, PAGE_SIZE, deltaOf, fa, one, pageParam, pagerOf, sortHref, sortOf, settledTrend, sparkLabel, staffCtx, trend, count, has } from '../../../lib/consoleData'
 import { ORDER_STATUS, pill } from '../../../lib/consoleLabels'
 import { docOf } from '../../../lib/ids'
 import { getFinanceInbox } from '../../../lib/gamificationQueries'
@@ -28,14 +28,18 @@ export async function FinanceDesk({ s, sp, adminLink }: Props) {
   if (/^\d+$/.test(q)) where.push({ id: { equals: Number(q) } })
   else if (q) where.push({ or: [{ 'user.name': { contains: q } }, { 'user.email': { contains: q } }] })
 
+  // Orders read access also covers one's OWN purchases; the desk numbers need the staff permission itself.
+  const view = has(s, 'orders.view')
   const [inbox, sales, orderCount, list, mix] = await Promise.all([
     getFinanceInbox(s),
-    trend(c, 'orders', { where: { status: { equals: 'paid' } }, weight: ((o: Pick<Order, 'total'>) => o.total) as never }),
-    trend(c, 'orders'),
-    s.req.payload
-      .find({ collection: 'orders', where: { and: where }, sort: sorted.sort, page, limit: PAGE_SIZE, depth: 1, overrideAccess: false, req: s.req })
-      .catch(() => null),
-    Promise.all(Object.keys(ORDER_STATUS).map(async (k) => ({ k, n: await count(c, 'orders', { status: { equals: k } }) }))),
+    view ? settledTrend(c) : null,
+    view ? trend(c, 'orders') : null,
+    view
+      ? s.req.payload
+          .find({ collection: 'orders', where: { and: where }, sort: sorted.sort, page, limit: PAGE_SIZE, depth: 1, overrideAccess: false, req: s.req })
+          .catch(() => null)
+      : null,
+    view ? Promise.all(Object.keys(ORDER_STATUS).map(async (k) => ({ k, n: await count(c, 'orders', { status: { equals: k } }) }))) : [],
   ])
 
   const segs = mix.filter((m) => (m.n ?? 0) > 0).map((m) => ({ label: ORDER_STATUS[m.k]!.label, value: m.n ?? 0, display: fa(m.n ?? 0) }))
@@ -99,10 +103,10 @@ export async function FinanceDesk({ s, sp, adminLink }: Props) {
               <KpiCard
                 label="فروش تسویه‌شده"
                 value={formatToman(rial(sales.current), { unit: false })}
-                hint="تومان"
+                hint="تومان، قسط‌های پرداخت‌شده در این دوره"
                 icon="card"
                 delta={deltaOf(sales.current, sales.previous)}
-                spark={{ values: sales.spark, label: sparkLabel('فروش'), tone: 2 }}
+                spark={{ values: sales.spark, label: sparkLabel('مبلغ دریافت‌شده'), tone: 2 }}
               />
             ) : null}
             {!inbox && orderCount ? <KpiCard label="سفارش‌های تازه" value={fa(orderCount.current)} icon="orders" delta={deltaOf(orderCount.current, orderCount.previous)} spark={{ values: orderCount.spark, label: sparkLabel('سفارش‌ها') }} /> : null}
