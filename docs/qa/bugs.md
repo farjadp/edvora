@@ -117,7 +117,7 @@ Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); re
 - W16: redirects answer 308 (documented decision) and imported courses are drafts, so an old URL redirects to a page that is 404 until the admin publishes.
 
 ## QA-E032-12 · `rich-text.spec.ts` fails on a freshly seeded database
-- **Status:** fixed in `d284b40` — demo seed creates `demo.png` (alt «نمونه تصویر demo»).
+- **Status:** fixed in `d284b40`: the demo seed creates `demo.png` (alt «نمونه تصویر demo»). Re-opened on 2026-11-07 when the shared media folder already held a `demo.png`, which made Payload save `demo-1.png`. Closed again: the seed and `e2e-richtext.ts` now look the image up by alt text, not filename.
 - **Severity:** minor (test data; pre-existing from E-031, found during the E-032 full run)
 - **Steps:** new DB, `payload migrate`, `pnpm seed`, `pnpm e2e`.
 - **Actual:** `src/seed/e2e-richtext.ts` throws `Not found: demo media` because it expects a `demo.png` media row in demo that no seed creates. The spec then fails in `beforeAll`.

@@ -61,7 +61,7 @@ async function main() {
   }
   const tenant = await first(payload.find({ collection: 'tenants', where: { slug: { equals: 'demo' } }, limit: 1, overrideAccess: true }), 'demo tenant')
   const t = { tenant: { equals: tenant.id } }
-  const media = await first(payload.find({ collection: 'media', where: { and: [t, { filename: { equals: 'demo.png' } }] }, limit: 1, overrideAccess: true }), 'demo media')
+  const media = await first(payload.find({ collection: 'media', where: { and: [t, { alt: { equals: 'نمونه تصویر demo' } }] }, limit: 1, overrideAccess: true }), 'demo media')
   const course = await first(payload.find({ collection: 'courses', where: { and: [t, { slug: { equals: 'demo-program' } }] }, limit: 1, depth: 0, overrideAccess: true }), 'demo course')
   const doc = (marker: string) => richDoc(course.id, media.id, marker)
 

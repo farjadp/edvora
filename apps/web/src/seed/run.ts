@@ -395,7 +395,7 @@ async function seedDemoPeople(payload: Payload, t: number) {
  */
 /** Demo-only image used by the rich-text e2e (QA-E032-12): a 1×1 PNG, created once. */
 async function seedDemoMedia(payload: Payload, t: number) {
-  const found = await payload.find({ collection: 'media', where: { and: [{ tenant: { equals: t } }, { filename: { equals: 'demo.png' } }] }, limit: 1, overrideAccess: true })
+  const found = await payload.find({ collection: 'media', where: { and: [{ tenant: { equals: t } }, { alt: { equals: 'نمونه تصویر demo' } }] }, limit: 1, overrideAccess: true })
   if (found.docs[0]) return
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
   await payload.create({ collection: 'media', data: { tenant: t, alt: 'نمونه تصویر demo' }, file: { data: png, mimetype: 'image/png', name: 'demo.png', size: png.length }, overrideAccess: true })
