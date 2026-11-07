@@ -55,7 +55,14 @@ class Edvora_Migrator_Admin {
 			array(
 				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
 				'nonce'       => wp_create_nonce( self::NONCE ),
-				'downloadUrl' => wp_nonce_url( admin_url( 'admin-post.php?action=edvora_migrator_download' ), self::NONCE ),
+				// Not wp_nonce_url(): it HTML-escapes "&", which breaks a URL used from JS.
+				'downloadUrl' => add_query_arg(
+					array(
+						'action'   => 'edvora_migrator_download',
+						'_wpnonce' => wp_create_nonce( self::NONCE ),
+					),
+					admin_url( 'admin-post.php' )
+				),
 				'i18n'        => array(
 					'preparing' => __( 'Preparing…', 'edvora-migrator' ),
 					'sending'   => __( 'Sending…', 'edvora-migrator' ),

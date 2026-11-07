@@ -13,8 +13,8 @@ defined( 'ABSPATH' ) || exit;
 class Edvora_Migrator_Signer {
 
 	/**
-	 * FORMAT §5 test vector. Expected value computed independently (Python hmac; PHP self-test must agree) on 2026-11-06.
-	 * TODO(tech-lead): compare with packages/integrations/src/wordpress/fixtures/signature-vector.json once it lands.
+	 * FORMAT §5 test vector — identical to packages/integrations/src/wordpress/fixtures/signature-vector.json
+	 * (requests[0]); the other vectors from that file are checked in self_test().
 	 */
 	const VECTOR_SECRET    = 'edvora-test-secret';
 	const VECTOR_METHOD    = 'POST';
@@ -85,16 +85,24 @@ class Edvora_Migrator_Signer {
 	}
 
 	/**
-	 * Self-test against the FORMAT §5 vector.
+	 * Self-test against the shared vectors (fixtures/signature-vector.json): two requests and one bundle.
 	 *
 	 * @return array{ok:bool,actual:string,expected:string}
 	 */
 	public static function self_test() {
 		$actual = self::sign_request( self::VECTOR_SECRET, self::VECTOR_METHOD, self::VECTOR_PATH, self::VECTOR_TIMESTAMP, self::VECTOR_NONCE, self::VECTOR_BODY );
+		$ping   = self::sign_request( self::VECTOR_SECRET, 'GET', '/api/import/push/ping', '1762423200', 'ffeeddccbbaa99887766554433221100', '' );
+		$signed = "{\"type\":\"manifest\",\"format\":\"edvora-wp-export\",\"formatVersion\":1}\n"
+			. "{\"type\":\"record\",\"v\":1,\"kind\":\"wp.user\",\"wpId\":\"1\",\"data\":{\"ID\":\"1\",\"display_name\":\"\u{0633}\u{0627}\u{0631}\u{0627}\"}}\n";
+		$ctx    = self::bundle_context( self::VECTOR_SECRET );
+		hash_update( $ctx, $signed );
+		$bundle = hash_final( $ctx );
 		return array(
-			'ok'       => hash_equals( self::VECTOR_EXPECTED, $actual ),
-			'actual'   => $actual,
-			'expected' => self::VECTOR_EXPECTED,
+			'ok'       => hash_equals( self::VECTOR_EXPECTED, $actual )
+				&& hash_equals( 'd56b50a393f133b9ccd8fbbb7e0660ec2f2fc940000757d3b9990dd55dc569c4', $ping )
+				&& hash_equals( '50e034ee526e9b5c93b6355a3335241db58ad59320b34667e65894f12535edf5', $bundle ),
+			'actual'   => $actual . ' / ' . $ping . ' / ' . $bundle,
+			'expected' => self::VECTOR_EXPECTED . ' / d56b50a3… / 50e034ee…',
 		);
 	}
 }
