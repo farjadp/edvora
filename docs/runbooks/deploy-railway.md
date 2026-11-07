@@ -100,29 +100,33 @@ Check: `psql -Atc "select name from payload_migrations order by id"` lists every
 ## IBA client preview (E-030) — approved 2026-11-06 as an exception to ADR 002
 
 Shows the `iba` tenant (IBA's public site, imported) for the client meeting. Railway allows one generated domain per
-service, so it runs as a **second service, `web-iba`**: same repo and database, `DEFAULT_TENANT_SLUG=iba`, its own
-`*.up.railway.app` domain and volume. `web` (the `demo` tenant) is untouched. Every host of `web-iba` is `noindex`
-and behind HTTP basic auth (`src/proxy.ts`, `PRIVATE_PREVIEW_HOSTS=*`).
+service, so it runs as a **second service, `web-iba`**: same repo and database, its own domain
+`web-iba-production.up.railway.app` (`<iba-host>`) and volume. `web` (the `demo` tenant) is untouched. `<iba-host>`
+is mapped to the `iba` tenant by the import (`IBA_EXTRA_DOMAINS`), is `noindex` and sits behind HTTP basic auth
+(`src/proxy.ts`). `DEFAULT_TENANT_SLUG` stays `demo` and only `<iba-host>` is gated, because Railway's health check
+(`/`, own host) must get a 200 — before the import there is no `iba` tenant to fall back to.
 
 | `web-iba` variable | Value |
 | --- | --- |
 | `DATABASE_URL`, `PAYLOAD_SECRET`, `SESSION_SECRET` | references to `web` (`${{web.…}}`) — same DB and sessions |
-| `DEFAULT_TENANT_SLUG` | `iba` |
+| `DEFAULT_TENANT_SLUG` | `demo` (health check; `<iba-host>` resolves to `iba` by domain) |
 | `NEXT_PUBLIC_SITE_URL` | `https://<iba-host>` |
 | `PAYMENT_PROVIDER` / `SMS_PROVIDER` | `mock` |
 | `MEDIA_DIR` | `/data/media` (volume `web-iba-volume` at `/data`; `RAILWAY_RUN_UID=0`) |
-| `PRIVATE_PREVIEW_HOSTS` | `*` |
+| `PRIVATE_PREVIEW_HOSTS` | `<iba-host>` (not `*`: the health check must pass) |
 | `PRIVATE_PREVIEW_USER` | `iba` |
-| `PRIVATE_PREVIEW_PASSWORD` | **set by Farjad** (dashboard → `web-iba` → Variables); send it to the client yourself |
+| `PRIVATE_PREVIEW_PASSWORD` | **set by Farjad** (dashboard → `web-iba` → Variables); send it to the client yourself. Until it is set, `<iba-host>` answers 401 to everyone (fail closed) |
+| `PRIVATE_UPLOADS_DIR` | `/data/submission-files` |
 
 Setup (done by the E-030 session except the password):
 ```bash
 railway add --service web-iba
 railway variables --service web-iba --set 'DATABASE_URL=${{web.DATABASE_URL}}' --set 'PAYLOAD_SECRET=${{web.PAYLOAD_SECRET}}' \
-  --set 'SESSION_SECRET=${{web.SESSION_SECRET}}' --set DEFAULT_TENANT_SLUG=iba --set PAYMENT_PROVIDER=mock --set SMS_PROVIDER=mock \
-  --set MEDIA_DIR=/data/media --set RAILWAY_RUN_UID=0 --set 'PRIVATE_PREVIEW_HOSTS=*' --set PRIVATE_PREVIEW_USER=iba
+  --set 'SESSION_SECRET=${{web.SESSION_SECRET}}' --set DEFAULT_TENANT_SLUG=demo --set PAYMENT_PROVIDER=mock --set SMS_PROVIDER=mock \
+  --set MEDIA_DIR=/data/media --set PRIVATE_UPLOADS_DIR=/data/submission-files --set RAILWAY_RUN_UID=0 \
+  --set PRIVATE_PREVIEW_HOSTS=<iba-host> --set PRIVATE_PREVIEW_USER=iba --set NEXT_PUBLIC_SITE_URL=https://<iba-host>
 railway volume --service <web-iba-service-id> --environment <environment-id> add --mount-path /data
-railway domain --service web-iba                    # → <iba-host>; then set NEXT_PUBLIC_SITE_URL
+railway domain --service web-iba                    # → <iba-host> (create the domain before setting the two vars above)
 railway up --service web-iba --detach               # from the repo root on the E-030 branch (applies the E-030 migration)
 ```
 The E-030 migration adds columns/tables to the shared DB; the older `web` build ignores them.
@@ -133,7 +137,7 @@ steps from *Seed / migrate* (backup first), then:
 cd apps/web
 railway run --service web -- env NODE_ENV=production \
   DATABASE_URL="postgresql://$PGUSER:$PGPASSWORD@<endpoint>/$PGDATABASE" \
-  IBA_MEDIA_API_URL=https://<iba-host> IBA_MEDIA_API_BASIC='iba:<preview password>' \
+  IBA_EXTRA_DOMAINS=<iba-host> IBA_MEDIA_API_URL=https://<iba-host> IBA_MEDIA_API_BASIC='iba:<preview password>' \
   IBA_MEDIA_API_EMAIL=<super-admin email> IBA_MEDIA_API_PASSWORD='<super-admin password>' \
   node_modules/.bin/tsx src/seed/import-iba.ts
 ```
