@@ -44,3 +44,7 @@ reversals that are visible, history kept when the academy turns gamification off
   Move to a job queue if/when one exists.
 - The daily-cap check is read-then-write: two simultaneous actions at the cap edge can exceed it by one award.
 - Refunds/cancellations do not reverse XP yet (PRD open question 8); the reversal path exists.
+
+## Access note (QA-028-03)
+
+Students authenticate with the SMS session, not as Payload users, so the `learning-events` REST endpoint answers them 403. They do not read their own rows through the API; the student UI gets its numbers from server-side queries (`lib/gamificationQueries.ts`), which filter by tenant and user. Only staff with `enrollments.view` (course/cohort scope) can read the ledger over REST; nobody can create, update or delete through it.

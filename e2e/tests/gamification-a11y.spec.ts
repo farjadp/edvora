@@ -39,13 +39,12 @@ async function scan(page: Page, name: string) {
   for (const theme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme: theme })
     await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme)
+    // `transition-colors` elements are mid-fade right after the theme flip; axe would read the in-between colour.
+    await page.waitForTimeout(500)
     const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
     results[`${name} [${theme}]`] = r.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.slice(0, 4).map((n) => `${n.target.join(' ')} :: ${(n.any[0]?.message ?? n.html).slice(0, 140)}`) }))
-    // KNOWN (docs/qa bug QA-028-01): `text-brand` links fail 4.5:1 on the dark surfaces for mid-dark tenant colours
-    // (demo #0f766e = 3.2-3.5:1). Recorded as an annotation, everything else stays strict. Remove when fixed.
-    const known = (v: { id: string }) => theme === 'dark' && v.id === 'color-contrast' && !process.env.AXE_STRICT_DARK
-    const bad = r.violations.filter((v) => (v.impact === 'serious' || v.impact === 'critical') && !known(v))
-    for (const v of r.violations) if (known(v)) test.info().annotations.push({ type: 'known-bug QA-028-01', description: `${name} [dark] ${v.nodes.length} node(s)` })
+    // Strict in both themes (QA-028-01 fixed with the `--brand-text` token).
+    const bad = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
     expect.soft(bad.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(' | ')}`), `${name} [${theme}]`).toEqual([])
   }
 }

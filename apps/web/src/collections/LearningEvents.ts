@@ -21,7 +21,8 @@ export const LearningEvents: CollectionConfig = {
   },
   defaultSort: '-occurredAt',
   access: {
-    // A student reads only their own rows; staff need enrollments.view in the academy (course/cohort scope).
+    // Staff need enrollments.view in the academy (course/cohort scope). Students are not Payload users, so the REST API
+    // answers them 403 (verified, QA-028-03); the student UI reads their own rows through server queries, not this API.
     read: anyOf(ownRecords('user'), allow('enrollments.view', SCOPE)),
     create: nobody,
     update: nobody,
