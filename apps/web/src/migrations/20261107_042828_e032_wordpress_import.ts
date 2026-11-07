@@ -15,9 +15,9 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE TYPE "public"."enum_import_jobs_mode" AS ENUM('push', 'bundle', 'rest', 'wxr');
   CREATE TYPE "public"."enum_import_refs_status" AS ENUM('linked', 'held', 'conflict', 'skipped');
   CREATE TYPE "public"."enum_redirects_source" AS ENUM('wp-import', 'manual');
-  CREATE TYPE "public"."enum_payload_jobs_log_task_slug" AS ENUM('inline', 'importMediaBatch', 'importCommitBatch', 'importPurge');
+  CREATE TYPE "public"."enum_payload_jobs_log_task_slug" AS ENUM('inline', 'importMediaBatch', 'importCommitBatch', 'importSweep', 'importPurge');
   CREATE TYPE "public"."enum_payload_jobs_log_state" AS ENUM('failed', 'succeeded');
-  CREATE TYPE "public"."enum_payload_jobs_task_slug" AS ENUM('inline', 'importMediaBatch', 'importCommitBatch', 'importPurge');
+  CREATE TYPE "public"."enum_payload_jobs_task_slug" AS ENUM('inline', 'importMediaBatch', 'importCommitBatch', 'importSweep', 'importPurge');
   ALTER TYPE "public"."enum_roles_permissions" ADD VALUE 'import.view';
   ALTER TYPE "public"."enum_roles_permissions" ADD VALUE 'import.run';
   CREATE TABLE "import_connections" (
@@ -139,8 +139,16 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"queue" varchar DEFAULT 'default',
   	"wait_until" timestamp(3) with time zone,
   	"processing" boolean DEFAULT false,
+  	"meta" jsonb,
   	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+  );
+  
+  CREATE TABLE "payload_jobs_stats" (
+  	"id" serial PRIMARY KEY NOT NULL,
+  	"stats" jsonb,
+  	"updated_at" timestamp(3) with time zone,
+  	"created_at" timestamp(3) with time zone
   );
   
   ALTER TABLE "users" ADD COLUMN "contact_email" varchar;
@@ -240,6 +248,7 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   ALTER TABLE "redirects" DISABLE ROW LEVEL SECURITY;
   ALTER TABLE "payload_jobs_log" DISABLE ROW LEVEL SECURITY;
   ALTER TABLE "payload_jobs" DISABLE ROW LEVEL SECURITY;
+  ALTER TABLE "payload_jobs_stats" DISABLE ROW LEVEL SECURITY;
   DROP TABLE "import_connections" CASCADE;
   DROP TABLE "import_nonces" CASCADE;
   DROP TABLE "import_jobs" CASCADE;
@@ -247,6 +256,7 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TABLE "redirects" CASCADE;
   DROP TABLE "payload_jobs_log" CASCADE;
   DROP TABLE "payload_jobs" CASCADE;
+  DROP TABLE "payload_jobs_stats" CASCADE;
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_import_connections_fk";
   
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_import_nonces_fk";

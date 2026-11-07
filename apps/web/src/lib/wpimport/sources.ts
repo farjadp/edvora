@@ -42,18 +42,28 @@ export function restSource(config: RestSourceConfig): RestSource {
   return new RestSource(config)
 }
 
-/** Applies admin-entered phones to `wp.user` records (meta `digits_phone`, which the phone picker reads first). */
-export function withPhoneOverrides(source: WordPressSource, overrides: Record<string, string> | undefined): WordPressSource {
-  if (!overrides || Object.keys(overrides).length === 0) return source
+/**
+ * Applies the admin's held-user decisions before planning (mappers stay pure): an entered phone becomes the
+ * highest-priority phone meta (`digits_phone`); a skipped user is left out of the source (their orders/enrollments
+ * are then reported as orphans, never attached to someone else — W8a).
+ */
+export function withPhoneOverrides(source: WordPressSource, overrides: Record<string, string> | undefined, skipUsers: readonly string[] = []): WordPressSource {
+  const skip = new Set(skipUsers)
+  if ((!overrides || Object.keys(overrides).length === 0) && skip.size === 0) return source
   const patch = (r: SourceRecord): SourceRecord => {
-    const phone = r.kind === 'wp.user' ? overrides[r.wpId] : undefined
+    const phone = r.kind === 'wp.user' ? overrides?.[r.wpId] : undefined
     return phone ? { ...r, meta: { ...(r.meta ?? {}), digits_phone: phone } } : r
   }
   return {
-    manifest: () => source.manifest(),
+    // Skipped users are not "missing": the manifest count follows, so the completeness check stays meaningful.
+    manifest: async () => {
+      const m = await source.manifest()
+      const n = m.counts['wp.user']
+      return skip.size && n !== undefined ? { ...m, counts: { ...m.counts, 'wp.user': Math.max(0, n - skip.size) } } : m
+    },
     read: async (kind: string, cursor: string | null, limit: number): Promise<ReadResult> => {
       const page = await source.read(kind, cursor, limit)
-      return kind === 'wp.user' ? { ...page, records: page.records.map(patch) } : page
+      return kind === 'wp.user' ? { ...page, records: page.records.filter((r) => !skip.has(r.wpId)).map(patch) } : page
     },
     missingKinds: source.missingKinds ? () => source.missingKinds!() : undefined,
   }

@@ -25,10 +25,14 @@ import { bundleSource, pushedSource, restSource, withPhoneOverrides } from './so
 import { newStoredName, removeStored, writeStored } from './storage'
 import { buildReport, type ImportReport } from './report'
 import { IMPORT_QUEUE } from './constants'
+import { revokeJobConnection } from './commit'
 
 export { IMPORT_QUEUE }
 
 export const RUNNING: readonly ImportJob['status'][] = ['media', 'committing']
+export const REPLANNABLE: readonly ImportJob['status'][] = ['awaiting-confirm', 'done', 'failed', 'cancelled']
+/** States a job can be cancelled from (W7p). */
+export const CANCELLABLE: readonly ImportJob['status'][] = ['draft', 'ingesting', 'ready', 'dry-run', 'awaiting-confirm', 'media', 'committing', 'failed']
 export const MAX_BUNDLE_BYTES = Number(process.env.IMPORT_MAX_BUNDLE_MB ?? 100) * 1024 * 1024
 
 export type Tenant = { id: number; slug: string }
@@ -295,7 +299,7 @@ export async function openJobSource(payload: Payload, tenant: Tenant, job: Impor
     if (!cfg) throw new BundleError('empty', 'REST credentials were wiped')
     source = restSource({ ...cfg, tenantSlug: tenant.slug, allowLoopback: process.env.NODE_ENV !== 'production' })
   } else throw new BundleError('empty', `Unsupported mode ${full.mode}`)
-  return withPhoneOverrides(source, choicesOf(full).phoneOverrides)
+  return withPhoneOverrides(source, choicesOf(full).phoneOverrides, choicesOf(full).skipUsers)
 }
 
 // ---------------------------------------------------------------- dry run
@@ -359,7 +363,10 @@ export async function runDryRun(i: { payload: Payload; tenant: Tenant; jobId: nu
 export async function updateChoices(i: { payload: Payload; tenant: Tenant; actor: { id: number; email?: string | null }; jobId: number; patch: (c: JobChoices) => JobChoices }): Promise<ImportJob | ServiceError> {
   const job = await findJob(i.payload, i.tenant.id, i.jobId)
   if (!job) return fail('not_found', 'این انتقال پیدا نشد.')
-  if (job.status !== 'awaiting-confirm') return fail('state', 'این انتقال دیگر قابل تغییر نیست.')
+  // After a finished, failed or cancelled run the same job can be planned again (re-run, W17/W23 linking),
+  // as long as its raw data was not purged.
+  if (!REPLANNABLE.includes(job.status)) return fail('state', 'این انتقال دیگر قابل تغییر نیست.')
+  if (job.purgedAt) return fail('purged', 'دادهٔ خام این انتقال حذف شده است؛ فایل را دوباره بارگذاری کنید.')
   const choices = i.patch(choicesOf(job))
   await i.payload.update({ collection: 'import-jobs', id: job.id, overrideAccess: true, data: { choices: choices as Record<string, unknown> } })
   return runDryRun({ payload: i.payload, tenant: i.tenant, jobId: job.id, actor: i.actor })
@@ -411,6 +418,8 @@ export async function confirmJob(i: { payload: Payload; tenant: Tenant; actor: {
     await removeStored(planFile)
     return fail('state', 'این انتقال هم‌اکنون توسط کس دیگری اجرا شده است.')
   }
+  // A re-run of a finished job replaces its previous plan file (raw data stays until purge).
+  if (job.planFile && job.planFile !== planFile) await removeStored(job.planFile).catch(() => undefined)
   const now = new Date().toISOString()
   const mediaTotal = plan.mediaToPull.length
   const recordTotal = Object.entries(plan.drafts).reduce((n, [c, list]) => (c === 'media' ? n : n + list.length), 0)
@@ -440,4 +449,47 @@ export async function kickQueue(payload: Payload): Promise<void> {
   } catch (err) {
     payload.logger.error({ err, msg: 'import queue run failed' })
   }
+}
+
+// ---------------------------------------------------------------- cancel / resume (W7p, W18)
+
+/**
+ * Cancel: the job stops after the current batch (tasks re-check the status), whatever was written stays, nothing is
+ * deleted, the connection is revoked. Raw data is kept for the retention period so the run can be resumed.
+ */
+export async function cancelJob(i: { payload: Payload; tenant: Tenant; actor: { id: number; email?: string | null }; jobId: number }): Promise<{ ok: true } | ServiceError> {
+  const job = await findJob(i.payload, i.tenant.id, i.jobId)
+  if (!job) return fail('not_found', 'این انتقال پیدا نشد.')
+  if (!CANCELLABLE.includes(job.status)) return fail('state', 'این انتقال قابل لغو نیست.')
+  if (!(await claimStatus(i.payload, job.id, job.status, 'cancelled'))) return fail('state', 'وضعیت انتقال همین حالا تغییر کرد؛ صفحه را تازه کنید.')
+  await i.payload.update({ collection: 'import-jobs', id: job.id, overrideAccess: true, data: { error: null, purgeAfter: new Date(Date.now() + 30 * 86400_000).toISOString() } })
+  await revokeJobConnection(i.payload, job, i.tenant.id, 'cancelled')
+  await auditImport(i.payload, { tenant: i.tenant.id, actor: i.actor, action: 'import.cancel', collection: 'import-jobs', docId: job.id, note: `from ${job.status}` })
+  return { ok: true }
+}
+
+/**
+ * Resume a failed or cancelled run from its saved cursor (refs make re-running a batch safe). A job that failed or
+ * was cancelled before confirm is planned again instead.
+ */
+export async function resumeJob(i: { payload: Payload; tenant: Tenant; actor: { id: number; email?: string | null }; jobId: number }): Promise<{ ok: true; queued: boolean } | ServiceError> {
+  const { payload, tenant } = i
+  const job = await findJob(payload, tenant.id, i.jobId, true)
+  if (!job) return fail('not_found', 'این انتقال پیدا نشد.')
+  if (job.status !== 'failed' && job.status !== 'cancelled') return fail('state', 'فقط انتقال ناموفق یا لغوشده ادامه داده می‌شود.')
+  if (job.purgedAt) return fail('purged', 'دادهٔ خام این انتقال حذف شده است؛ فایل را دوباره بارگذاری کنید.')
+  const busy = await payload.count({ collection: 'import-jobs', where: { and: [{ tenant: { equals: tenant.id } }, { status: { in: [...RUNNING] } }, { id: { not_equals: job.id } }] }, overrideAccess: true })
+  if (busy.totalDocs > 0) return fail('busy', 'یک انتقال دیگر در این آکادمی در حال اجراست؛ پس از پایان آن دوباره تلاش کنید.')
+  if (!job.planFile) {
+    // Never confirmed: plan again (the admin reviews and confirms as usual).
+    await runDryRun({ payload, tenant, jobId: job.id, actor: i.actor })
+    await auditImport(payload, { tenant: tenant.id, actor: i.actor, action: 'import.resume', collection: 'import-jobs', docId: job.id, note: 'replan' })
+    return { ok: true, queued: false }
+  }
+  const phase = (job.progress as { phase?: string } | null)?.phase === 'media' ? 'media' : 'committing'
+  if (!(await claimStatus(payload, job.id, job.status, phase))) return fail('state', 'وضعیت انتقال همین حالا تغییر کرد؛ صفحه را تازه کنید.')
+  await payload.update({ collection: 'import-jobs', id: job.id, overrideAccess: true, data: { error: null, purgeAfter: null } })
+  await payload.jobs.queue({ task: phase === 'media' ? 'importMediaBatch' : 'importCommitBatch', input: { jobId: job.id, tenantId: tenant.id }, queue: IMPORT_QUEUE })
+  await auditImport(payload, { tenant: tenant.id, actor: i.actor, action: 'import.resume', collection: 'import-jobs', docId: job.id, note: phase })
+  return { ok: true, queued: true }
 }

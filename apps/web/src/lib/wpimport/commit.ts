@@ -59,6 +59,11 @@ export async function loadJobForTask(payload: Payload, jobId: number, tenantId: 
   return { job, tenant: { id: tenant.id, slug: tenant.slug } }
 }
 
+async function stillStatus(payload: Payload, jobId: number, status: ImportJob['status']): Promise<boolean> {
+  const res = await payload.find({ collection: 'import-jobs', where: { id: { equals: jobId } }, limit: 1, depth: 0, overrideAccess: true, select: { status: true } })
+  return res.docs[0]?.status === status
+}
+
 async function loadPlan(job: ImportJob): Promise<ImportPlan> {
   if (!job.planFile) throw new Error('Plan file missing')
   return JSON.parse((await readStored(job.planFile)).toString('utf8')) as ImportPlan
@@ -120,6 +125,7 @@ export async function runMediaPhase(payload: Payload, jobId: number, tenantId: n
   const list = plan.mediaToPull
 
   while (cursors.media < list.length && Date.now() < deadline) {
+    if (cursors.media % 10 === 0 && !(await stillStatus(payload, job.id, 'media'))) return false
     const m = list[cursors.media]!
     cursors.media++
     const d = drafts.get(m.refKey)
@@ -373,6 +379,8 @@ export async function runRecordsPhase(payload: Payload, jobId: number, tenantId:
   const cursors = cursorsOf(job)
 
   while (cursors.records < list.length && Date.now() < deadline) {
+    // Cancel (W7p) stops after the current batch: re-check the status between batches.
+    if (!(await stillStatus(payload, job.id, 'committing'))) return false
     const batch = list.slice(cursors.records, cursors.records + COMMIT_BATCH)
     const req = await systemReq(payload)
     await initTransaction(req)
@@ -423,10 +431,69 @@ async function finishJob(payload: Payload, job: ImportJob, tenant: Tenant, summa
     data: { tenant: tenant.id, actor: idOf(job.confirmedBy), action: 'import.commit', targetCollection: 'import-jobs', docId: String(job.id), changes: { counts: summary.counts, failures: summary.failures.length, conflicts: summary.conflicts.length }, note: null },
   })
   await payload.jobs.queue({ task: 'importPurge', input: { jobId: job.id, tenantId: tenant.id }, queue: 'wpimport', waitUntil: purgeAfter })
+  await revokeJobConnection(payload, job, tenant.id, 'done')
+}
+
+/** W19 / QA-E032-08: the one-time connection stops working once its import is done or cancelled. */
+export async function revokeJobConnection(payload: Payload, job: Pick<ImportJob, 'id' | 'connection'>, tenantId: number, why: string): Promise<void> {
+  const connId = idOf(job.connection)
+  if (!connId) return
+  const res = await payload.find({ collection: 'import-connections', where: { and: [{ id: { equals: connId } }, { tenant: { equals: tenantId } }] }, limit: 1, depth: 0, overrideAccess: true })
+  const c = res.docs[0]
+  if (!c || c.revokedAt) return
+  await payload.update({ collection: 'import-connections', id: c.id, overrideAccess: true, data: { revokedAt: new Date().toISOString() } })
+  await payload.create({
+    collection: 'audit-logs',
+    overrideAccess: true,
+    data: { tenant: tenantId, actor: null, action: 'import.connection.revoke', targetCollection: 'import-connections', docId: String(c.id), changes: {}, note: `auto: job ${job.id} ${why}` },
+  })
+}
+
+const DAY = 86400_000
+const OPEN: readonly ImportJob['status'][] = ['ingesting', 'ready', 'dry-run', 'awaiting-confirm']
+
+/**
+ * Retention sweep (W21, QA-E032-07), scheduled daily: raw bundles, pushed chunks, plan files, sealed REST credentials
+ * and held PII of jobs that never reached `done` are purged too — failed/cancelled/rejected after 30 days, jobs left
+ * waiting (ingesting … awaiting-confirm) after 30 days without activity (they become `cancelled`), untouched drafts
+ * after 7 days. `done` jobs past `purgeAfter` are caught here if their own purge task was lost.
+ */
+export async function sweepImports(payload: Payload, now = new Date()): Promise<number> {
+  const before = (days: number) => new Date(now.getTime() - days * DAY).toISOString()
+  const res = await payload.find({
+    collection: 'import-jobs',
+    where: {
+      and: [
+        { purgedAt: { exists: false } },
+        {
+          or: [
+            { and: [{ status: { in: ['failed', 'cancelled', 'rejected'] } }, { updatedAt: { less_than: before(RETENTION_DAYS) } }] },
+            { and: [{ status: { in: [...OPEN] } }, { updatedAt: { less_than: before(RETENTION_DAYS) } }] },
+            { and: [{ status: { equals: 'draft' } }, { updatedAt: { less_than: before(7) } }] },
+            { and: [{ status: { equals: 'done' } }, { purgeAfter: { less_than: now.toISOString() } }] },
+          ],
+        },
+      ],
+    },
+    limit: 200,
+    depth: 0,
+    overrideAccess: true,
+  })
+  let n = 0
+  for (const job of res.docs) {
+    const tenantId = idOf(job.tenant)
+    if (!tenantId) continue
+    if (OPEN.includes(job.status) || job.status === 'draft') {
+      await payload.update({ collection: 'import-jobs', id: job.id, overrideAccess: true, data: { status: 'cancelled', error: 'abandoned: no activity, raw data purged' } })
+      await revokeJobConnection(payload, job, tenantId, 'abandoned')
+    }
+    if (await purgeJob(payload, job.id, tenantId, { force: true, note: 'retention' })) n++
+  }
+  return n
 }
 
 /** Raw data purge (W21): bundle/chunks/plan file and held PII. Report, counts and refs (without PII) stay. */
-export async function purgeJob(payload: Payload, jobId: number, tenantId: number, opts: { force?: boolean; actor?: { id: number; email?: string | null } | null } = {}): Promise<boolean> {
+export async function purgeJob(payload: Payload, jobId: number, tenantId: number, opts: { force?: boolean; note?: string; actor?: { id: number; email?: string | null } | null } = {}): Promise<boolean> {
   const loaded = await loadJobForTask(payload, jobId, tenantId)
   if (!loaded) return false
   const { job } = loaded
@@ -442,7 +509,7 @@ export async function purgeJob(payload: Payload, jobId: number, tenantId: number
   await payload.create({
     collection: 'audit-logs',
     overrideAccess: true,
-    data: { tenant: tenantId, actor: opts.actor?.id ?? null, actorEmail: opts.actor?.email ?? null, action: 'import.purge', targetCollection: 'import-jobs', docId: String(job.id), changes: {}, note: opts.force ? 'manual' : 'retention' },
+    data: { tenant: tenantId, actor: opts.actor?.id ?? null, actorEmail: opts.actor?.email ?? null, action: 'import.purge', targetCollection: 'import-jobs', docId: String(job.id), changes: {}, note: opts.note ?? (opts.force ? 'manual' : 'retention') },
   })
   return true
 }

@@ -6,3 +6,5 @@ export const COMMIT_BATCH = 200
 export const TASK_BUDGET_MS = 20_000
 /** Raw bundles, pushed chunks, plan files and held PII are purged this long after the job finished. */
 export const RETENTION_DAYS = 30
+/** Lead source page used for W23 "I bought on the old site" requests from the student dashboard. */
+export const IMPORT_CLAIM_PAGE = 'import-claim'

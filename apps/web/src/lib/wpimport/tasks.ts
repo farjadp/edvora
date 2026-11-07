@@ -5,7 +5,7 @@
  */
 import type { Payload, TaskConfig } from 'payload'
 import { IMPORT_QUEUE, TASK_BUDGET_MS } from './constants'
-import { purgeJob, runMediaPhase, runRecordsPhase } from './commit'
+import { purgeJob, runMediaPhase, runRecordsPhase, sweepImports } from './commit'
 
 export { IMPORT_QUEUE }
 
@@ -56,6 +56,17 @@ export const importTasks: TaskConfig[] = [
       return { output: {} }
     },
     onFail: async ({ input: raw, req }) => markFailed(req.payload, (raw ?? {}) as Partial<Input>, 'commit failed; resume re-runs from the last saved batch'),
+  },
+  {
+    // Daily retention sweep for jobs that never reached `done` (QA-E032-07).
+    slug: 'importSweep',
+    label: 'WordPress import: retention sweep',
+    retries: 1,
+    schedule: [{ cron: process.env.IMPORT_SWEEP_CRON || '17 3 * * *', queue: IMPORT_QUEUE }],
+    handler: async ({ req }) => {
+      await sweepImports(req.payload)
+      return { output: {} }
+    },
   },
   {
     slug: 'importPurge',

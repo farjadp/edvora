@@ -10037,6 +10037,12 @@
           "notNull": false,
           "default": false
         },
+        "meta": {
+          "name": "meta",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp(3) with time zone",
@@ -11627,6 +11633,43 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.payload_jobs_stats": {
+      "name": "payload_jobs_stats",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "stats": {
+          "name": "stats",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -12065,6 +12108,7 @@
         "inline",
         "importMediaBatch",
         "importCommitBatch",
+        "importSweep",
         "importPurge"
       ]
     },
@@ -12083,6 +12127,7 @@
         "inline",
         "importMediaBatch",
         "importCommitBatch",
+        "importSweep",
         "importPurge"
       ]
     }
@@ -12097,6 +12142,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "d3beed31-a754-4163-a20c-cf5b3872bd18",
+  "id": "4f90d86d-56b7-4691-a300-a27f850ac576",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

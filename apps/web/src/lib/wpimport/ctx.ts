@@ -28,6 +28,8 @@ export type JobChoices = {
   approvedHosts?: string[]
   /** WP user id → phone the admin entered for a held user. */
   phoneOverrides?: Record<string, string>
+  /** WP user ids the admin chose not to import (W8a "skip"). */
+  skipUsers?: string[]
 }
 
 const refMapKey = (kind: string, wpId: string) => `${kind}\u0000${wpId}`
