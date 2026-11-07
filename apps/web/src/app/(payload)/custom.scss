@@ -421,6 +421,17 @@ h4 {
   color: var(--ed-muted);
 }
 
+/* A long record title must not push the header tools (and the whole page) wider than a 375px phone: let the
+   breadcrumb shrink and clip instead of overflowing. */
+.app-header__step-nav-wrapper,
+.app-header__step-nav,
+.step-nav {
+  min-inline-size: 0;
+}
+.step-nav {
+  overflow: hidden;
+}
+
 .step-nav__last {
   color: var(--ed-ink);
   font-weight: 700;
