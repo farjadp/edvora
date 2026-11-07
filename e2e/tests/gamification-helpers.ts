@@ -56,7 +56,7 @@ export async function startQuiz(page: Page): Promise<void> {
   await page.goto(COURSE)
   await page.locator('a[href*="/quiz/"]', { hasText: QUIZ }).first().click()
   await page.waitForURL(/\/learn\/demo-program\/quiz\/\d+$/)
-  await page.getByRole('button', { name: 'شروع آزمون' }).click()
+  await page.getByRole('button', { name: /^(شروع آزمون|شروع تلاش)/ }).click()
   await expect(page.getByRole('button', { name: 'ارسال پاسخ‌ها' })).toBeVisible()
 }
 
@@ -89,7 +89,7 @@ export async function failQuiz(page: Page): Promise<void> {
 export async function dangerColoured(page: Page, rootSelector: string): Promise<string[]> {
   return page.evaluate((sel) => {
     const probe = document.createElement('span')
-    probe.style.color = 'var(--color-danger)'
+    probe.style.color = 'var(--danger)'
     document.body.appendChild(probe)
     const danger = getComputedStyle(probe).color
     probe.remove()
@@ -121,4 +121,19 @@ export function ledgerEvent(phone: string, daysAgo: number, sourceId: string): v
 export async function patchOk(api: APIRequestContext, url: string, data: unknown): Promise<void> {
   const res = await api.patch(url, { data })
   expect(res.ok(), `${url} ${await res.text()}`).toBeTruthy()
+}
+
+/**
+ * A fresh student with real activity (quiz passed first try, two lessons marked): 40 XP, badges, a week in progress.
+ * Fresh because the OTP endpoint is rate-limited per phone, so the seeded accounts cannot be logged into on every run.
+ */
+export async function activeStudent(page: Page, phone: string): Promise<void> {
+  await enrolFresh(page, phone)
+  await startQuiz(page)
+  await passQuiz(page)
+  for (const title of ['تحلیل بازار', 'منابع تکمیلی']) {
+    await openLesson(page, title)
+    await page.getByRole('button', { name: 'علامت‌گذاری به‌عنوان دیده‌شده' }).click()
+    await expect(page.getByRole('button', { name: '✓ دیده شد' })).toBeDisabled()
+  }
 }

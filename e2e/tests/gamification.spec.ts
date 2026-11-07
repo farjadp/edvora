@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { DEMO, fakePhone } from './helpers'
-import { COURSE, dangerColoured, dashboardNumbers, enrolFresh, failQuiz, ledgerEvent, loginAny, openLesson, passQuiz, patchOk, repoRoot, reseed, startQuiz } from './gamification-helpers'
+import { COURSE, activeStudent, dangerColoured, dashboardNumbers, enrolFresh, failQuiz, ledgerEvent, openLesson, passQuiz, patchOk, repoRoot, reseed, startQuiz } from './gamification-helpers'
 import { adminCreds, apiAs, tenantId } from './staff-helpers'
 
 /**
@@ -199,7 +199,7 @@ test.describe('4. gamification OFF layout', () => {
     tid = await tenantId(admin, 'demo')
     const t = (await (await admin.get(`/api/tenants/${tid}?depth=0`)).json()) as { gamification: Record<string, unknown> }
     originalGroup = t.gamification
-    await loginAny(page, DEMO, '09129990002')
+    await activeStudent(page, fakePhone())
     await page.goto(`${DEMO}/dashboard`)
     const on = page.getByTestId('dashboard')
     await expect(on).toHaveAttribute('data-layout', 'seal')
@@ -214,7 +214,7 @@ test.describe('4. gamification OFF layout', () => {
     for (const id of ['xp-total', 'level', 'badge-list', 'badges-empty', 'week-rhythm', 'week-section', 'streak-weeks', 'celebration']) {
       await expect(page.getByTestId(id), id).toHaveCount(0)
     }
-    await expect(page.getByTestId('course-ring').first()).toBeVisible() // progress and path remain
+    await expect(page.getByTestId('continue-card').locator('progress')).toBeVisible() // plain bar, progress and path remain
     await expect(page.getByTestId('certificate-path-section').first()).toBeVisible()
     const text = await page.getByTestId('dashboard').innerText()
     expect(text).not.toMatch(/امتیاز|هفتهٔ پیاپی|نشان/)

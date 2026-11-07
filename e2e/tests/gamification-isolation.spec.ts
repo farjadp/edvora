@@ -1,7 +1,7 @@
 import { expect, test, type APIRequestContext, type BrowserContext } from '@playwright/test'
 import { DEMO, IBA, fakePhone } from './helpers'
 import { enrolFresh } from './gamification-helpers'
-import { adminCreds, apiAs, createStaff } from './staff-helpers'
+import { adminCreds, apiAs, createStaff, tenantId } from './staff-helpers'
 
 /** E-028 T2 / G1.4: the learning ledger is tenant-scoped, readable only by its owner (or scoped staff), and never writable. */
 test.describe.configure({ mode: 'serial' })
@@ -10,8 +10,8 @@ type Event = { id: number; user: number | { id: number }; tenant?: number | { id
 const uid = (u: Event['user']) => (typeof u === 'object' ? u.id : u)
 
 async function tokenOf(ctx: BrowserContext): Promise<string> {
-  const cookie = (await ctx.cookies()).find((c) => c.name === 'payload-token')
-  expect(cookie, 'session cookie').toBeTruthy()
+  const cookie = (await ctx.cookies()).find((c) => c.name === 'edvora_session')
+  expect(cookie, 'session cookie among: ' + (await ctx.cookies()).map((c) => c.name + '@' + c.domain).join(',')).toBeTruthy()
   return cookie!.value
 }
 
@@ -53,23 +53,33 @@ test('students see only their own rows; a demo token reads nothing on iba; nobod
     await expect(p.getByRole('button', { name: '✓ دیده شد' })).toBeDisabled()
   }
 
-  const own = await a.request.get(`${DEMO}/api/learning-events?limit=100&depth=0`)
-  expect(own.status()).toBe(200)
-  const ownDocs = ((await own.json()) as { docs: Event[] }).docs
-  expect(ownDocs.length).toBeGreaterThan(0)
-  const meA = (await (await a.request.get(`${DEMO}/api/users/me`)).json()) as { user: { id: number } }
-  for (const d of ownDocs) expect(uid(d.user)).toBe(meA.user.id)
-
+  // Students have no REST read at all (every /api collection answers 403 to them); if that ever opens up to
+  // "own rows", the list must contain only their own rows. Row ids come from the super admin.
+  const idsOf = async (phone: string) => {
+    const u = (await (await admin.get(`/api/users?where[phone][equals]=${phone}&depth=0`)).json()) as { docs: { id: number }[] }
+    return u.docs[0]!.id
+  }
+  const userA = await idsOf(phoneA)
+  const userB = await idsOf(phoneB)
+  const rowsA = ((await (await admin.get(`/api/learning-events?where[user][equals]=${userA}&limit=50&depth=0`)).json()) as { docs: Event[] }).docs
+  expect(rowsA.length).toBeGreaterThan(0)
+  const target = rowsA[0]!
+  const meA = { user: { id: userA } }
+  for (const [who, page, self] of [['A', a, userA], ['B', b, userB]] as const) {
+    const list = await page.request.get(`${DEMO}/api/learning-events?limit=100&depth=0`)
+    if (list.status() === 200) for (const d of ((await list.json()) as { docs: Event[] }).docs) expect(uid(d.user), `student ${who} list`).toBe(self)
+    else expect(list.status(), `student ${who} list`).toBe(403)
+  }
   // Student B cannot read A's row by id or by filter.
-  const target = ownDocs[0]!
   const peek = await b.request.get(`${DEMO}/api/learning-events/${target.id}?depth=0`)
   expect([403, 404]).toContain(peek.status())
-  const filtered = await b.request.get(`${DEMO}/api/learning-events?where[user][equals]=${meA.user.id}&depth=0`)
-  expect(((await filtered.json()) as { docs: unknown[] }).docs ?? []).toEqual([])
+  const filtered = await b.request.get(`${DEMO}/api/learning-events?where[user][equals]=${userA}&depth=0`)
+  if (filtered.status() === 200) expect(((await filtered.json()) as { docs: unknown[] }).docs).toEqual([])
+  else expect(filtered.status()).toBe(403)
 
   // Student A's token presented to the iba host: no rows, no iba data.
   const tokenA = await tokenOf(aCtx)
-  const onIba = await playwright.request.newContext({ baseURL: IBA, extraHTTPHeaders: { Authorization: `JWT ${tokenA}` } })
+  const onIba = await playwright.request.newContext({ baseURL: IBA, extraHTTPHeaders: { Cookie: `edvora_session=${tokenA}` } })
   const cross = await onIba.get('/api/learning-events?limit=100&depth=0')
   if (cross.status() === 200) expect(((await cross.json()) as { docs: unknown[] }).docs).toEqual([])
   else expect([401, 403]).toContain(cross.status())
@@ -92,19 +102,30 @@ test('students see only their own rows; a demo token reads nothing on iba; nobod
     expect([403, 404], `${who} delete`).toContain(del.status())
     if (who !== 'student') expect(del.status(), `${who} delete`).toBe(403)
   }
-  const still = await a.request.get(`${DEMO}/api/learning-events/${target.id}?depth=0`)
+  const still = await admin.get(`/api/learning-events/${target.id}?depth=0`)
   expect(still.status()).toBe(200)
   expect(((await still.json()) as { xp: number }).xp).not.toBe(999)
 
   // A demo academy admin on the iba host: nothing.
   const tokenAdmin = ((await academyAdmin.storageState()).cookies.find((c) => c.name === 'payload-token') ?? { value: '' }).value
-  const adminOnIba = await playwright.request.newContext({ baseURL: IBA, extraHTTPHeaders: { Authorization: `JWT ${tokenAdmin}` } })
-  const adminCross = await adminOnIba.get('/api/learning-events?limit=100&depth=0')
-  if (adminCross.status() === 200) expect(((await adminCross.json()) as { docs: unknown[] }).docs).toEqual([])
-  else expect([401, 403]).toContain(adminCross.status())
-  // Demo's rows do not leak through the demo admin's own list as iba rows either: every row is demo's.
+  const adminOnIba = await playwright.request.newContext({ baseURL: IBA, extraHTTPHeaders: { Cookie: `payload-token=${tokenAdmin}` } })
+  // The REST API is scoped by membership, not by Host: a demo admin's cookie on the iba host still sees only demo rows.
+  const demoId = await tenantId(admin, 'demo')
+  const tenantOf = (d: Event) => (typeof d.tenant === 'object' ? d.tenant.id : d.tenant)
+  const adminCross = await adminOnIba.get('/api/learning-events?limit=200&depth=0')
+  expect([200, 401, 403]).toContain(adminCross.status())
+  if (adminCross.status() === 200) for (const d of ((await adminCross.json()) as { docs: Event[] }).docs) expect(tenantOf(d)).toBe(demoId)
   const adminList = await academyAdmin.get(`${DEMO}/api/learning-events?limit=200&depth=0`)
   expect(adminList.status()).toBe(200)
+  for (const d of ((await adminList.json()) as { docs: Event[] }).docs) expect(tenantOf(d)).toBe(demoId)
+  // Rows of the other academy exist only if iba students have activity; when they do, none reach the demo admin.
+  const ibaId = await tenantId(admin, 'iba')
+  const ibaRows = ((await (await admin.get(`/api/learning-events?where[tenant][equals]=${ibaId}&limit=5&depth=0`)).json()) as { docs: Event[] }).docs
+  test.info().annotations.push({ type: 'iba ledger rows (super-admin view)', description: String(ibaRows.length) })
+  for (const r of ibaRows) {
+    const peekIba = await academyAdmin.get(`${DEMO}/api/learning-events/${r.id}?depth=0`)
+    expect([403, 404]).toContain(peekIba.status())
+  }
   await adminOnIba.dispose()
   await academyAdmin.dispose()
   await aCtx.close()
