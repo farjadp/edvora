@@ -41,7 +41,7 @@ export default async function PostPage({ params }: Props) {
       <p className="mt-3 text-sm text-muted">{[post.author, post.publishedAt ? formatJalali(post.publishedAt) : null].filter(Boolean).join(' · ')}</p>
       {src ? <img src={src} alt={cover?.alt ?? ''} className="mt-8 aspect-video w-full rounded-3xl object-cover" /> : null}
       <div className="mt-6">
-        <RichText data={post.body} />
+        <RichText data={post.body} tenantId={tenant.id} />
       </div>
     </article>
   )

@@ -37,7 +37,7 @@ export default async function ContentPage({ params }: Props) {
       {page.intro ? <p className="mt-4 whitespace-pre-line text-lg leading-9 text-muted">{page.intro}</p> : null}
       {src ? <img src={src} alt={cover?.alt ?? ''} className="mt-8 w-full rounded-3xl object-cover" /> : null}
       <div className="mt-4">
-        <RichText data={page.body} />
+        <RichText data={page.body} tenantId={tenant.id} />
       </div>
       {page.slug === 'contact' && (tenant.contact?.phone || tenant.contact?.email || tenant.contact?.address) ? (
         <dl className="mt-8 grid gap-4 rounded-2xl border border-line bg-surface p-6 text-sm">
@@ -70,7 +70,9 @@ export default async function ContentPage({ params }: Props) {
                 <span className="me-2 hidden text-brand group-open:inline">−</span>
                 {f.question}
               </summary>
-              <p className="mt-3 whitespace-pre-line leading-8 text-muted">{f.answer}</p>
+              <div className="mt-3 text-muted">
+                <RichText data={f.answer} tenantId={tenant.id} />
+              </div>
             </details>
           ))}
         </section>

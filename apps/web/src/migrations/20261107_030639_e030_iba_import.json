@@ -553,7 +553,7 @@
         },
         "manifesto": {
           "name": "manifesto",
-          "type": "varchar",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -1158,7 +1158,7 @@
         },
         "public_profile_bio": {
           "name": "public_profile_bio",
-          "type": "varchar",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -2588,7 +2588,7 @@
         },
         "description": {
           "name": "description",
-          "type": "varchar",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -2804,7 +2804,7 @@
         },
         "answer": {
           "name": "answer",
-          "type": "varchar",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         }
@@ -3463,7 +3463,7 @@
         },
         "notes": {
           "name": "notes",
-          "type": "varchar",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -4346,7 +4346,7 @@
         },
         "explanation": {
           "name": "explanation",
-          "type": "varchar",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -4643,7 +4643,7 @@
         },
         "description": {
           "name": "description",
-          "type": "varchar",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -5287,7 +5287,7 @@
         },
         "description": {
           "name": "description",
-          "type": "varchar",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -5740,7 +5740,7 @@
         },
         "feedback": {
           "name": "feedback",
-          "type": "varchar",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -8179,7 +8179,7 @@
         },
         "answer": {
           "name": "answer",
-          "type": "varchar",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         }
@@ -10557,6 +10557,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "d2f8d1a0-a57c-4057-b3a4-14a64a618453",
+  "id": "eeabce63-34ed-428c-bfc4-d17bb4087e3c",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

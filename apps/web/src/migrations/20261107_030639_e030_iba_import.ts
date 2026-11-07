@@ -1,6 +1,39 @@
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
+import { toLexical } from '@edvora/core/richtext'
+
+/**
+ * E-030: imported-content fields (sourceUrl, staff-only pendingClaims, testimonial consent/sort, contact address)
+ * and the tenant-owned `pages` collection.
+ *
+ * Re-created after E-031 (rich text). An earlier version of this migration (20261106_224247_e030_iba_import) already
+ * ran on the shared Railway DB from the `web-iba` preview. In that case its tables exist, so `up` only brings them in
+ * line with E-031 — `pages_faq.answer` varchar → Lexical jsonb — and drops the old migration's row.
+ */
+const OLD = '20261106_224247_e030_iba_import'
+
+async function reconcileOld(db: MigrateUpArgs['db']): Promise<boolean> {
+  const exists = await db.execute(sql`SELECT to_regclass('pages') IS NOT NULL AS ok`)
+  if (!(exists.rows[0] as { ok?: boolean } | undefined)?.ok) return false
+  const col = await db.execute(
+    sql`SELECT data_type FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'pages_faq' AND column_name = 'answer'`,
+  )
+  if ((col.rows[0] as { data_type?: string } | undefined)?.data_type !== 'jsonb') {
+    await db.execute(sql`ALTER TABLE "pages_faq" ALTER COLUMN "answer" SET DATA TYPE jsonb USING to_jsonb("answer")`)
+    const rows = (await db.execute(sql`SELECT "id", "answer" AS value FROM "pages_faq" WHERE jsonb_typeof("answer") = 'string'`)).rows as {
+      id: string
+      value: unknown
+    }[]
+    for (const r of rows) {
+      const doc = toLexical(r.value)
+      await db.execute(sql`UPDATE "pages_faq" SET "answer" = ${JSON.stringify(doc)}::jsonb WHERE "id" = ${r.id}`)
+    }
+  }
+  await db.execute(sql`DELETE FROM "payload_migrations" WHERE "name" = ${OLD}`)
+  return true
+}
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
+  if (await reconcileOld(db)) return
   await db.execute(sql`
    CREATE TYPE "public"."enum_pages_status" AS ENUM('draft', 'published');
   CREATE TABLE "courses_pending_claims" (
@@ -17,7 +50,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"_parent_id" integer NOT NULL,
   	"id" varchar PRIMARY KEY NOT NULL,
   	"question" varchar NOT NULL,
-  	"answer" varchar NOT NULL
+  	"answer" jsonb NOT NULL
   );
   
   CREATE TABLE "pages" (

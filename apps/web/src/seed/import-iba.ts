@@ -25,6 +25,7 @@
  *                       Needed when the import runs on your machine against a remote database.
  */
 import { toLatinDigits } from '@edvora/core/digits'
+import { toLexical } from '@edvora/core/richtext'
 import { cleanPersianLine, cleanPersianText } from '@edvora/core/persian'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -218,9 +219,10 @@ async function main() {
       audience: c.audience.map((a) => ({ title: cleanPersianLine(a.title), text: a.text ? cleanPersianText(a.text) : null })),
       outcomes: c.outcomes.map((o) => ({ text: cleanPersianLine(o.text) })),
       // brand-story: the old page carries Heroic Journey II's syllabus (copy-paste on the source) — TODO(client).
-      syllabus: (c.slug === 'brand-story' ? [] : c.syllabus).map((s) => ({ title: cleanPersianLine(s.title), description: s.description ? cleanPersianText(s.description) : null, hours: s.hours ?? null })),
+      syllabus: (c.slug === 'brand-story' ? [] : c.syllabus).map((s) => ({ title: cleanPersianLine(s.title), description: s.description ? toLexical(cleanPersianText(s.description)) : null, hours: s.hours ?? null })),
       faculty: courseFaculty,
-      faq: [...c.faq.map((f) => ({ question: cleanPersianLine(f.question), answer: cleanPersianText(f.answer) })), ...(programCode ? [certificateFaq] : [])],
+      // E-031: FAQ answers and syllabus descriptions are Lexical rich text.
+      faq: [...c.faq.map((f) => ({ question: cleanPersianLine(f.question), answer: toLexical(cleanPersianText(f.answer)) })), ...(programCode ? [{ ...certificateFaq, answer: toLexical(certificateFaq.answer) }] : [])],
       pendingClaims: c.pendingClaims.map((p) => ({ text: p.text, note: p.note, sourceUrl: c.sourceUrl })),
       sourceUrl: c.sourceUrl,
     })
@@ -339,7 +341,7 @@ async function main() {
           ? [{ type: 'h2' as const, text: 'خدمات مشاوره' }, ...curated.services.slice(HOME_SERVICES).map((s) => ({ type: 'li' as const, text: s.text ? `${s.title}: ${s.text}` : s.title }))]
           : []),
       ]),
-      faq: pg.faq.map((f) => ({ question: cleanPersianLine(f.question), answer: cleanPersianText(f.answer) })),
+      faq: pg.faq.map((f) => ({ question: cleanPersianLine(f.question), answer: toLexical(cleanPersianText(f.answer)) })),
       sourceUrl: pg.sourceUrl,
     })
   }
