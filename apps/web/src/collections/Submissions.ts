@@ -59,6 +59,7 @@ export const Submissions: CollectionConfig = {
   slug: 'submissions',
   labels: { singular: { fa: 'تحویل تکلیف', en: 'Submission' }, plural: { fa: 'تحویل تکالیف (نمره‌دهی)', en: 'Submissions (grading)' } },
   admin: {
+    components: { beforeListTable: ['/components/admin/ListKpis#ListKpis'] },
     defaultColumns: ['user', 'assignment', 'status', 'late', 'submittedAt', 'score', 'gradedAt'],
     group: { fa: 'آزمون و تکلیف', en: 'Quizzes & assignments' },
     description: 'Grading queue: filter by assignment, cohort, status or late. Oldest first.',

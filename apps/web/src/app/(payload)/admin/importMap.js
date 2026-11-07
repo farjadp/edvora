@@ -24,9 +24,11 @@ import { WatchTenantCollection as WatchTenantCollection_1d0591e3cf4f332c83a86da1
 import { TwoFactorResetField as TwoFactorResetField_db7764e7e1b585d804f2cca0f396cf06 } from '../../../components/admin/TwoFactorResetField'
 import { TenantField as TenantField_1d0591e3cf4f332c83a86da13a0de59a } from '@payloadcms/plugin-multi-tenant/client'
 import { AssignTenantFieldTrigger as AssignTenantFieldTrigger_1d0591e3cf4f332c83a86da13a0de59a } from '@payloadcms/plugin-multi-tenant/client'
-import { TenantAccent as TenantAccent_a13070d0877a084a45e2a14566d3daba } from '../../../components/admin/TenantAccent'
+import { ListKpis as ListKpis_7c81f9263c65eadb96fd80525db7e6fd } from '../../../components/admin/ListKpis'
+import { Nav as Nav_231477f0faa4368be46fd47ffb9da4d9 } from '../../../components/admin/AdminNav'
 import { Icon as Icon_81fda60f3e3709e861f40982a767707d } from '../../../components/admin/Brand'
 import { Logo as Logo_81fda60f3e3709e861f40982a767707d } from '../../../components/admin/Brand'
+import { HeaderTools as HeaderTools_9414d29c2c9756e59a8d46abe37d7bbd } from '../../../components/admin/HeaderTools'
 import { DashboardHome as DashboardHome_84cd845a8766cfd3c2cceae49d5dee3d } from '../../../components/admin/DashboardHome'
 import { TenantSelector as TenantSelector_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 import { TenantSelectionProvider as TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
@@ -60,9 +62,11 @@ export const importMap = {
   "/components/admin/TwoFactorResetField#TwoFactorResetField": TwoFactorResetField_db7764e7e1b585d804f2cca0f396cf06,
   "@payloadcms/plugin-multi-tenant/client#TenantField": TenantField_1d0591e3cf4f332c83a86da13a0de59a,
   "@payloadcms/plugin-multi-tenant/client#AssignTenantFieldTrigger": AssignTenantFieldTrigger_1d0591e3cf4f332c83a86da13a0de59a,
-  "/components/admin/TenantAccent#TenantAccent": TenantAccent_a13070d0877a084a45e2a14566d3daba,
+  "/components/admin/ListKpis#ListKpis": ListKpis_7c81f9263c65eadb96fd80525db7e6fd,
+  "/components/admin/AdminNav#Nav": Nav_231477f0faa4368be46fd47ffb9da4d9,
   "/components/admin/Brand#Icon": Icon_81fda60f3e3709e861f40982a767707d,
   "/components/admin/Brand#Logo": Logo_81fda60f3e3709e861f40982a767707d,
+  "/components/admin/HeaderTools#HeaderTools": HeaderTools_9414d29c2c9756e59a8d46abe37d7bbd,
   "/components/admin/DashboardHome#DashboardHome": DashboardHome_84cd845a8766cfd3c2cceae49d5dee3d,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelector": TenantSelector_d6d5f193a167989e2ee7d14202901e62,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelectionProvider": TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62,

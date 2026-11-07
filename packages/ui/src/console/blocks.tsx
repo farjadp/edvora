@@ -162,7 +162,7 @@ export function KpiCard({ label, value, icon, delta, progress, spark, href, hint
               label
             )}
           </p>
-          <p data-testid={testId} className="mt-1 font-display text-4xl font-black leading-none">{value}</p>
+          <p data-testid={testId} className={cx('mt-1 font-display font-black leading-none', value.length > 8 ? 'text-3xl' : 'text-4xl')}>{value}</p>
         </div>
         <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-wash text-brand-text">
           <ConsoleIcon name={icon} />

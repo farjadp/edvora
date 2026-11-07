@@ -17,7 +17,8 @@ const SCOPE = { course: 'course', cohort: 'cohort' }
 export const Orders: CollectionConfig = {
   slug: 'orders',
   labels: { singular: { fa: 'سفارش', en: 'Order' }, plural: { fa: 'سفارش‌ها', en: 'Orders' } },
-  admin: { defaultColumns: ['id', 'user', 'course', 'total', 'status', 'createdAt'], group: { fa: 'فروش', en: 'Sales' } },
+  admin: {
+    components: { beforeListTable: ['/components/admin/ListKpis#ListKpis'] }, defaultColumns: ['id', 'user', 'course', 'total', 'status', 'createdAt'], group: { fa: 'فروش', en: 'Sales' } },
   access: {
     read: anyOf(ownRecords('user'), allow('orders.view', SCOPE)),
     // Students' orders are created by the checkout server action (server code, no API access needed).
