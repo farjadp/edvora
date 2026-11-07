@@ -20,6 +20,7 @@
     "./staff-goals": "./src/staffGoals.ts",
     "./names": "./src/names.ts",
     "./richtext": "./src/richtext.ts",
+    "./live": "./src/live.ts",
     "./wpimport": "./src/wpimport.ts",
     "./phone": "./src/phone.ts"
   },
