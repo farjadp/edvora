@@ -1,6 +1,6 @@
 # ADR 012 — Live classes: self-hosted BigBlueButton behind a provider-agnostic adapter
 
-**Status:** proposed (2026-11-06). **Needs Farjad's approval** (build vs buy, server budget). Closes board item E-007 once approved.
+**Status:** accepted (2026-11-06). Farjad approved building on BigBlueButton in chat. The server budget and account owner are still open. Closes board item E-007.
 **Research:** `docs/research/live-classes.md` (E-033) and its appendices A–F.
 
 ## Context
@@ -99,6 +99,20 @@
 - **Ops note:** bbb-webhooks drops a hook after about 12 failed deliveries in about 5 minutes. Re-register hooks on each
   `createRoom` and reconcile with the end-of-class summary and `getRecording` polling.
 
-## Approval gate
-Phase 3 (docker-compose PoC, real BBB adapter, `/learn` join, `/staff` start, attendance) starts only after Farjad
-approves this ADR and decides on the server.
+## Extending BBB later (how we add features without forking)
+In order of preference. Each step is used only when the one before it isn't enough.
+1. **Per-meeting settings through the API:** branding, `disabledFeatures`, lock settings, `userdata-bbb_*` UI
+   options, a custom stylesheet per tenant. No code in BBB.
+2. **Edvora-side features on the API and webhooks:** attendance, gamification, certificates, quizzes graded in our
+   LMS, reminders, recordings in the protected player. Most product work lives here, and it survives BBB upgrades
+   and provider switches.
+3. **The official HTML5 plugin SDK** (`bigbluebutton-html-plugin-sdk`): React plugins loaded from a manifest we host.
+   They add buttons, panels and overlays inside the room, e.g. a student-name watermark overlay, a "post to Edvora
+   Q&A" button, or a link to the lesson's resources. No fork. Each plugin is re-tested on every BBB release.
+4. **Contribute upstream:** Persian translations, bug fixes.
+5. **Fork, last resort:** LGPL-3.0 allows it, and running it as a hosted service is not distribution. But every
+   upgrade means rebasing our changes, so a fork needs its own ADR.
+
+## Phase 3
+Approved. Covers the local PoC, the real BBB adapter, `/learn` join, `/staff` start and attendance. Production still
+needs the Iranian server and an owner (E-005).
