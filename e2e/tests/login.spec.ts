@@ -506,10 +506,7 @@ test.describe('staff /staff/2fa/verify', () => {
     await expect(page).toHaveURL(`${DEMO}/staff/leads`)
   })
 
-  // BUG E034-QA-01: the code input is `disabled` while the request runs and focus() is called before React re-enables it,
-  // so focus is lost after a wrong code (spec V3 «keep focus in field»). Flips to a failure once fixed: then drop test.fail.
-  test('V3 focus returns to the code field after a wrong code (known bug E034-QA-01)', async ({ page, playwright }) => {
-    test.fail(true, 'E034-QA-01: focus lost after a wrong 2FA code')
+  test('V3 focus returns to the code field after a wrong code (E034-QA-01)', async ({ page, playwright }) => {
     test.setTimeout(60_000)
     const { user } = await staffWith2fa(playwright)
     await staffLogin(page, DEMO, user)

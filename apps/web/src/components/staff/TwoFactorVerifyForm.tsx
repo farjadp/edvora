@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { CodeBoxes, LockCountdown, PrimaryButton, UnlockedStatus } from '../auth/fields'
 import { AuthAlert, AuthPostButton } from '../auth/kit'
 import { submitCode } from './twoFactorClient'
@@ -29,6 +29,11 @@ export function TwoFactorVerifyForm({ email, next, logoutHref, initialLockedUnti
   const done = useRef(false)
   const codeRef = useRef<HTMLInputElement>(null)
   const [unlocked, setUnlocked] = useState(false)
+  // Bumped after a failed attempt; focusing happens in an effect so it runs after React re-enables the field (V3).
+  const [refocus, setRefocus] = useState(0)
+  useEffect(() => {
+    if (refocus > 0) codeRef.current?.focus()
+  }, [refocus])
   const locked = s.lockedUntil !== null
   const { clearLock } = s
   const onExpire = useCallback(() => {
@@ -46,7 +51,7 @@ export function TwoFactorVerifyForm({ email, next, logoutHref, initialLockedUnti
       window.location.assign(next)
       return
     }
-    codeRef.current?.focus()
+    setRefocus((n) => n + 1)
   }
 
   return (
