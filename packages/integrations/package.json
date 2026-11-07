@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./payment": "./src/payment/index.ts",
     "./sms": "./src/sms/index.ts",
+    "./wordpress": "./src/wordpress/index.ts",
     "./live-class": "./src/live-class/index.ts"
   },
   "scripts": {
@@ -15,6 +16,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@edvora/core": "workspace:*",
     "zod": "^4.1.12"
   },
   "devDependencies": {

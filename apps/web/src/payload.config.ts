@@ -18,6 +18,7 @@ import { OtpCodes, Posts, Testimonials } from './collections/Content'
 import { Coupons } from './collections/Coupons'
 import { Courses } from './collections/Courses'
 import { Enrollments } from './collections/Enrollments'
+import { ImportConnections, ImportJobs, ImportNonces, ImportRefs, Redirects } from './collections/Import'
 import { Leads } from './collections/Leads'
 import { Lessons } from './collections/Lessons'
 import { Media } from './collections/Media'
@@ -32,6 +33,7 @@ import { Submissions } from './collections/Submissions'
 import { Tenants } from './collections/Tenants'
 import { Users } from './collections/Users'
 import { richTextEditor } from './lib/richText'
+import { IMPORT_QUEUE, importTasks } from './lib/wpimport/tasks'
 import { migrations } from './migrations'
 import type { Config } from './payload-types'
 
@@ -82,7 +84,23 @@ export default buildConfig({
     Posts,
     Media,
     OtpCodes,
+    // E-032: WordPress import (ADR 011).
+    ImportConnections,
+    ImportNonces,
+    ImportJobs,
+    ImportRefs,
+    Redirects,
   ],
+  // E-032: first use of the Payload jobs queue (ADR 011 §Resumability). Each import task works ≤ 20 s, then re-queues
+  // itself with its cursor. One app process runs the queue (IMPORT_QUEUE_AUTORUN=false on the others).
+  jobs: {
+    tasks: importTasks,
+    autoRun: [{ cron: process.env.IMPORT_QUEUE_CRON || '* * * * *', queue: IMPORT_QUEUE, limit: 5 }],
+    shouldAutoRun: () => process.env.IMPORT_QUEUE_AUTORUN !== 'false',
+    deleteJobOnComplete: true,
+    // Only server code queues or runs these tasks; nobody may through the REST API.
+    access: { run: () => false, queue: () => false, cancel: () => false },
+  },
   // E-031: one full-featured Lexical editor for every rich-text field (see lib/richText.ts).
   editor: richTextEditor,
   secret: process.env.PAYLOAD_SECRET ?? '',
@@ -122,6 +140,12 @@ export default buildConfig({
         assignments: {},
         submissions: {},
         'submission-files': {},
+        // E-032: WordPress import.
+        'import-connections': {},
+        'import-nonces': {},
+        'import-jobs': {},
+        'import-refs': {},
+        redirects: {},
       },
       // No hard delete: academies are never removed, so never cascade-delete their records.
       cleanupAfterTenantDelete: false,

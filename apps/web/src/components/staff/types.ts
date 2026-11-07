@@ -9,6 +9,7 @@ export type StaffIconName =
   | 'settings'
   | 'security'
   | 'site'
+  | 'import'
 
 export type StaffNavItem = {
   key: string
