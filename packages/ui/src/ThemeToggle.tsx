@@ -9,10 +9,12 @@ export type ThemeToggleProps = {
   toDarkLabel?: string
   /** Accessible label while the page is dark (the button switches to light). */
   toLightLabel?: string
+  /** Replaces the default round-button look (e.g. the console top bar). */
+  className?: string
 }
 
 /** Flips `data-theme` on <html> and remembers the choice in localStorage. */
-export function ThemeToggle({ toDarkLabel = 'حالت تیره', toLightLabel = 'حالت روشن' }: ThemeToggleProps = {}) {
+export function ThemeToggle({ toDarkLabel = 'حالت تیره', toLightLabel = 'حالت روشن', className }: ThemeToggleProps = {}) {
   const [theme, setTheme] = useState<'light' | 'dark' | null>(null)
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function ThemeToggle({ toDarkLabel = 'حالت تیره', toLightLabel = 
       type="button"
       onClick={toggle}
       aria-label={theme === 'dark' ? toLightLabel : toDarkLabel}
-      className={cx('grid size-11 place-items-center rounded-full border border-line text-ink transition-colors hover:bg-sunken', focusRing)}
+      className={cx(className ?? 'grid size-11 place-items-center rounded-full border border-line text-ink transition-colors hover:bg-sunken', focusRing)}
     >
       {theme === 'dark' ? (
         <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>

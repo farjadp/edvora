@@ -13,6 +13,7 @@ import '@fontsource/vazirmatn/900.css'
 import '@fontsource/space-grotesk/500.css'
 import '@fontsource/space-grotesk/700.css'
 import { importMap } from './admin/importMap.js'
+import '@edvora/ui/console-tokens.css'
 import './custom.scss'
 
 type Args = {

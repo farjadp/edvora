@@ -1,0 +1,124 @@
+/*
+ * Operator-console tokens (E-035): the one source for /staff (Tailwind) and /admin (Payload, custom.scss).
+ * Plain CSS custom properties, no Tailwind needed, so both sides can load it:
+ *   - styles.css imports it (so `bg-c-surface`-style utilities and the `[data-console]` re-mapping work in /staff);
+ *   - apps/web/src/app/(payload)/layout.tsx imports it (custom.scss maps these to Payload's variables).
+ *
+ * Palette (Farjad, 2026-11-06): petrol #123C55, turquoise #40B5AD, warm white #F7F3E8, matte gold #C9A45C.
+ * Iranian blue #1C39BB is deliberately unused. The console looks the same for every academy; the tenant's own colour
+ * only appears on its logo chip. Contrast ratios are listed in docs/design/system.md (all text pairs >= 4.5:1).
+ * Gold is for milestones only (certificates, graduations, achievements).
+ */
+:root {
+  --c-bg: #f7f3e8;
+  --c-surface: #fdfbf5;
+  --c-sunken: #efe9d9;
+  --c-ink: #123c55;
+  --c-muted: #47606f;
+  --c-line: #dcd4bf;
+  /* Control borders: >= 3:1 on surface and bg. */
+  --c-line-strong: #7b8b91;
+  /* Turquoise fill (progress, active nav, charts). Text on it is petrol (4.68:1). */
+  --c-brand: #40b5ad;
+  --c-brand-ink: #123c55;
+  /* Turquoise as text or icon on light backgrounds. */
+  --c-brand-text: #0b6a65;
+  --c-brand-wash: #e1f1eb;
+  /* Primary button: petrol on light, turquoise on dark. */
+  --c-primary: #123c55;
+  --c-primary-ink: #f7f3e8;
+  --c-focus: #123c55;
+  --c-ok: #1b7449;
+  --c-ok-wash: #e0f0e3;
+  --c-warn: #80520a;
+  --c-warn-wash: #f6e8c9;
+  --c-danger: #ae2f25;
+  --c-danger-wash: #f8e0da;
+  --c-info: #1e5a8c;
+  --c-info-wash: #ddeaf3;
+  /* Gold: milestones only. Fill with petrol text on it (4.96:1); gold-as-text uses the darker tone. */
+  --c-milestone: #c9a45c;
+  --c-milestone-ink: #123c55;
+  --c-milestone-text: #745715;
+  /* Sidebar. */
+  --c-side: #123c55;
+  --c-side-ink: #f7f3e8;
+  --c-side-muted: #b4c7d1;
+  --c-side-line: #2b5a74;
+  --c-side-hover: #1b4a66;
+  /* Charts: non-text, >= 3:1 on surface. Always shown with a label or number as well. */
+  --c-chart-1: #1f8f89;
+  --c-chart-2: #2f6f9a;
+  --c-chart-3: #b5654a;
+  --c-chart-4: #6c7f8a;
+  --c-chart-5: #7b8b3e;
+  --c-chart-track: #e6e0cd;
+  /* The academy's own colour, resolved at :root before [data-console] re-maps --brand: logo chip only. */
+  --c-tenant: var(--brand);
+  --c-tenant-ink: var(--brand-ink);
+  --c-shadow: 0 1px 2px rgb(18 60 85 / 0.06), 0 6px 20px -8px rgb(18 60 85 / 0.12);
+}
+
+[data-theme='dark'] {
+  --c-bg: #0a2231;
+  --c-surface: #0f3047;
+  --c-sunken: #0c2a3d;
+  --c-ink: #f7f3e8;
+  --c-muted: #a9bfcb;
+  --c-line: #245069;
+  --c-line-strong: #6a8ca0;
+  --c-brand: #40b5ad;
+  --c-brand-ink: #123c55;
+  --c-brand-text: #5cd0c8;
+  --c-brand-wash: #12475a;
+  --c-primary: #40b5ad;
+  --c-primary-ink: #123c55;
+  --c-focus: #5cd0c8;
+  --c-ok: #6fd6a3;
+  --c-ok-wash: #12423a;
+  --c-warn: #edc060;
+  --c-warn-wash: #4a3c1b;
+  --c-danger: #ff9c90;
+  --c-danger-wash: #4f2a2d;
+  --c-info: #8cc4ec;
+  --c-info-wash: #173f5d;
+  --c-milestone-text: #e0c27c;
+  --c-side: #081b28;
+  --c-side-muted: #9db5c2;
+  --c-side-line: #1c4259;
+  --c-side-hover: #0f3047;
+  --c-chart-1: #40b5ad;
+  --c-chart-2: #6fa8d4;
+  --c-chart-3: #e08e72;
+  --c-chart-4: #9db0bb;
+  --c-chart-5: #b3c265;
+  --c-chart-track: #15405a;
+  --c-shadow: 0 1px 2px rgb(0 0 0 / 0.25), 0 8px 24px -10px rgb(0 0 0 / 0.5);
+}
+
+/*
+ * Inside the console, the site's own token names point at the console palette, so every shared utility
+ * (bg-surface, text-muted, border-line, bg-brand ...) and helper (buttonClass, inputClass) restyles itself.
+ * Put data-console on the shell root.
+ */
+[data-console] {
+  --bg: var(--c-bg);
+  --surface: var(--c-surface);
+  --sunken: var(--c-sunken);
+  --ink: var(--c-ink);
+  --muted: var(--c-muted);
+  --line: var(--c-line);
+  --line-strong: var(--c-line-strong);
+  --brand: var(--c-primary);
+  --brand-ink: var(--c-primary-ink);
+  --brand-text: var(--c-brand-text);
+  --accent: var(--c-brand);
+  --accent-ink: var(--c-brand-ink);
+  --focus: var(--c-focus);
+  --ok: var(--c-ok);
+  --danger: var(--c-danger);
+  --milestone: var(--c-milestone);
+  --milestone-ink: var(--c-milestone-ink);
+  --e-tint: var(--c-brand-wash);
+  --e-track: var(--c-chart-track);
+}
