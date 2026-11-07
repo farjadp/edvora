@@ -17,7 +17,9 @@ describe('preview gate', () => {
   })
 
   it('asks for basic auth only when both user and password are set', () => {
-    expect(checkPreviewGate(parsePreviewGate({ PRIVATE_PREVIEW_HOSTS: '*', PRIVATE_PREVIEW_USER: 'u' }), 'x', null)).toBe('noindex')
+    expect(checkPreviewGate(parsePreviewGate({ PRIVATE_PREVIEW_HOSTS: '*' }), 'x', null)).toBe('noindex')
+    // A user without a password fails closed (e.g. the password variable not set yet).
+    expect(checkPreviewGate(parsePreviewGate({ PRIVATE_PREVIEW_HOSTS: '*', PRIVATE_PREVIEW_USER: 'u' }), 'x', basic('u:'))).toBe('challenge')
     const gate = parsePreviewGate({ PRIVATE_PREVIEW_HOSTS: '*', PRIVATE_PREVIEW_USER: 'farjad', PRIVATE_PREVIEW_PASSWORD: 's3cret:with-colon' })
     expect(checkPreviewGate(gate, 'x', null)).toBe('challenge')
     expect(checkPreviewGate(gate, 'x', basic('farjad:wrong'))).toBe('challenge')

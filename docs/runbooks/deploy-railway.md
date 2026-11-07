@@ -1,7 +1,7 @@
 # Runbook — Demo deploy on Railway (E-025)
 
 **Demo / test only.** Railway is a US cloud. Seed data and mock providers only: no real students, no real payment or
-SMS keys, no IBA client content (ADR 002). Client production moves to an Iranian host later (E-005, E-018).
+SMS keys, no IBA client content (ADR 002) — except the gated `web-iba` preview (ADR 002 exception, E-030). Client production moves to an Iranian host later (E-005, E-018).
 
 | | |
 | --- | --- |
@@ -41,8 +41,6 @@ Read them in the dashboard: project `edvora-demo` → `web` → **Variables**, o
 | `SEED_TENANTS` | `demo` (seed skips `iba`) |
 | `SEED_ADMIN_EMAIL` | `admin@edvora.demo` |
 | `PRIVATE_UPLOADS_DIR` | `/data/submission-files` — student assignment files on the `web-volume` volume (ADR 009) |
-| `MEDIA_DIR` | not set yet — `/data/media` once the IBA preview is approved (keeps public media on `web-volume`) |
-| `PRIVATE_PREVIEW_HOSTS` / `_USER` / `_PASSWORD` | not set yet — IBA preview host gate (see *IBA client preview*) |
 | `RAILWAY_RUN_UID` | `0` — Railway volumes mount as root; the image's `nextjs` user can't write to them otherwise |
 | `STAFF_2FA_REQUIRED` | not set (= off). Keep off on the demo until Farjad says otherwise (ADR 007) |
 | `SEED_ADMIN_PASSWORD` | generated; read it from Railway |
@@ -99,47 +97,55 @@ is idempotent (upserts by natural key). It does **not** change an existing admin
 
 Check: `psql -Atc "select name from payload_migrations order by id"` lists every migration file.
 
-## IBA client preview (E-030) — NOT DONE YET, needs Farjad's go-ahead
+## IBA client preview (E-030) — approved 2026-11-06 as an exception to ADR 002
 
-Shows the `iba` tenant (content imported from iranbrandacademy.com) on the same `web` service, on its own host, for
-the client meeting. The default domain keeps serving `demo`. Nothing below has been run against Railway.
+Shows the `iba` tenant (IBA's public site, imported) for the client meeting. Railway allows one generated domain per
+service, so it runs as a **second service, `web-iba`**: same repo and database, `DEFAULT_TENANT_SLUG=iba`, its own
+`*.up.railway.app` domain and volume. `web` (the `demo` tenant) is untouched. Every host of `web-iba` is `noindex`
+and behind HTTP basic auth (`src/proxy.ts`, `PRIVATE_PREVIEW_HOSTS=*`).
 
-How it works: tenants resolve by `Host` (`lib/tenant.ts`), so a second host mapped to `iba` is enough — no second
-service. `src/proxy.ts` marks hosts in `PRIVATE_PREVIEW_HOSTS` `X-Robots-Tag: noindex, nofollow` and, if
-`PRIVATE_PREVIEW_USER` + `PRIVATE_PREVIEW_PASSWORD` are set, puts them behind HTTP basic auth. Other hosts are untouched.
+| `web-iba` variable | Value |
+| --- | --- |
+| `DATABASE_URL`, `PAYLOAD_SECRET`, `SESSION_SECRET` | references to `web` (`${{web.…}}`) — same DB and sessions |
+| `DEFAULT_TENANT_SLUG` | `iba` |
+| `NEXT_PUBLIC_SITE_URL` | `https://<iba-host>` |
+| `PAYMENT_PROVIDER` / `SMS_PROVIDER` | `mock` |
+| `MEDIA_DIR` | `/data/media` (volume `web-iba-volume` at `/data`; `RAILWAY_RUN_UID=0`) |
+| `PRIVATE_PREVIEW_HOSTS` | `*` |
+| `PRIVATE_PREVIEW_USER` | `iba` |
+| `PRIVATE_PREVIEW_PASSWORD` | **set by Farjad** (dashboard → `web-iba` → Variables); send it to the client yourself |
 
-1. **A second host for `web`.** Railway dashboard → `web` → Settings → Networking → *Generate Domain* (if Railway
-   offers a second generated domain), or *Custom Domain* `iba-demo.<a domain Farjad owns>` + the CNAME it shows.
-   Call it `<iba-host>` below.
-2. **Persistent media.** Public media are on the container disk and are lost on redeploy. Point them at the existing
-   volume and redeploy once:
-   ```bash
-   railway variables --service web --set MEDIA_DIR=/data/media
-   ```
-3. **Gate the preview host** (choose the password; send it to the client yourself):
-   ```bash
-   railway variables --service web --set PRIVATE_PREVIEW_HOSTS=<iba-host> \
-     --set PRIVATE_PREVIEW_USER=iba --set PRIVATE_PREVIEW_PASSWORD='<password>'
-   ```
-   Don't gate `<default-host>`: step 4 uploads images through it, and basic auth would reject those calls.
-4. **Deploy** this branch (migration `20261106_224247_e030_iba_import` applies on boot), then **import** from your
-   machine. Same TCP-proxy + backup steps as *Seed / migrate*; DB rows go in directly, images are uploaded through the
-   app's own API (on the **default** host, which is not gated) so they land on `/data/media`:
-   ```bash
-   cd apps/web
-   railway run --service web -- env NODE_ENV=production \
-     DATABASE_URL="postgresql://$PGUSER:$PGPASSWORD@<endpoint>/$PGDATABASE" \
-     IBA_EXTRA_DOMAINS=<iba-host> \
-     IBA_MEDIA_API_URL=https://<default-host> IBA_MEDIA_API_EMAIL=<super-admin email> IBA_MEDIA_API_PASSWORD='<its password>' \
-     node_modules/.bin/tsx src/seed/import-iba.ts
-   ```
-   `IBA_EXTRA_DOMAINS` adds `<iba-host>` to the `iba` tenant's domains. The import is idempotent; re-run it freely.
-   Don't run `src/seed/run.ts` with `SEED_TENANTS=iba` afterwards unless you then re-run the import (the seed
-   rewrites some tenant fields with the shorter Notion-02 copy).
-5. **Verify:** `curl -sI https://<iba-host>/` → `401`; with `-u iba:<password>` → `200` and `x-robots-tag: noindex`;
-   the page title is «آکادمی برند ایران». `https://<default-host>/` still shows the demo academy with no auth.
-6. **Undo after the meeting:** remove `<iba-host>` (dashboard), `railway variables --service web --remove PRIVATE_PREVIEW_HOSTS`
-   (and the user/password). The `iba` rows can stay; without a mapped host nobody reaches them.
+Setup (done by the E-030 session except the password):
+```bash
+railway add --service web-iba
+railway variables --service web-iba --set 'DATABASE_URL=${{web.DATABASE_URL}}' --set 'PAYLOAD_SECRET=${{web.PAYLOAD_SECRET}}' \
+  --set 'SESSION_SECRET=${{web.SESSION_SECRET}}' --set DEFAULT_TENANT_SLUG=iba --set PAYMENT_PROVIDER=mock --set SMS_PROVIDER=mock \
+  --set MEDIA_DIR=/data/media --set RAILWAY_RUN_UID=0 --set 'PRIVATE_PREVIEW_HOSTS=*' --set PRIVATE_PREVIEW_USER=iba
+railway volume --service <web-iba-service-id> --environment <environment-id> add --mount-path /data
+railway domain --service web-iba                    # → <iba-host>; then set NEXT_PUBLIC_SITE_URL
+railway up --service web-iba --detach               # from the repo root on the E-030 branch (applies the E-030 migration)
+```
+The E-030 migration adds columns/tables to the shared DB; the older `web` build ignores them.
+
+**Import** (Farjad, from your machine — needs the super-admin password and the preview password). Use the TCP-proxy
+steps from *Seed / migrate* (backup first), then:
+```bash
+cd apps/web
+railway run --service web -- env NODE_ENV=production \
+  DATABASE_URL="postgresql://$PGUSER:$PGPASSWORD@<endpoint>/$PGDATABASE" \
+  IBA_MEDIA_API_URL=https://<iba-host> IBA_MEDIA_API_BASIC='iba:<preview password>' \
+  IBA_MEDIA_API_EMAIL=<super-admin email> IBA_MEDIA_API_PASSWORD='<super-admin password>' \
+  node_modules/.bin/tsx src/seed/import-iba.ts
+```
+Rows go into the DB directly; images are uploaded through `web-iba`'s API onto its volume. Idempotent — re-run freely.
+Don't run `src/seed/run.ts` with `SEED_TENANTS=iba` afterwards unless you re-run the import.
+
+**Verify:** `curl -sI https://<iba-host>/` → `401`; with `-u iba:<password>` → `200` + `x-robots-tag: noindex`, title
+«آکادمی برند ایران». `https://web-production-39ee1.up.railway.app/` still shows the demo academy with no auth.
+Before the meeting, open `<iba-host>` from where the client will connect (Iranian IPs may be blocked).
+
+**Remove after the meeting:** delete the `web-iba` service (and its volume) in the dashboard. The `iba` rows in the
+shared DB are unreachable without it; delete them only with Farjad's approval.
 
 ## Deploy / redeploy
 
