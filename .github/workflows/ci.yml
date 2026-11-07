@@ -39,15 +39,15 @@ jobs:
       - run: pnpm e2e:typecheck
 
   e2e:
-    # The suite is ~27 min on one runner; three shards (each with its own Postgres, seed and dev server) keep every
+    # The suite is ~27 min on one runner; four shards (each with its own Postgres, seed and dev server) keep every
     # job well under the timeout. Playwright splits by file, so serial specs stay together.
-    name: e2e (${{ matrix.shard }}/3)
+    name: e2e (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     services:
       postgres:
         image: postgres:16-alpine
@@ -80,7 +80,7 @@ jobs:
       - run: cp apps/web/.env.example apps/web/.env
       # Fresh Postgres service per run, so this is a fresh seed.
       - run: pnpm seed
-      - run: pnpm e2e --shard=${{ matrix.shard }}/3
+      - run: pnpm e2e --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
