@@ -43,6 +43,8 @@ export default buildConfig({
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },
     meta: { titleSuffix: ' · Edvora' },
+    // No Gravatar: AGENTS.md forbids external runtime requests, and the default would send a hash of every admin's email.
+    avatar: 'default',
     // E-031 (Seal): brand marks, the selected academy's accent colour, a permission-aware landing block.
     components: {
       graphics: { Logo: '/components/admin/Brand#Logo', Icon: '/components/admin/Brand#Icon' },
