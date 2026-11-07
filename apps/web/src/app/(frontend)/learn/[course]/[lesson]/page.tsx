@@ -13,6 +13,8 @@ import { getCurrentUser } from '../../../../../lib/session'
 import { staffCanPreview, studentCourse } from '../../../../../lib/student'
 import { getCurrentTenant } from '../../../../../lib/tenant'
 import type { Media } from '../../../../../payload-types'
+import { hasRichText } from '@edvora/core/richtext'
+import { RichText } from '../../../../../components/RichText'
 
 type Props = { params: Promise<{ course: string; lesson: string }> }
 
@@ -138,7 +140,7 @@ export default async function LessonPage({ params }: Props) {
           </form>
         ) : null}
 
-        {canWatch && lesson.notes ? <p className="mt-6 whitespace-pre-line leading-8">{lesson.notes}</p> : null}
+        {canWatch && hasRichText(lesson.notes) ? <RichText data={lesson.notes} tenantId={tenant.id} className="mt-6 leading-8" /> : null}
 
         {canWatch && lesson.resources?.length ? (
           <section className="mt-8">

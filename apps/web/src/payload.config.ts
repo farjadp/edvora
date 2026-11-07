@@ -1,6 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { en } from '@payloadcms/translations/languages/en'
 import { fa } from '@payloadcms/translations/languages/fa'
 import path from 'path'
@@ -32,6 +31,7 @@ import { SubmissionFiles } from './collections/SubmissionFiles'
 import { Submissions } from './collections/Submissions'
 import { Tenants } from './collections/Tenants'
 import { Users } from './collections/Users'
+import { richTextEditor } from './lib/richText'
 import { migrations } from './migrations'
 import type { Config } from './payload-types'
 
@@ -42,6 +42,12 @@ export default buildConfig({
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },
     meta: { titleSuffix: ' · Edvora' },
+    // E-031 (Seal): brand marks, the selected academy's accent colour, a permission-aware landing block.
+    components: {
+      graphics: { Logo: '/components/admin/Brand#Logo', Icon: '/components/admin/Brand#Icon' },
+      header: ['/components/admin/TenantAccent#TenantAccent'],
+      beforeDashboard: ['/components/admin/DashboardHome#DashboardHome'],
+    },
     // Dates with `timezone: true` (drip release, assignment deadline) are entered in Tehran time and stored UTC.
     timezones: { supportedTimezones: [{ label: 'تهران (Asia/Tehran)', value: 'Asia/Tehran' }], defaultTimezone: 'Asia/Tehran' },
   },
@@ -74,7 +80,8 @@ export default buildConfig({
     Media,
     OtpCodes,
   ],
-  editor: lexicalEditor(),
+  // E-031: one full-featured Lexical editor for every rich-text field (see lib/richText.ts).
+  editor: richTextEditor,
   secret: process.env.PAYLOAD_SECRET ?? '',
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: postgresAdapter({

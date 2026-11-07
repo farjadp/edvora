@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { allow, allowCreate, anyone, guard, nobody, requireForFields } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
+import { richTextField } from '../lib/richText'
 
 export const COURSE_KINDS = [
   { value: 'program', label: { fa: 'دوره بلندمدت', en: 'Long program' } },
@@ -110,7 +111,7 @@ export const Courses: CollectionConfig = {
               type: 'array',
               fields: [
                 { name: 'title', type: 'text', required: true },
-                { name: 'description', type: 'textarea' },
+                richTextField({ name: 'description' }),
                 { name: 'hours', type: 'number' },
               ],
             },
@@ -138,7 +139,7 @@ export const Courses: CollectionConfig = {
               type: 'array',
               fields: [
                 { name: 'question', type: 'text', required: true },
-                { name: 'answer', type: 'textarea', required: true },
+                richTextField({ name: 'answer', required: true }),
               ],
             },
           ],

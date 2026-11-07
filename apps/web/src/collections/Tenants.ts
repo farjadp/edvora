@@ -3,6 +3,7 @@ import { ROLE_TEMPLATES } from '@edvora/core'
 import { allow, asSystem, fieldAllow, nobody } from '../access/permissions'
 import { isSuperAdmin } from '../access/roles'
 import { auditChange } from '../hooks/audit'
+import { richTextField, tenantSelf } from '../lib/richText'
 
 const platformOnly = ({ req }: { req: { user?: unknown } }) => isSuperAdmin(req.user as never)
 const settingsField = fieldAllow('settings.edit', (d) => d?.id)
@@ -132,7 +133,7 @@ export const Tenants: CollectionConfig = {
                 { name: 'text', type: 'text' },
               ],
             },
-            { name: 'manifesto', type: 'textarea', label: { fa: 'مانیفست / درباره ما', en: 'Manifesto' } },
+            richTextField({ name: 'manifesto', label: { fa: 'مانیفست / درباره ما', en: 'Manifesto' }, tenantsOf: tenantSelf }),
             {
               name: 'services',
               type: 'array',

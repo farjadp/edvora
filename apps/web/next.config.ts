@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
   },
   // No external runtime dependencies: everything must work on Iran's national network.
   poweredByHeader: false,
+  // Don't let `next dev` write AGENTS.md / CLAUDE.md into apps/web; repo-level AGENTS.md is the rulebook.
+  agentRules: false,
   experimental: {
     // forbidden() + forbidden.tsx give the staff desk a real HTTP 403 (E-022).
     authInterrupts: true,

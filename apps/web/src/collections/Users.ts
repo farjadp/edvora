@@ -7,6 +7,7 @@ import { ROLES, ROLE_LABELS, isSuperAdmin } from '../access/roles'
 import { twoFactorEndpoints } from '../endpoints/twoFactor'
 import { auditChange } from '../hooks/audit'
 import { idOf } from '../lib/ids'
+import { richTextField, userTenants } from '../lib/richText'
 
 export const USER_STATUSES = [
   { value: 'active', label: { fa: 'فعال', en: 'Active' } },
@@ -217,7 +218,7 @@ export const Users: CollectionConfig = {
               fields: [
                 { name: 'showOnSite', type: 'checkbox', defaultValue: false, label: { fa: 'نمایش در سایت', en: 'Show on site' } },
                 { name: 'title', type: 'text', label: { fa: 'عنوان در صفحه دوره', en: 'Title on course pages' } },
-                { name: 'bio', type: 'textarea', label: { fa: 'معرفی', en: 'Bio' } },
+                richTextField({ name: 'bio', label: { fa: 'معرفی', en: 'Bio' }, tenantsOf: userTenants }),
               ],
             },
           ],
