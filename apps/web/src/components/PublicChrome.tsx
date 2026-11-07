@@ -10,6 +10,8 @@ import type { ReactNode } from 'react'
 export function PublicChrome({ notice, header, footer, children }: { notice: ReactNode; header: ReactNode; footer: ReactNode; children: ReactNode }) {
   const pathname = usePathname() ?? ''
   if (pathname === '/staff' || pathname.startsWith('/staff/')) return <>{children}</>
+  // Dev-only login design preview (E-034) is a full-page screen with its own frame. The route 404s in production.
+  if (pathname.startsWith('/design-preview/e034')) return <>{children}</>
   return (
     <>
       {notice}

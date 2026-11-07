@@ -1,0 +1,50 @@
+/*
+ * E-034 login design preview only. Imported by design-preview/e034/layout.tsx and nowhere else.
+ * Scoped to [data-e034-brand] / .e034-* so nothing leaks into the app. Fonts are self-hosted (public/fonts/morabba).
+ */
+@font-face {
+  font-family: 'E034 Morabba';
+  src: url('/fonts/morabba/400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'E034 Morabba';
+  src: url('/fonts/morabba/700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'E034 Morabba';
+  src: url('/fonts/morabba/900.woff2') format('woff2');
+  font-weight: 900;
+  font-display: swap;
+}
+
+[data-e034] {
+  --e-display: 'E034 Morabba', 'Vazirmatn', serif;
+}
+
+/* Seal stamps once on load; nothing else moves. Off for prefers-reduced-motion. */
+@keyframes e034-stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.14);
+  }
+}
+@keyframes e034-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .e034-stamp {
+    animation: e034-stamp 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .e034-rise {
+    animation: e034-rise 200ms ease-out backwards;
+  }
+}
