@@ -97,7 +97,7 @@ Cross-cutting rules for every story below (QA checks these on each one):
 **Non-goals:** building our own video conferencing or classroom UI (the provider supplies whiteboard, slides, polls,
 breakouts), attendance by face, rooms over 200 people in one session (webinar mode, D7, is P3).
 **Provider (E-033, proposed in ADR 012, pending Farjad):** self-hosted **BigBlueButton 4.0** on an Iranian server.
-Skyroom can be a fallback or used for webinars. Research: `docs/research/live-classes.md`. The stories still depend
+plugNmeet is plan B (BBB-compatible API). Skyroom can be a fallback, or used for webinars alongside self-hosted MediaMTX streaming. Research: `docs/research/live-classes.md`. The stories still depend
 only on the adapter contract.
 
 **Adapter contract** (`packages/integrations/live-class/`, mock now, real BBB adapter in Phase 3):
@@ -120,7 +120,7 @@ The mock works offline for CI and the demo.
 | D4f | (failure) | **G** no recording produced / webhook never arrives **W** `[30]` min after end (BBB MP4 processing time `[unverified]`, set after the load test) **T** admin sees "recording missing" with a manual attach option |
 | D5 | As an instructor, I want attendance. | **G** provider reports join/leave events **W** class ends **T** attendance stored per student (first join, last leave, total minutes), reconciled with the provider's end-of-class report (`attendance.summary`, authoritative) where one exists; manual correction possible; source marked `webhook` / `manual` / `import`. If the provider has no attendance webhooks (`capabilities`), the session page asks staff to mark attendance by hand |
 | D6 | As the academy, I want to cancel/reschedule. | **G** a session in 2 days **W** I reschedule **T** students are notified (F) and the old join link stops working |
-| D7 | (P3) As the academy, I want an open webinar for over 200 people. | **G** expected audience > 200 **W** I schedule a webinar **T** it uses the tenant's webinar provider (e.g. a Skyroom day pass) through the same adapter; if none is configured, scheduling over 200 is refused with a clear message |
+| D7 | (P3) As the academy, I want an open webinar for over 200 people. | **G** expected audience > 200 **W** I schedule a webinar **T** it uses the tenant's webinar provider through the same adapter: BBB → RTMP bot → MediaMTX LL-HLS with per-viewer signed URLs and a heartbeat for attendance, or a Skyroom day pass; if none is configured, scheduling over 200 is refused with a clear message |
 | D8 | As a student during an internet disruption, I want to know what happens. | **G** the provider is unreachable at start time **W** `[15]` min pass without the moderator joining **T** students get an SMS/notification (F) and the session shows "moved / recording will follow"; nothing is marked absent automatically |
 
 **Data:** Tenants `features` already has `live`; gate on it.

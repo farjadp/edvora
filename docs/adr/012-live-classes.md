@@ -1,7 +1,7 @@
 # ADR 012 — Live classes: self-hosted BigBlueButton behind a provider-agnostic adapter
 
 **Status:** proposed (2026-11-06). **Needs Farjad's approval** (build vs buy, server budget). Closes board item E-007 once approved.
-**Research:** `docs/research/live-classes.md` (E-033) and its appendices A–D.
+**Research:** `docs/research/live-classes.md` (E-033) and its appendices A–F.
 
 ## Context
 - Phase 2 D: schedule a class, one-click join per enrolled student, instructor as moderator, recording added to the
@@ -49,15 +49,22 @@
    and creates a lesson played through the protected player (Phase 2 B), which adds the per-student watermark.
 5. **Network:** TURN/TLS on TCP 443 (BBB's HAProxy split) and our own STUN. No Google STUN and no cloud captions.
    Images and packages come from our own registry and apt mirror. Students join in the browser only; no app is required.
-6. **Large webinars (over 200)** are out of scope for BBB. When a tenant needs one, rent a Skyroom webinar day pass
-   or stream to Arvan live. This is a per-session provider choice through the same adapter, decided when the first
-   request arrives.
+6. **Large webinars (over 200)** are out of scope for BBB itself. The preferred self-hosted path is a streaming
+   bot (THM-Health/BBB-Streaming-Server, LGPL-3.0) that pushes the BBB room over RTMP into **MediaMTX** (MIT, single
+   binary). Viewers watch LL-HLS at 480p through short-lived signed URLs, about 0.5 Gbps for 500. The fallback is a
+   Skyroom webinar day pass. Both are a per-session choice through the same adapter, built when the first request
+   arrives (D7, P3). The bridge on BBB 4.0 is untested.
+7. **Plan B for classes: plugNmeet** (MIT, LiveKit-based). It has a BBB-compatible API, a Persian locale with RTL,
+   and native webhooks. If BBB fails the Iranian load test, the BBB adapter is pointed at plugNmeet's BBB routes, and
+   a small native-webhook parser covers `hooks/*`, which plugNmeet lacks. Spike it on the same trial VM.
 
 ## Alternatives considered
 | Option | Why not (now) |
 | --- | --- |
 | Skyroom as the main provider | No webhooks, attendance or recording API, so D4 and D5 become manual work. Recordings are deleted after the service ends. Branding is paid per tenant, so cost grows with each academy. Data and uptime are a vendor's. Kept as a fallback or for webinars |
 | Managed BBB from an Iranian host (e.g. bigbluebuton.ir) | Same adapter, no operations for us. But the API needs the 200-user plan (۸٫۷۵ میلیون a month), the server is shared, webhooks are `[unverified]`, and recordings are kept only 3 months. **A good stop-gap if the Iranian server is late**, or as the backup link |
+| plugNmeet (MIT, LiveKit-based) as the main provider | Full classroom features, fa + RTL, BBB-compatible API. But one developer wrote almost all of it, the installer depends on Docker Hub and Google, Google STUN and Google Fonts must be stripped, and the load test used simulated users only. **Plan B** (decision 7) |
+| OpenTalk, La Suite Meet | No Persian or RTL; Keycloak and a foreign image registry (OpenTalk); PostHog telemetry and no classroom features (La Suite Meet) |
 | LiveKit + Egress with our own UI | Strongest infrastructure and E2EE, but months of UI work (whiteboard, slides, polls, lobby, RTL). Revisit for a native Edvora classroom or very large rooms |
 | Jitsi Meet + Jibri | No slide presenter. Attendance only through a community plugin. No RTL layout. One recording server per concurrent recording, and Jibri is barely maintained |
 | OpenVidu, Galène, edumeet, MiroTalk, Janus, Element Call | See the research doc, §3: UI or Persian gaps, a single maintainer, CDN or analytics calls, sanctioned payments, or too low-level |

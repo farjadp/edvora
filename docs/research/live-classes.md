@@ -3,7 +3,7 @@
 **Task:** E-033 (board item E-007, Skyroom vs BigBlueButton) · **Date:** 2026-11-06 · **For:** Farjad (build/buy approval gate)
 **Feeds:** Phase 2 section D (`docs/product/phase-2.md`), `docs/adr/012-live-classes.md`, `packages/integrations/live-class/`
 
-**How this was made.** Four research passes ran on 2026-11-06 using the web, the GitHub REST API and the vendors' own
+**How this was made.** Six research passes ran on 2026-11-06 (four, then a wider GitHub sweep and a webinar-streaming pass) using the web, the GitHub REST API and the vendors' own
 source code and price data. Each pass is kept as a cited appendix: every fact has a URL and an access or publication
 date there. This page is the synthesis and adds no new facts. Arithmetic and judgement are labelled **[estimate]**
 or **[judgement]**. `[unverified]` means no primary source was found.
@@ -14,6 +14,8 @@ or **[judgement]**. `[unverified]` means no primary source was found.
 | [B](live-classes/b-livekit-sfu-stacks.md) | LiveKit (+ Egress), OpenVidu 3, Galène, mediasoup, edumeet, MiroTalk, Janus, Element Call, Nextcloud Talk, Ant Media, OpenMeetings |
 | [C](live-classes/c-iranian-services.md) | Skyroom, Adobe Connect resellers, Iranian BBB hosts, Alocom, who Iranian universities use |
 | [D](live-classes/d-iran-network-hosting.md) | UDP/WebRTC filtering, Iranian VMs and prices, Arvan Object Storage and VOD, Docker Hub, mirrors, bandwidth math |
+| [E](live-classes/e-github-sweep.md) | Wider GitHub sweep: **plugNmeet**, OpenTalk, La Suite Meet, Mattermost Calls, Kopano, Agora Flat; BBB satellites (Greenlight, PILOS, Scalelite, b3scale, bbblb, LTI); Iranian repos; topic pages (virtual-classroom, video-conferencing, bigbluebutton, livekit) |
+| [F](live-classes/f-webinar-streaming.md) | 500+ webinars: MediaMTX, SRS, OvenMediaEngine, Owncast, PeerTube, Restreamer, nginx-rtmp, BBB streaming bridges, Arvan Live |
 
 ---
 
@@ -34,9 +36,15 @@ or **[judgement]**. `[unverified]` means no primary source was found.
    2025 and Jan–May 2026 shutdowns. No source says whether a server inside Iran stays reachable from inside Iran.
    **TURN over TLS on 443 is mandatory**, and we need a degraded mode: audio + slides, recordings soon after class,
    and an SMS notice.
-5. **Not covered by BBB:** a 500-person open webinar. BBB's own guidance stops at 200 users per session. Rent a Skyroom
-   webinar day pass for those (۲٬۵۴۰٬۰۰۰ تومان a day for 500 users). The adapter makes that a configuration
-   choice, not a rewrite.
+5. **Not covered by BBB:** a 500-person open webinar. BBB's own guidance stops at 200 users per session. Two routes
+   (§5.5): self-hosted streaming, where a bot streams the BBB room over RTMP into **MediaMTX** (MIT, single binary)
+   and viewers watch LL-HLS at 480p, about 0.5 Gbps for 500; or a Skyroom webinar day pass (۲٬۵۴۰٬۰۰۰ تومان a day
+   for 500 users). Either is a configuration choice, not a rewrite.
+6. **Plan B for classes: plugNmeet** (MIT, built on LiveKit), found in the wider GitHub sweep. It is the only
+   complete alternative classroom: whiteboard with PDF/PPTX, polls, breakouts, waiting room, MP4 recording, signed
+   webhooks, a Persian locale with real RTL, and a **BBB-compatible API**, so our BBB adapter can point at it. It
+   scores 76. It does not displace BBB: one developer wrote almost all of it, the installer depends on Docker Hub and
+   Google, and its load test used simulated users with no video.
 
 ---
 
@@ -76,8 +84,10 @@ appendix named in the row.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **BigBlueButton 4.0, self-hosted** (A) | 4 | 5 | 5 | 3 | 4 | 4 | 4 | 5 | 2 | **84** |
 | BBB on an Iranian host, e.g. bigbluebuton.ir (C §3) | 4 | 5 | 3 | 5 | 4 | 4 | 4 | 2 | 2 | **79** |
+| plugNmeet, self-hosted (E §2) | 3 | 5 | 5 | 3 | 3 | 4 | 4 | 2 | 3 | **76** |
 | **Skyroom** (C §1) | 4 | 4 | 2 | 5 | 5 | 3 | 3 | 4 | 2 | **73** |
 | LiveKit + Egress with our own classroom UI (B §1) | 4 | 2 | 5 | 3 | 5 | 3 | 2 | 5 | 4 | **72** |
+| OpenTalk (E §3) | 3 | 4 | 3 | 2 | 4 | 1 | 3 | 4 | 3 | **61** |
 | Galène (B §3) | 5 | 2 | 2 | 4 | 4 | 1 | 4 | 2 | 2 | **60** |
 | Jitsi Meet + Jibri (A) | 3 | 3 | 3 | 2 | 3 | 2 | 3 | 4 | 4 | **58** |
 | OpenVidu 3 CE + Meet (B §2) | 2 | 3 | 4 | 3 | 3 | 1 | 3 | 3 | 4 | **56** |
@@ -85,6 +95,15 @@ appendix named in the row.
 | edumeet (B §4.2) | 3 | 3 | 2 | 2 | 3 | 1 | 3 | 2 | 2 | **49** |
 | Janus (B §5) | 4 | 1 | 2 | 2 | 4 | 1 | 1 | 3 | 3 | **47** |
 | Element Call (B §6) | 3 | 1 | 1 | 2 | 4 | 1 | 2 | 3 | 4 | **42** |
+| La Suite Meet (E §4) | 2 | 2 | 3 | 3 | 4 | 1 | 3 | 4 | 3 | **51** |
+
+Also checked and not scored, because a gate or a basic fact rules them out (App. E §4–§6):
+- **Mattermost Calls:** group calls, recording and rtcd are under paid licences.
+- **Kopano Meet:** no activity since 2022.
+- **Agora Flat:** needs Agora's cloud at runtime.
+- **Pexip and Vidyo:** no open-source edition.
+- **nettu-meet, edrys, owt-server:** dormant or archived.
+- **persianmeet:** no source code.
 
 **Why the leaders scored as they did:**
 - **BBB, W1 = 4:** three known foreign calls, all fixable. The `bigbluebutton/bbb-libreoffice` image comes from
@@ -99,12 +118,23 @@ appendix named in the row.
   **W6 = 3:** native Persian, but white-label "personalisation" is ۲۴٬۵۰۰٬۰۰۰ تومان a month per account. **W1 = 4:**
   domestic and legal, but it needs UDP 10000–20000 and its behaviour on TCP only is `[unverified]`. Its own help
   pages disagree on iPhone support.
+- **plugNmeet, W1 = 3:** strippable but numerous foreign calls:
+  - its installer pulls Docker Hub images, Chrome from `dl.google.com`, and GitHub releases
+  - the sample config uses Google STUN
+  - `login.html` loads Google Fonts
+  - the whiteboard fetches library items from excalidraw.com
+  - whether Excalidraw loads fonts from `esm.sh` is `[unverified]`
+
+  **W5 = 3:** the vendor benchmark (500 in one room on 4 vCPU) used simulated users with no video or bandwidth
+  figures. **W8 = 2:** one developer wrote about 99% of the server code. **W3 = 5:** short-lived one-time join tokens
+  (better than BBB), signed webhooks, an analytics API and the BBB-compatible API.
 - **LiveKit, W2 = 2:** it is infrastructure. Whiteboard, slides, polls, hand raise, lobby and the RTL UI would all be
   ours to build. It is the best base if Edvora ever wants its own classroom UI or rooms over 200 (benchmark: 1 → 3,000
   viewers on 16 vCPU). BBB 4.0 already uses LiveKit as its media server, so choosing BBB keeps that path open.
 
-**Sensitivity (computed):** we doubled each weight in turn, one at a time. BBB self-hosted stayed first every time and
-the managed BBB host second. The closest call was doubling W4 (operations): 81.8 vs 80.9. That is the honest form
+**Sensitivity (computed, including plugNmeet):** we doubled each weight in turn, one at a time. BBB self-hosted
+stayed first every time. The managed BBB host came second in eight of the nine runs; plugNmeet came second when W3
+(integration) was doubled. The closest call was doubling W4 (operations): 81.8 vs 80.9. That is the honest form
 of the "buy" argument: if operations effort matters most, rent BBB from an Iranian host. Skyroom does not win under
 any of these doublings. Doubling W3 (integration) or W9 (security) moves LiveKit above Skyroom into third.
 
@@ -165,6 +195,39 @@ any of these doublings. Doubling W3 (integration) or W9 (security) moves LiveKit
 | D6 reschedule, old link stops | ✅ we stop issuing links; `createTime` invalidates old ones once the meeting is re-created | ⚠️ we stop issuing links; links already issued live until their TTL |
 | Tenant branding | ✅ per meeting, free | ⚠️ paid add-on per account |
 | 500-person webinar | ❌ above 200/session | ✅ day pass |
+
+### 5.4 Plan B: plugNmeet (App. E §2)
+
+| Area | Facts |
+| --- | --- |
+| Licence and health | MIT (server, client, recorder). 575 stars. Server v2.5.7 on 2026-11-03. Company MynaParrot. **Bus factor 1** (`jibon57` wrote 1,736 server commits; the next human wrote 2) |
+| Features | Whiteboard (Excalidraw) with PDF/DOCX/PPTX, shared notepad, polls, breakouts, waiting room, lock settings, hand raise, chat, MP4 recording, RTMP out, optional E2EE |
+| Integration | Native REST API with short-lived one-time join tokens, `is_admin` role, signed JWT webhooks (`participant_joined/left`, `recording_proceeded`, `analytics_proceeded`), analytics API. **BBB-compatible routes** for create, join, end, meeting info and recordings, but **not** BBB `hooks/*` |
+| Persian | `fa-IR` covers 890 of 1,001 keys; the document `dir` follows i18n; Tailwind logical utilities throughout. The font is Inter, so we inject our own Persian fonts |
+| Iran fit | Docker Hub, Google Chrome repo and GitHub releases at install (mirrorable). Google STUN in the sample config. Google Fonts on `login.html`. excalidraw.com library fetch, overridable. AI features use Azure/Gemini/OpenAI, so keep them off |
+| Scale | 4 cores / 4 GB minimum; recorder 8 cores / 8 GB. Vendor benchmark: 500 simulated users per room on 4 vCPU / 16 GB, with no video figures |
+
+**Why it matters [judgement]:** our adapter's BBB implementation could be pointed at plugNmeet's BBB-compatible API
+for create, join and recordings. Webhooks would need a small native-webhook parser. So if BBB disappoints in the load
+test, switching costs days, not weeks. Spike it on the same trial VM.
+
+### 5.5 Webinars over 200 people (App. F)
+
+| Piece | Choice | Why |
+| --- | --- | --- |
+| Bridge from the BBB room | **THM-Health/BBB-Streaming-Server** (LGPL-3.0, v1.1.1, 2025-06-16): a headless-browser bot joins the room and pushes RTMP; about 2 CPU, 2 GB, 10 Mbit/s up per stream | The only maintained bridge. Works with BBB 3.0 + LiveKit; **BBB 4.0 untested**. The aau-zid and bbb-recorder add-ons were last updated in 2023–2024 |
+| Streaming server | **MediaMTX** (MIT, 20.6k stars, v1.21.3 on 2026-10-25) | One binary from GitHub releases (no Docker Hub), LL-HLS, JWT or HTTP-callback auth, fMP4 recording, read hooks. No transcoding: send 480p from the source. One main maintainer |
+| Fallback server | SRS (MIT, 29.4k stars) | Proven; per-viewer `on_play`/`on_stop` hooks; HLS latency ≥ 5 s |
+| Not chosen | OvenMediaEngine (AGPL, Docker Hub only, Google STUN default); Owncast (single stream, no paid access); PeerTube (AGPL, P2P needs foreign STUN); Restreamer (Google Fonts, Docker only); nginx-rtmp (no tag since 2021) | App. F |
+| Viewer side in Edvora | Short-lived signed URL per viewer (iOS Safari can't send HLS auth headers); 30 s player heartbeat for attendance; a small Q&A panel, because none of the chosen servers has chat | [judgement] |
+| Bandwidth [estimate] | 480p ≈ 1.0 Mbps × 500 ≈ 0.5 Gbps fits one 1 Gbps port; 720p at 2.5 Mbps × 500 ≈ 1.25 Gbps does not | App. F |
+| Arvan Live | Push/pull ingest, signed links with expiry, archive to VOD per an unofficial 2023 API client; RTMP ingest and the ۱۰۸٬۰۰۰ per stream-hour price **`[unverified]`** (docs blocked from outside Iran) | App. D §3.2, F |
+
+**Webinar options, side by side:**
+- **Self-hosted** (MediaMTX on a second VM): it carries the 500 viewers' traffic, and we own the data.
+- **Skyroom day pass** (۲٬۵۴۰٬۰۰۰ تومان): zero operations, but attendance has to be handled manually.
+
+Both sit behind the same adapter (D7, P3).
 
 ---
 
@@ -230,8 +293,8 @@ is +13 M to +26 M a month, because each tenant needs its own branded account `[u
 | R2 | The national network itself drops (Jan 2026) | Medium / high | Nothing technical fixes it. Recordings + the async lessons (module B) carry the cohort; the academy's policy covers rescheduling |
 | R3 | Docker Hub, apt or GitHub unreachable during install or rebuild | High / medium | Private registry + apt mirror on our own storage; image tarballs in the runbook; test from an Iranian VM first |
 | R4 | Arvan counts media traffic as metered, or limits UDP ranges | Medium / medium | Written confirmation before contract; trial VM test; OnlineServer/ParsPack as alternatives |
-| R5 | One BBB server = single point of failure | Medium / high | Backup link (D2f) to a managed BBB host or a Skyroom room; snapshot-based rebuild under 2 h; Scalelite once there are 3+ servers |
-| R6 | 200 per session is too few for open webinars | Certain for 500 / low | Skyroom day pass or an HLS stream; not on the critical path for cohorts |
+| R5 | One BBB server = single point of failure | Medium / high | Backup link (D2f) to a managed BBB host or a Skyroom room; plugNmeet as plan B behind the same BBB-style adapter; snapshot-based rebuild under 2 h; Scalelite once there are 3+ servers |
+| R6 | 200 per session is too few for open webinars | Certain for 500 / low | BBB → RTMP bot → MediaMTX LL-HLS at 480p (§5.5), or a Skyroom day pass; not on the critical path for cohorts |
 | R7 | BBB major upgrades need a new server | Certain every major release / medium | Blue-green: build the new server, move DNS, copy recordings (they are already in S3) |
 | R8 | 20% of Persian strings missing | Certain / low | We translate the rest (≈ 370 keys) and contribute them upstream |
 | R9 | MP4 processing takes CPU from live classes | Medium / medium | Run processing at night; add a separate recording server if the load test shows contention |
@@ -252,7 +315,9 @@ is +13 M to +26 M a month, because each tenant needs its own branded account `[u
 4. IBA: typical and maximum class size, do they need webinars over 200, recording retention, and is attendance
    counted toward the certificate?
 
-**To verify on a trial Iranian VM (half a day):** apt/ghcr/Docker mirrors reachable; UDP ranges open; Let's Encrypt;
+**To verify on a trial Iranian VM (one day, including plugNmeet and webinar spikes):** plugNmeet from mirrored
+artefacts with a network-tab check for foreign hosts; the THM streaming bridge on BBB 4.0 into MediaMTX, with LL-HLS
+on Iranian 4G; plus the BBB checks: apt/ghcr/Docker mirrors reachable; UDP ranges open; Let's Encrypt;
 BBB 200-user load test; MP4 processing time for 3 hours; upload to Arvan S3; join over TURN/443 from MCI, Irancell and
 an iPhone.
 
