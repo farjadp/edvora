@@ -42,3 +42,27 @@ test('signed in: fa admin has no English labels; choosing English in Account sti
     await expect(page.locator('html')).toHaveAttribute('dir', /ltr/i)
   }
 })
+
+test('English chosen in Account → switching back to Persian works and sticks; /staff stays Persian for an English browser', async ({ page, context }) => {
+  const { email, password } = adminCreds()
+  test.skip(!email || !password, 'SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD not available')
+  await context.clearCookies()
+  expect((await page.request.post(`${IBA}/api/users/login`, { data: { email, password } })).ok()).toBeTruthy()
+  await context.addCookies([{ name: 'payload-lng', value: 'en', url: IBA }])
+  await page.goto(`${IBA}/admin/account`)
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await page.locator('#language-select').click()
+  await page.getByRole('option', { name: 'فارسی' }).click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fa', { timeout: 30_000 })
+  expect((await context.cookies()).find((c) => c.name === 'payload-lng')?.value).toBe('fa')
+  await page.goto(`${IBA}/admin`)
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fa')
+  await expect(page.locator('html')).toHaveAttribute('dir', /rtl/i)
+
+  // /staff does not depend on the admin language cookie or the browser language.
+  await context.addCookies([{ name: 'payload-lng', value: 'en', url: IBA }])
+  await page.goto(`${IBA}/staff/overview`)
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fa')
+  await expect(page.locator('html')).toHaveAttribute('dir', /rtl/i)
+  await expect(page.locator('#console-main h1')).toHaveText('نمای کلی')
+})
