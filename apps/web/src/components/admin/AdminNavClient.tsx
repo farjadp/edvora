@@ -22,6 +22,28 @@ export function AdminNavClient({ groups, selector }: { groups: ShellNavGroup[]; 
       if (typeof p?.open !== 'boolean') setNavOpen(true)
     })
   }, [getPreference, setNavOpen])
+  // Phones and tablets: the nav is a drawer over the page. Esc closes it and gives focus back to the burger; Tab
+  // cycles between the burger and the drawer's own links instead of falling through to the page behind.
+  useEffect(() => {
+    if (!navOpen || window.matchMedia('(min-width: 1025px)').matches) return
+    const toggler = document.querySelector<HTMLElement>('.nav-toggler')
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setNavOpen(false)
+        toggler?.focus()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const inside = Array.from(document.querySelectorAll<HTMLElement>('aside.nav a[href], aside.nav button:not([disabled])'))
+      const stops = [...(toggler ? [toggler] : []), ...inside]
+      if (!stops.length) return
+      const at = stops.findIndex((x) => x === document.activeElement)
+      e.preventDefault()
+      stops[e.shiftKey ? (at <= 0 ? stops.length - 1 : at - 1) : at === stops.length - 1 ? 0 : at + 1]?.focus()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [navOpen, setNavOpen])
   const cls = ['nav', navOpen && 'nav--nav-open', shouldAnimate && 'nav--nav-animate', hydrated && 'nav--nav-hydrated'].filter(Boolean).join(' ')
   return (
     <aside className={cls} inert={!navOpen ? true : undefined}>

@@ -33,9 +33,33 @@ export function HeaderToolsClient({ items, alerts }: { items: Item[]; alerts: nu
       document.removeEventListener('fullscreenchange', onFull)
     }
   }, [])
+  const list = useRef<HTMLUListElement>(null)
   useEffect(() => {
-    if (open) input.current?.focus()
+    if (!open) return
+    // Focus goes back to whatever opened the palette once it closes.
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    input.current?.focus()
+    return () => {
+      if (opener && opener.isConnected) opener.focus()
+    }
   }, [open])
+
+  /** aria-modal: Tab stays inside (input, then results); arrows move through the results. */
+  const onBoxKey = (e: React.KeyboardEvent) => {
+    const links = Array.from(list.current?.querySelectorAll<HTMLElement>('a') ?? [])
+    const stops: HTMLElement[] = [...(input.current ? [input.current] : []), ...links]
+    const at = stops.findIndex((l) => l === document.activeElement)
+    if (e.key === 'Tab' && stops.length) {
+      e.preventDefault()
+      stops[e.shiftKey ? (at <= 0 ? stops.length - 1 : at - 1) : at === stops.length - 1 ? 0 : at + 1]?.focus()
+    } else if (e.key === 'ArrowDown' && stops.length) {
+      e.preventDefault()
+      stops[Math.min(at + 1, stops.length - 1)]?.focus()
+    } else if (e.key === 'ArrowUp' && stops.length) {
+      e.preventDefault()
+      stops[Math.max(at - 1, 0)]?.focus()
+    }
+  }
 
   return (
     <div className="c-tools">
@@ -57,13 +81,13 @@ export function HeaderToolsClient({ items, alerts }: { items: Item[]; alerts: nu
       {open ? (
         <div className="c-pal" role="presentation">
           <div className="c-pal__scrim" onClick={() => setOpen(false)} />
-          <div className="c-pal__box" role="dialog" aria-modal="true" aria-label="جست‌وجو در بخش‌ها">
+          <div className="c-pal__box" role="dialog" aria-modal="true" aria-label="جست‌وجو در بخش‌ها" onKeyDown={onBoxKey}>
             <label className="c-pal__search">
               <ConsoleIcon name="search" />
               <span className="c-sr">نام بخش</span>
               <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="نام بخش را بنویسید…" onKeyDown={(e) => e.key === 'Enter' && found[0] && (window.location.href = found[0].href)} />
             </label>
-            <ul className="c-pal__list">
+            <ul className="c-pal__list" ref={list}>
               {found.length === 0 ? <li className="c-muted c-pal__none">بخشی با این نام پیدا نشد.</li> : null}
               {found.map((i) => (
                 <li key={i.key}>

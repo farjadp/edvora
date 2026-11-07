@@ -364,9 +364,14 @@ function Palette({ nav, onClose }: { nav: ShellNavGroup[]; onClose: () => void }
   }, [all, q])
 
   useEffect(() => {
+    // Focus goes back to whatever opened the palette (the search button, or the page when Ctrl+K was used).
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     inputRef.current?.focus()
     document.body.classList.add('overflow-hidden')
-    return () => document.body.classList.remove('overflow-hidden')
+    return () => {
+      document.body.classList.remove('overflow-hidden')
+      if (opener && opener.isConnected) opener.focus()
+    }
   }, [])
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -375,6 +380,17 @@ function Palette({ nav, onClose }: { nav: ShellNavGroup[]; onClose: () => void }
       return
     }
     const links = Array.from(listRef.current?.querySelectorAll<HTMLElement>('a') ?? [])
+    if (e.key === 'Tab') {
+      // aria-modal: keep Tab inside the dialog (input, then the results).
+      const stops: HTMLElement[] = [...(inputRef.current ? [inputRef.current] : []), ...links]
+      const at = stops.findIndex((l) => l === document.activeElement)
+      const to = e.shiftKey ? (at <= 0 ? stops.length - 1 : at - 1) : at === stops.length - 1 ? 0 : at + 1
+      if (stops.length) {
+        e.preventDefault()
+        stops[to]?.focus()
+      }
+      return
+    }
     const i = links.findIndex((l) => l === document.activeElement)
     if (e.key === 'ArrowDown') {
       e.preventDefault()
