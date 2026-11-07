@@ -74,10 +74,11 @@ for (const [template, desk, title] of LANDING) {
     await staffLogin(page, DEMO, u)
     await expect(page).toHaveURL(`${DEMO}/staff/${desk}`)
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
-    // E-028: the leads and finance desks have real bodies; the others are still E-022 placeholders.
+    // E-035: every desk renders in the console layout; support has no data source yet and says so.
+    await expect(page.getByTestId('desk')).toHaveAttribute('data-desk', desk)
     if (desk === 'leads') await expect(page.getByTestId('leads-desk')).toBeVisible()
     else if (desk === 'finance') await expect(page.getByTestId('finance-desk')).toBeVisible()
-    else await expect(page.getByText('این میز هنوز آماده نیست.')).toBeVisible()
+    else if (desk === 'support') await expect(page.getByText('این میز هنوز آماده نیست.')).toBeVisible()
     // Tenant indicator + permission-filtered nav with the active item marked.
     await expect(page.getByRole('navigation', { name: 'ناوبری میز کار' }).first().locator('[aria-current="page"]')).toHaveAttribute('href', `/staff/${desk}`)
   })
@@ -88,7 +89,10 @@ test('advisor: nav is filtered and another desk is a 403 inside the shell', asyn
   await staffLogin(page, DEMO, advisor)
   await expect(page).toHaveURL(`${DEMO}/staff/leads`)
   const nav = page.getByRole('navigation', { name: 'ناوبری میز کار' }).first()
-  await expect(nav.getByRole('link')).toHaveText(['مشتریان', 'دانشجویان', 'امنیت حساب'])
+  // E-035: grouped modules; the advisor sees their desk and their own security page, never finance.
+  await expect(nav.getByRole('link', { name: 'مشتریان بالقوه' })).toHaveAttribute('href', '/staff/leads')
+  await expect(nav.getByRole('link', { name: 'امنیت حساب' })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'سفارش‌ها و اقساط' })).toHaveCount(0)
 
   const res = await page.request.get(`${DEMO}/staff/finance`, { maxRedirects: 0 })
   expect(res.status()).toBe(403)

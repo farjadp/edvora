@@ -47,13 +47,16 @@ export default buildConfig({
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },
     meta: { titleSuffix: ' · Edvora' },
+    // No Gravatar: AGENTS.md forbids external runtime requests, and the default would send a hash of every admin's email.
+    avatar: 'default',
     // E-031 (Seal): brand marks, the selected academy's accent colour, a permission-aware landing block.
     // E-034: the login page wears the Seal card (academy seal as Logo, title before and the staff-door link after the form).
     components: {
       graphics: { Logo: '/components/admin/LoginSkin#LoginLogo', Icon: '/components/admin/Brand#Icon' },
+      Nav: '/components/admin/AdminNav#Nav',
+      actions: ['/components/admin/HeaderTools#HeaderTools'],
       beforeLogin: ['/components/admin/LoginSkin#BeforeLogin'],
       afterLogin: ['/components/admin/LoginSkin#AfterLogin'],
-      header: ['/components/admin/TenantAccent#TenantAccent'],
       beforeDashboard: ['/components/admin/DashboardHome#DashboardHome'],
     },
     // Dates with `timezone: true` (drip release, assignment deadline) are entered in Tehran time and stored UTC.

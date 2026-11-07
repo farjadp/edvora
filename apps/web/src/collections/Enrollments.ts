@@ -8,7 +8,8 @@ const SCOPE = { course: 'course', cohort: 'cohort' }
 export const Enrollments: CollectionConfig = {
   slug: 'enrollments',
   labels: { singular: { fa: 'ثبت‌نام', en: 'Enrollment' }, plural: { fa: 'ثبت‌نام‌ها', en: 'Enrollments' } },
-  admin: { defaultColumns: ['user', 'course', 'cohort', 'status', 'enrolledAt'], group: { fa: 'آموزش', en: 'Learning' } },
+  admin: {
+    components: { beforeListTable: ['/components/admin/ListKpis#ListKpis'] }, defaultColumns: ['user', 'course', 'cohort', 'status', 'enrolledAt'], group: { fa: 'آموزش', en: 'Learning' } },
   access: {
     read: anyOf(ownRecords('user'), allow('enrollments.view', SCOPE), allow('enrollments.manage', SCOPE)),
     create: allowCreate('enrollments.manage'),
