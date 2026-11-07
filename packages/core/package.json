@@ -9,6 +9,8 @@
     "./digits": "./src/digits.ts",
     "./money": "./src/money.ts",
     "./staff": "./src/staff.ts",
+    "./login": "./src/login.ts",
+    "./phone": "./src/phone.ts",
     "./quiz": "./src/quiz.ts",
     "./drip": "./src/drip.ts",
     "./assignments": "./src/assignments.ts",
