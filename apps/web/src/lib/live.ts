@@ -10,12 +10,14 @@ import {
   parseExternalRoomId,
   type AttendanceRecord,
 } from '@edvora/core/live'
-import type { JoinTicket, LiveClassProvider, LiveEvent, WebhookRequest } from '@edvora/integrations/live-class'
+import type { JoinTicket, LiveClassProvider, LiveEvent, MockLiveClassProvider, WebhookRequest } from '@edvora/integrations/live-class'
+import { after } from 'next/server'
 import type { Payload } from 'payload'
 import type { Attendance, LiveSession, Tenant, User } from '../payload-types'
 import { idOf } from './ids'
 import { findEnrollment } from './learning'
 import { getPayloadClient } from './payload'
+import { copyRecording } from './liveRecordings'
 import { getLiveClass } from './providers'
 
 /** Live classes (phase-2 §D, ADR 012). Edvora checks who may join; the provider only sees opaque ids. */
@@ -139,6 +141,11 @@ export async function endSession(session: LiveSession, origin: string): Promise<
   }
   await payload.update({ collection: 'live-sessions', id: session.id, data: { status: 'ended' }, overrideAccess: true, ...SYSTEM })
   await closeOpenAttendance(payload, session, new Date().toISOString())
+  // The mock has no recording server: pretend it produced one, reported the way BBB's callback would be.
+  if (provider.name === 'mock' && session.record && session.providerRoomId && 'addRecording' in provider) {
+    const rec = (provider as MockLiveClassProvider).addRecording(session.providerRoomId, session.durationMin * 60, externalRoomId(idOf(session.tenant) ?? 0, session.id))
+    await ingestEvents('mock', [{ type: 'recording.ready', eventId: `rec:${rec.providerRecordingId}`, occurredAt: new Date().toISOString(), providerRoomId: session.providerRoomId, providerRecordingId: rec.providerRecordingId }])
+  }
 }
 
 // --- Provider events → attendance, status, recordings -----------------------------------------------------------
@@ -286,22 +293,20 @@ async function applyEvent(payload: Payload, providerName: string, session: LiveS
       await closeOpenAttendance(payload, session, ev.occurredAt)
       return
     case 'recording.ready': {
-      // D4: noted on the session. Copy to object storage + lesson attach waits for the S3 adapter (E-017).
-      const rec = await getLiveClass().getRecording(ev.providerRecordingId).catch(() => null)
-      const existing = (session.recordings ?? []).filter((r) => r.providerRecordingId !== ev.providerRecordingId)
-      await payload.update({
-        collection: 'live-sessions',
-        id: session.id,
-        data: {
-          recordings: [
-            ...existing,
-            { providerRecordingId: ev.providerRecordingId, format: rec?.format ?? null, durationSec: rec?.durationSec ?? null, url: rec?.url ?? null, status: 'ready' },
-          ],
-        },
-        overrideAccess: true,
-        ...SYSTEM,
-      })
+      // D4: note it, then copy it into our bucket after the response is sent (E-017). Re-sent events dedupe above.
+      const exists = (session.recordings ?? []).some((r) => r.providerRecordingId === ev.providerRecordingId)
+      if (!exists) {
+        await payload.update({
+          collection: 'live-sessions',
+          id: session.id,
+          data: { recordings: [...(session.recordings ?? []), { providerRecordingId: ev.providerRecordingId, status: 'ready' }] },
+          overrideAccess: true,
+          ...SYSTEM,
+        })
+      }
       console.info(`[live] recording ready from ${providerName}`, session.id, ev.providerRecordingId)
+      const sessionId = session.id
+      after(() => copyRecording(sessionId, ev.providerRecordingId))
       return
     }
   }

@@ -11,6 +11,15 @@ export const LIVE_MESSAGE: Record<string, { text: string; tone: 'info' | 'ok' | 
   },
   'ended-ok': { text: 'کلاس برای همه پایان یافت.', tone: 'ok' },
   left: { text: 'از کلاس خارج شدید. حضور شما ثبت شد.', tone: 'ok' },
+  'copy-started': { text: 'کپی ضبط شروع شد. چند دقیقهٔ دیگر این صفحه را دوباره باز کنید.', tone: 'info' },
+}
+
+export const RECORDING_STATUS: Record<string, string> = {
+  ready: 'گزارش شد',
+  waiting: 'در انتظار فایل MP4',
+  copying: 'در حال کپی',
+  copied: 'آماده تماشا',
+  failed: 'خطا در کپی',
 }
 
 export const STATUS_LABEL: Record<string, string> = {

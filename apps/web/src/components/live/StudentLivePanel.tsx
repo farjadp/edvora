@@ -29,15 +29,23 @@ export function StudentLivePanel({ sessions, message, now = new Date() }: Props)
           {sessions.map((s) => {
             const w = joinState(s, now)
             const canJoin = w.state === 'open' && s.status === 'live'
-            const recordings = (s.recordings ?? []).length
+            const recordings = (s.recordings ?? []).filter((r) => r.status === 'copied')
             return (
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-5">
                 <span className="min-w-0">
                   <span className="block font-bold">{s.title}</span>
                   <span className="mt-1 block text-xs leading-6 text-muted">
                     {jalaliDateTime(s.startsAt)} · {fa(s.durationMin)} دقیقه · {STATUS_LABEL[s.status ?? 'scheduled']}
-                    {recordings ? ` · ${fa(recordings)} ضبط آماده` : ''}
                   </span>
+                  {recordings.length ? (
+                    <span className="mt-2 flex flex-wrap gap-3 text-sm">
+                      {recordings.map((r, i) => (
+                        <a key={r.providerRecordingId} href={`/live/${s.id}/recording/${encodeURIComponent(r.providerRecordingId)}`} className="font-bold text-brand underline underline-offset-4">
+                          تماشای ضبط{recordings.length > 1 ? ` ${fa(i + 1)}` : ''}
+                        </a>
+                      ))}
+                    </span>
+                  ) : null}
                 </span>
                 {w.state === 'open' ? (
                   <form method="post" action={`/live/${s.id}/join`}>
