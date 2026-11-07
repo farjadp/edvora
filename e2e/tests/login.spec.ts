@@ -652,6 +652,8 @@ test.describe('admin /admin/login', () => {
 // Layout, theme, tenants, a11y
 // ---------------------------------------------------------------------------------------------------------------
 const brandOf = { [DEMO]: 'rgb(15, 118, 110)', [IBA]: 'rgb(26, 86, 219)' } as const
+/** Student login uses the Edvora palette for every academy (Farjad, 2026-11-07); staff login keeps the tenant colour. */
+const EDVORA_PETROL = 'rgb(18, 60, 85)'
 
 test.describe('375px', () => {
   test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true })
@@ -715,11 +717,11 @@ test.describe('375px', () => {
 
 test.describe('tenant brand colour and theme', () => {
   for (const [name, base] of [['demo', DEMO], ['iba', IBA]] as const) {
-    test(`${name}: the primary button uses the tenant colour on /login and /staff/login, light and dark`, async ({ page }) => {
-      for (const path of ['/login', '/staff/login']) {
+    test(`${name}: the primary button is Edvora petrol on /login and the tenant colour on /staff/login`, async ({ page }) => {
+      for (const [path, want] of [['/login', EDVORA_PETROL], ['/staff/login', brandOf[base]]] as const) {
         await page.goto(`${base}${path}`)
         const bg = await page.getByRole('button', { name: /دریافت کد ورود|^ورود$/ }).first().evaluate((el) => getComputedStyle(el).backgroundColor)
-        expect(bg, `${name}${path} light`).toBe(brandOf[base])
+        expect(bg, `${name}${path} light`).toBe(want)
       }
       // The academy name in the card matches the host's tenant, never the other one.
       await page.goto(`${base}/login`)
