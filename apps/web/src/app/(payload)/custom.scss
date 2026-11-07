@@ -729,6 +729,13 @@ div.nav__link {
   color: var(--ed-brand-text);
 }
 
+/* axe: inactive tab labels and "add row" were 3.3:1 on paper. Payload dims inactive tabs with opacity too. */
+.tabs-field__tab-button:not(.tabs-field__tab-button--active),
+.array-field__add-row .btn__label {
+  color: var(--ed-muted);
+  opacity: 1;
+}
+
 /* ---------- Login ---------- */
 
 .template-minimal {
