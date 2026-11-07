@@ -104,6 +104,7 @@ Also checked and not scored, because a gate or a basic fact rules them out (App.
 - **Pexip and Vidyo:** no open-source edition.
 - **nettu-meet, edrys, owt-server:** dormant or archived.
 - **persianmeet:** no source code.
+- **edrispapi/straming-python** (sent by Farjad): 4.6 KB of snippets, no licence, no video conferencing (App. E §8).
 
 **Why the leaders scored as they did:**
 - **BBB, W1 = 4:** three known foreign calls, all fixable. The `bigbluebutton/bbb-libreoffice` image comes from

@@ -223,3 +223,18 @@ Only complete meeting/classroom apps get a verdict; libraries/infra/unrelated ar
 4. **Do not pursue** OpenTalk, La Suite Meet, Mattermost Calls, Kopano Meet, Agora Flat, nettu-meet, edrys, Pexip, Vidyo.
 
 Open items: plugNmeet BBB-bridge parameter coverage `[unverified]`; plugNmeet Excalidraw font source `[unverified]`; OpenTalk recording format `[unverified]`; registry.heinlein.group reachability from Iran `[unverified]`.
+
+---
+
+## 8. Projects Farjad sent (checked 2026-11-06)
+
+### edrispapi/straming-python: https://github.com/edrispapi/straming-python
+| Item | Fact (GitHub REST API and file contents, accessed 2026-11-06) |
+| --- | --- |
+| Description | «پلتفرم آموزشی آنلاین با قابلیت کلاس زنده و آرشیو ویدئو» |
+| Licence | **None** (no LICENSE file; API `license: null`). Legally, all rights reserved, so the code cannot be reused |
+| Activity | Created 2025-07-18; all 17 commits by `edrispapi` (Tehran) in about 20 minutes that day; no releases; 0 stars, 0 forks; nothing pushed since 2025-07-18 |
+| Size | 4,634 bytes of Python in 16 files, most of them 150–400 bytes; README 4.4 KB |
+| What the code is | One-file snippets per technology named in the README: Django REST views, a Course model, a Celery app, a Zarinpal call, Sentry/Prometheus/Elasticsearch/Mongo clients |
+| "Live class" | **No video conferencing at all.** There is no WebRTC, SFU, rooms, roles, whiteboard or recording. `livechat/consumers.py` is a Django Channels chat where every user joins one global group `"classroom"`, with no authentication or room isolation. `deploy/nginx.conf` proxies `/live/` over HTTP to `streaming:1935`, which is the RTMP port and would not work as written. `arvan_utils.py` fetches a stream URL from `napi.arvancloud.com/live/{channel_id}/stream` (Arvan Live API). `ffmpeg_ops.py` runs a single `ffmpeg -c:v libx264` transcode |
+| Verdict | **Not a candidate.** It is a README-level architecture sketch, not a working platform, and it has no licence. The one idea that matters, Arvan Live as a one-to-many streaming path, is already covered in App. F and §5.5 of the main document |
