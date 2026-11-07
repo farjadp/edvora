@@ -1,8 +1,9 @@
-import { fieldsChecksum } from '@edvora/integrations/wordpress'
+import { fieldsChecksum, makeRecord, MemorySource } from '@edvora/integrations/wordpress'
 import { describe, expect, it } from 'vitest'
 import { docChecksum, docValues, parseRefKey, resolveRelations, toDocData, unionIds, UnresolvedRef } from './docValues'
 import { decodeEntities, htmlToLexical, safeHref } from './htmlToLexical'
 import { nonceStore, type NonceRepo } from './nonces'
+import { withPhoneOverrides } from './sources'
 import { allowedHosts, checkMediaUrl, isPrivateAddress, pullMedia, PullError, sniffMedia } from './ssrf'
 import { buildZip, crc32 } from './zip'
 
@@ -253,8 +254,6 @@ describe('plugin zip', () => {
 
 describe('withPhoneOverrides (admin decisions before planning)', () => {
   it('injects the entered phone first and leaves skipped users out, keeping the manifest count consistent', async () => {
-    const { MemorySource, makeRecord } = await import('@edvora/integrations/wordpress')
-    const { withPhoneOverrides } = await import('./sources')
     const manifest = { format: 'edvora-wp-export', formatVersion: 1, pluginVersion: '1', createdAtGmt: 'x', connectionId: 'c', tenantSlug: 'demo', site: { siteId: 's', homeUrl: 'https://x.ir' }, counts: { 'wp.user': 3 } } as const
     const src = new MemorySource(manifest, [makeRecord('wp.user', 1, {}), makeRecord('wp.user', 2, {}, { meta: { mobile: 'x' } }), makeRecord('wp.user', 3, {})])
     const patched = withPhoneOverrides(src, { '2': '09120000099' }, ['3'])

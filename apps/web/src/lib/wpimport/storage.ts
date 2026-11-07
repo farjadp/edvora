@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { privateUploadsDir } from '../../collections/SubmissionFiles'
+import { privateUploadsDir } from '../privateUploads'
 
 export function importBundlesDir(): string {
   const dir = process.env.IMPORT_BUNDLES_DIR?.trim()

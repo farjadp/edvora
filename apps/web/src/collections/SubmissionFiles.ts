@@ -1,13 +1,10 @@
 import { SUBMISSION_MIME } from '@edvora/core'
-import path from 'path'
 import type { CollectionConfig } from 'payload'
 import { allow, anyOf, nobody, ownRecords } from '../access/permissions'
+import { privateUploadsDir } from '../lib/privateUploads'
 
 /** Outside any public/static path (ADR 009). Relative paths resolve from apps/web. */
-export function privateUploadsDir(): string {
-  const dir = process.env.PRIVATE_UPLOADS_DIR?.trim() || 'private-uploads/submission-files'
-  return path.isAbsolute(dir) ? dir : path.resolve(process.cwd(), dir)
-}
+export { privateUploadsDir }
 
 /**
  * Private student uploads (ADR 009). Created only by the submit action with a random file name; downloaded only

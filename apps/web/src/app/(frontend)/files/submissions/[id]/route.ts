@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { privateUploadsDir } from '../../../../../collections/SubmissionFiles'
+import { privateUploadsDir } from '../../../../../lib/privateUploads'
 import { idOf } from '../../../../../lib/ids'
 import { getPayloadClient } from '../../../../../lib/payload'
 import { getCurrentUser } from '../../../../../lib/session'
