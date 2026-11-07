@@ -15,6 +15,7 @@ import { count, deltaOf, fa, one, staffCtx, trend } from '../../../../../lib/con
 import { LEAD_STATUS } from '../../../../../lib/consoleLabels'
 import { HostLivePanel } from '../../../../../components/live/HostLivePanel'
 import { hostRows } from '../../../../../lib/liveAccess'
+import { greetingName } from '@edvora/core/names'
 import { requireStaff } from '../../../../../lib/staff'
 import { tenantHasFeature } from '../../../../../lib/tenant'
 import { deskCopy } from '../../../../../lib/staffDesks'
@@ -61,7 +62,7 @@ export default async function DeskPage({ params, searchParams }: Props) {
       ])
       body = (
         <LeadsDesk
-          name={(s.user.name ?? '').trim().split(/\s+/)[0] || 'همکار'}
+          name={greetingName(s.user) ?? 'همکار'}
           desk={data}
           filter={f}
           q={q}

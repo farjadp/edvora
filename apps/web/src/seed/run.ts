@@ -631,11 +631,11 @@ async function main() {
   if (wanted.has('demo')) ids.push(await seedDemo(payload))
   for (const t of ids) await seedRoleTemplates(payload, t)
   if (wanted.has('demo')) {
-    const demoId = ids[ids.length - 1]!
-    await seedDemoPeople(payload, demoId)
-    await seedDemoGamification(payload, demoId)
-    await seedDemoImportConnection(payload, demoId)
-    await seedDemoMedia(payload, demoId)
+    const demo = ids[ids.length - 1]!
+    await seedDemoPeople(payload, demo)
+    await seedDemoImportConnection(payload, demo)
+    await seedDemoMedia(payload, demo)
+    await seedDemoGamification(payload, demo)
   }
   await seedAdmin(payload, ids)
   await flushGamification()
