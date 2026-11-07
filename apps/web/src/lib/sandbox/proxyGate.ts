@@ -2,7 +2,7 @@ import { isPlatformHost, parseSandboxConfig, verifySandboxSelector, type Sandbox
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * E-029 / ADR 010 — demo sandbox gate. Only requests carrying the signed sandbox selector cookie on the platform host
+ * E-029 / ADR 013 — demo sandbox gate. Only requests carrying the signed sandbox selector cookie on the platform host
  * are touched; everything else passes straight through (no DB, no work).
  *  - live sandbox: `/admin` is closed (C4) → rewritten to the real 403 page.
  *  - ended sandbox (cookie expiry = sandbox expiry, no extension): session cookies are cleared on this very response

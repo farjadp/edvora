@@ -1,5 +1,5 @@
 /**
- * Self-serve sandbox demo (E-029, ADR 010). Pure rules only: no I/O, no node:crypto, safe for client components
+ * Self-serve sandbox demo (E-029, ADR 013). Pure rules only: no I/O, no node:crypto, safe for client components
  * via `@edvora/core/sandbox`. Signing, proof-of-work verification and password generation live in
  * `./sandboxSecurity.ts` (server only).
  */

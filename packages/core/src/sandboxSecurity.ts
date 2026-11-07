@@ -1,5 +1,5 @@
 /**
- * Server-only sandbox security helpers (E-029, ADR 010): signed tokens, proof-of-work verification, IP hashing and
+ * Server-only sandbox security helpers (E-029, ADR 013): signed tokens, proof-of-work verification, IP hashing and
  * credential generation. Uses node:crypto, so it is exported from the package root only (never import it in a
  * client component).
  */
@@ -33,7 +33,7 @@ function open(token: string | null | undefined, secret: string, purpose: string)
 export type SandboxSelector = { tid: number; exp: number }
 
 /**
- * The cookie that makes the platform host render one sandbox (ADR 010 routing). Signed with a purpose-bound key,
+ * The cookie that makes the platform host render one sandbox (ADR 013 routing). Signed with a purpose-bound key,
  * so a student session token can never be replayed as a selector or the other way round.
  */
 export const signSandboxSelector = (s: SandboxSelector, secret: string) => sign({ k: 'sbx', tid: s.tid, exp: s.exp }, secret, 'sandbox-selector')

@@ -187,7 +187,7 @@ export default buildConfig({
         redirects: {},
       },
       // No hard delete: academies are never removed, so never cascade-delete their records. The one exception,
-      // demo sandboxes (ADR 010), is purged explicitly by lib/sandbox/cleanup.ts, collection by collection.
+      // demo sandboxes (ADR 013), is purged explicitly by lib/sandbox/cleanup.ts, collection by collection.
       cleanupAfterTenantDelete: false,
       userHasAccessToAllTenants: (user) => isSuperAdmin(user),
       // Academy staff may set academies on users where they hold users.create / users.edit;

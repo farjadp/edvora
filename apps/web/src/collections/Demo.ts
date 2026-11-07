@@ -7,7 +7,7 @@ const group = { fa: 'ادورا', en: 'Edvora' }
 const readOnly = { create: () => false, update: () => false }
 
 /**
- * One row per self-serve demo (E-029, ADR 010). Platform-owned (not a tenant collection): it outlives the sandbox
+ * One row per self-serve demo (E-029, ADR 013). Platform-owned (not a tenant collection): it outlives the sandbox
  * so the per-IP daily cap and demo counts (O5) still work after the cleanup job hard-deletes the tenant. Holds no
  * personal data beyond a keyed IP hash. Written only by server code; Edvora super-admins can read it.
  */

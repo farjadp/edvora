@@ -9,7 +9,7 @@ import { cronAuthorized } from '../../../../../../lib/sandbox/guard'
 export const dynamic = 'force-dynamic'
 
 /**
- * E2E HOOK — POST /demo/api/test/expire (ADR 010 §e2e). Exists only with SANDBOX_E2E_HOOKS=true, and needs the cron
+ * E2E HOOK — POST /demo/api/test/expire (ADR 013 §e2e). Exists only with SANDBOX_E2E_HOOKS=true, and needs the cron
  * secret. Ends the sandbox selected by this browser now, exactly like the clock would: tenant + memberships expire,
  * and the selector cookie is re-issued with the past expiry so the proxy path is exercised too.
  * `?purge=1` also sets purgeAt = now, so the next cleanup run hard-deletes it (E4/E6 tests).

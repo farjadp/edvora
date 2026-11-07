@@ -1,5 +1,5 @@
 /**
- * Sandbox guards shared by collections (E-029, ADR 010). A sandbox is a tenant with `isSandbox = true`; its
+ * Sandbox guards shared by collections (E-029, ADR 013). A sandbox is a tenant with `isSandbox = true`; its
  * accounts carry `users.sandboxTenant`. Flags are read from the DB (never from a token) and cached per request.
  */
 import { clampMembershipExpiry, parseSandboxConfig, sandboxState, toPersianDigits, type SandboxConfig } from '@edvora/core'

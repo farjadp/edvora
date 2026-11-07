@@ -49,7 +49,7 @@ export const Tenants: CollectionConfig = {
   },
   fields: [
     { name: 'name', type: 'text', required: true, label: { fa: 'نام آکادمی', en: 'Name' } },
-    // E-029 / ADR 010: self-serve demo sandboxes. Written only by server code (overrideAccess); never via the API.
+    // E-029 / ADR 013: self-serve demo sandboxes. Written only by server code (overrideAccess); never via the API.
     {
       name: 'isSandbox',
       type: 'checkbox',

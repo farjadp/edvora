@@ -254,7 +254,7 @@ export const Users: CollectionConfig = {
               ],
             },
             {
-              // E-029 / ADR 010: the demo sandbox this account was made for (null = a real account). Set by server
+              // E-029 / ADR 013: the demo sandbox this account was made for (null = a real account). Set by server
               // code, or forced to the actor's own sandbox when a sandbox admin creates someone.
               name: 'sandboxTenant',
               type: 'relationship',

@@ -184,7 +184,7 @@ Also check by hand: `/staff/login` loads (staff desk, E-022); the seeded demo st
 
 ## Demo sandboxes (E-029)
 
-Self-serve `/demo` on this host (ADR 010). Off until `SANDBOX_ENABLED=true`. Variables on `web` (defaults in
+Self-serve `/demo` on this host (ADR 013). Off until `SANDBOX_ENABLED=true`. Variables on `web` (defaults in
 `apps/web/.env.example`):
 
 | Key | Value |

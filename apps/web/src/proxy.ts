@@ -18,7 +18,7 @@ import { sandboxGate } from './lib/sandbox/proxyGate'
  *    added to this request (so the first render is already fa/RTL) and set on the response. English stays available:
  *    choosing it in Account sets the cookie, which this proxy then leaves alone.
  *
- * 3. Demo sandboxes (E-029, ADR 010): see lib/sandbox/proxyGate.ts. Only requests with the signed sandbox cookie on
+ * 3. Demo sandboxes (E-029, ADR 013): see lib/sandbox/proxyGate.ts. Only requests with the signed sandbox cookie on
  *    the platform host are affected (ended sandbox → sessions cleared + ended state; live sandbox → /admin closed).
  */
 const gate = parsePreviewGate(process.env)

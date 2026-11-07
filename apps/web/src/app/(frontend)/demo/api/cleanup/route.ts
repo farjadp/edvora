@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 /**
  * POST /demo/api/cleanup — the sandbox cleanup cron (every ~10 min). Idempotent: revokes ended sandboxes, hard-deletes
- * those past grace (ADR 010's single hard-delete exception), marks stale reservations. Works on any host and even
+ * those past grace (ADR 013's single hard-delete exception), marks stale reservations. Works on any host and even
  * with SANDBOX_ENABLED=false (the kill switch stops creation, not cleanup).
  */
 export async function POST(request: Request) {

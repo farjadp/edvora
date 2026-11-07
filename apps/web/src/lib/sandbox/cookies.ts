@@ -5,7 +5,7 @@ import { env } from '../../env'
 
 /**
  * Two cookies, both httpOnly + SameSite=Lax + host-only (never shared with academy domains):
- *  - `edvora_sbx`  — signed tenant selector {tid, exp}. Makes the platform host render that sandbox (ADR 010).
+ *  - `edvora_sbx`  — signed tenant selector {tid, exp}. Makes the platform host render that sandbox (ADR 013).
  *                    Set on creation and by the login address `/demo/s/<slug>` (second device).
  *  - `edvora_demo` — sealed (AES-GCM) creator cookie: the sandbox's generated passwords, so "ورود" and "ادامه" can
  *                    sign the visitor in without showing or storing the passwords (C1, C3). Only the creator's

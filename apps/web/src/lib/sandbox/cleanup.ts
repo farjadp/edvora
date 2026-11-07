@@ -60,7 +60,7 @@ async function purgeCollection(payload: Payload, collection: CollectionSlug, whe
 
 /**
  * Hard-deletes one sandbox: every tenant-owned row, its accounts (users with `sandboxTenant` = it), then the tenant.
- * THE ONE PLACE HARD DELETE IS ALLOWED (ADR 010). Refuses anything that is not `isSandbox === true` or has a
+ * THE ONE PLACE HARD DELETE IS ALLOWED (ADR 013). Refuses anything that is not `isSandbox === true` or has a
  * protected slug, re-checked here against the DB even though the caller already selected it.
  * Safe to re-run after a crash: each step deletes what is left.
  */

@@ -237,5 +237,5 @@ Tags: **Core** = every academy/platform needs it; **Platform** = Edvora-only, no
 - **Task:** E-029 product doc for the self-serve sandbox demo.
 - **Output:** `docs/product/sandbox-demo.md`.
 - **Decisions made:** one sandbox tenant per visitor; tenant-level expiry and per-tenant provider forcing; `/admin` closed in P1; password shown once, return visit shows time only; leads go to a platform record; optional consented email; kill switch and per-IP daily cap added.
-- **Open issues:** Q1–Q11 above; URL strategy and cleanup-bypass ADR (tech-lead); platform lead collection shape; whether student login in sandbox is phone+OTP or password.
+- **Open issues:** Q1–Q11 above; URL strategy and cleanup-bypass ADR (tech-lead: answered in `docs/adr/013-sandbox-tenants.md`); platform lead collection shape; whether student login in sandbox is phone+OTP or password.
 - **Next owner:** `tech-lead` (ADR, schema, limiter) then `ux-architect` (screens), `qa` (ACs V/A/S/T/E/F/O).

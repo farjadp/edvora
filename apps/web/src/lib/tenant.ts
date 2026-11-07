@@ -14,7 +14,7 @@ export function normalizeHost(host: string | null | undefined): string {
 }
 
 /**
- * Demo sandbox selected by the signed `edvora_sbx` cookie (ADR 010). Honoured only on the platform host(s) and only
+ * Demo sandbox selected by the signed `edvora_sbx` cookie (ADR 013). Honoured only on the platform host(s) and only
  * for tenants with `isSandbox = true`, so the cookie can never switch a request to a real academy, and academy
  * domains ignore it entirely. Returns the sandbox even after it ended (callers show the ended state, never data).
  */
@@ -34,7 +34,7 @@ export const isEndedSandbox = (tenant: Pick<Tenant, 'isSandbox' | 'expiresAt'>) 
 /**
  * Resolves the academy for the current request from the Host header (custom domains),
  * falling back to DEFAULT_TENANT_SLUG for localhost and preview URLs. On the platform host a valid sandbox
- * selector cookie wins (ADR 010).
+ * selector cookie wins (ADR 013).
  */
 export const getCurrentTenant = cache(async (): Promise<Tenant> => {
   const sandbox = await getSelectedSandbox()

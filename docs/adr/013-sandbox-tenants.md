@@ -1,4 +1,4 @@
-# ADR 010 — Self-serve demo sandboxes (E-029)
+# ADR 013 — Self-serve demo sandboxes (E-029)
 
 **Status:** proposed (2026-11-06, tech-lead) — product defaults marked *default pending Farjad*
 
