@@ -1,7 +1,7 @@
 # Edvora task board
 
 Owned by the **head-of-product**. Every agent reads it; only the head-of-product changes status (separate chats write a
-handoff in `handoffs/` instead). Statuses: `todo · doing · review · blocked · done`. `chat: <agent>` = run in a
+handoff in `handoffs/` instead). Statuses: `todo · doing · review · blocked · done`. **Mirrored in Notion: 12 · Kanban — Edvora tasks** (https://app.notion.com/p/5a691430f3e242fe9196f7a385a28a42), kept in sync by `knowledge-keeper`. `chat: <agent>` = run in a
 separate session.
 
 _Last updated: 2026-11-06 — E-010, E-012 done; E-013 and E-021 in review._
