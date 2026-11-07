@@ -1,0 +1,32 @@
+{
+  "description": "Edvora WordPress export format v1 test vectors (FORMAT.md §1, §5). Both the TS importer and the PHP plugin must reproduce every value.",
+  "secret": "edvora-test-secret",
+  "requests": [
+    {
+      "method": "POST",
+      "pathWithQuery": "/api/import/push/records?kind=wp.user&seq=1",
+      "timestamp": "1762423200",
+      "nonce": "00112233445566778899aabbccddeeff",
+      "body": "{\"a\":1}\n",
+      "bodySha256": "e346432021b04179518d9614f3560ccd71354a4ee101ddcb893d6959a9d6301c",
+      "canonical": "POST\n/api/import/push/records?kind=wp.user&seq=1\n1762423200\n00112233445566778899aabbccddeeff\ne346432021b04179518d9614f3560ccd71354a4ee101ddcb893d6959a9d6301c",
+      "signature": "8655c65e291469d1e2898516e8f721ac08c3d20e8aa8b7133f208dbfaeb8938b"
+    },
+    {
+      "method": "GET",
+      "pathWithQuery": "/api/import/push/ping",
+      "timestamp": "1762423200",
+      "nonce": "ffeeddccbbaa99887766554433221100",
+      "body": "",
+      "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonical": "GET\n/api/import/push/ping\n1762423200\nffeeddccbbaa99887766554433221100\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "signature": "d56b50a393f133b9ccd8fbbb7e0660ec2f2fc940000757d3b9990dd55dc569c4"
+    }
+  ],
+  "bundle": {
+    "note": "signedContent = uncompressed bytes of lines 1..n-1, each with its trailing \\n (UTF-8). The bundle file is gzip(signedContent + signatureLine + \"\\n\").",
+    "signedContent": "{\"type\":\"manifest\",\"format\":\"edvora-wp-export\",\"formatVersion\":1}\n{\"type\":\"record\",\"v\":1,\"kind\":\"wp.user\",\"wpId\":\"1\",\"data\":{\"ID\":\"1\",\"display_name\":\"سارا\"}}\n",
+    "signature": "50e034ee526e9b5c93b6355a3335241db58ad59320b34667e65894f12535edf5",
+    "signatureLine": "{\"type\":\"signature\",\"alg\":\"HMAC-SHA256\",\"value\":\"50e034ee526e9b5c93b6355a3335241db58ad59320b34667e65894f12535edf5\"}"
+  }
+}
