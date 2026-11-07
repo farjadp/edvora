@@ -375,7 +375,7 @@ export function ProgressPoller({ jobId, initial }: { jobId: number; initial: Pro
     let stop = false
     const tick = async () => {
       try {
-        const res = await fetch(`/staff/import/${jobId}/progress`, { cache: 'no-store' })
+        const res = await fetch(`/staff/import/${jobId}/state`, { cache: 'no-store' })
         if (res.ok) {
           const next = (await res.json()) as Progress
           if (stop) return

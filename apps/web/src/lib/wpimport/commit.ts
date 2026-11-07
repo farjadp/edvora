@@ -404,18 +404,18 @@ export async function runRecordsPhase(payload: Payload, jobId: number, tenantId:
     }
   }
   if (cursors.records < list.length) return true
-  await finishJob(payload, job, tenant, summary)
+  await finishJob(payload, job, tenant, summary, list.length)
   return false
 }
 
-async function finishJob(payload: Payload, job: ImportJob, tenant: Tenant, summary: CommitSummary): Promise<void> {
+async function finishJob(payload: Payload, job: ImportJob, tenant: Tenant, summary: CommitSummary, total: number): Promise<void> {
   const now = new Date()
   const purgeAfter = new Date(now.getTime() + RETENTION_DAYS * 86400_000)
   await payload.update({
     collection: 'import-jobs',
     id: job.id,
     overrideAccess: true,
-    data: { status: 'done', finishedAt: now.toISOString(), purgeAfter: purgeAfter.toISOString(), restSealed: null, progress: { ...((job.progress as Record<string, unknown> | null) ?? {}), phase: 'done', updatedAt: now.toISOString() } },
+    data: { status: 'done', finishedAt: now.toISOString(), purgeAfter: purgeAfter.toISOString(), restSealed: null, progress: { ...((job.progress as Record<string, unknown> | null) ?? {}), phase: 'done', records: { done: total, total }, updatedAt: now.toISOString() } },
   })
   await payload.create({
     collection: 'audit-logs',

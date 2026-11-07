@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 const noStore = { 'Cache-Control': 'private, no-store' }
 
-/** Progress of one import job (display only; the queue does the work). Same academy + `import.view`. */
+/** Progress of one import job (`/staff/import/<id>/state`) (display only; the queue does the work). Same academy + `import.view`. */
 export async function GET(_req: Request, { params }: { params: Promise<{ job: string }> }): Promise<Response> {
   const s = await getStaffSession()
   if (s.state !== 'ok') return Response.json({ error: 'unauthorized' }, { status: 401, headers: noStore })
