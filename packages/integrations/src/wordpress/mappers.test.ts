@@ -303,6 +303,12 @@ describe('lifterlms mapper', () => {
     expect(r.notImported['lifterlms.order']).toBe(1)
   })
 
+  it('redirects the published LifterLMS course permalink /course/<slug> to the Edvora course', () => {
+    const redirects = r.drafts.filter((d) => d.collection === 'redirects' && d.fields.from === '/course/coaching')
+    expect(redirects).toHaveLength(1)
+    expect(redirects[0]?.fields.target).toEqual(R('lifterlms.course', 1101))
+  })
+
   it('maps earned certificates with the legacy id', () => {
     expect(r.find('certificates', '1600').fields).toEqual({
       holderName: 'سارا کریمی',
