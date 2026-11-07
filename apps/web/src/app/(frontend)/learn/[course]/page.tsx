@@ -4,18 +4,22 @@ import { notFound, redirect } from 'next/navigation'
 import { CompletionPanel } from '../../../../components/learn/CompletionPanel'
 import { fa, faScore, jalaliDateTime } from '../../../../components/learn/labels'
 import { LessonList } from '../../../../components/learn/LessonList'
+import { StudentLivePanel } from '../../../../components/live/StudentLivePanel'
+import { idOf } from '../../../../lib/ids'
+import { sessionsForStudent } from '../../../../lib/live'
+import { getPayloadClient } from '../../../../lib/payload'
 import { blockersFor } from '../../../../lib/learning'
 import { getCourseBySlug } from '../../../../lib/queries'
 import { getCurrentUser } from '../../../../lib/session'
 import { studentCourse } from '../../../../lib/student'
-import { getCurrentTenant } from '../../../../lib/tenant'
+import { getCurrentTenant, tenantHasFeature } from '../../../../lib/tenant'
 
-type Props = { params: Promise<{ course: string }> }
+type Props = { params: Promise<{ course: string }>; searchParams: Promise<{ live?: string }> }
 
 export const metadata: Metadata = { robots: { index: false } }
 
 /** Course home for an enrolled student: lessons with drip locks, quizzes, assignments, certificate status. */
-export default async function CourseLearnPage({ params }: Props) {
+export default async function CourseLearnPage({ params, searchParams }: Props) {
   const slug = decodeURIComponent((await params).course)
   const here = `/learn/${slug}`
   const ctx = await studentCourse(slug)
@@ -26,6 +30,11 @@ export default async function CourseLearnPage({ params }: Props) {
     redirect(`/courses/${course.slug}`)
   }
   const { course, state } = ctx
+  // D1/D2: live sessions of this course for the student's cohort (only when the academy has live classes on).
+  const live = tenantHasFeature(ctx.tenant, 'live')
+    ? await sessionsForStudent(await getPayloadClient(), ctx.tenant.id, course.id, idOf(state.cohort?.id ?? null))
+    : null
+  const liveMessage = (await searchParams).live ?? null
   const blockersOf = (lessonId: string) => blockersFor(state, Number(lessonId))
   const lessonTitle = (id: unknown) => state.lessons.find((l) => l.id === id)?.title
 
@@ -41,6 +50,8 @@ export default async function CourseLearnPage({ params }: Props) {
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="grid min-w-0 gap-8">
+          {live ? <StudentLivePanel sessions={live} message={liveMessage} /> : null}
+
           <section aria-labelledby="lessons-title">
             <h2 id="lessons-title" className="mb-3 text-xl font-black">
               جلسات دوره

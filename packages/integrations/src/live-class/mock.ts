@@ -19,7 +19,8 @@ export type MockLiveClassProvider = LiveClassProvider & {
   /** Builds a signed webhook request, as the real provider would send it. For tests and the dev "simulate" button. */
   signWebhook(events: LiveEvent[], url?: string): WebhookRequest
   /** Adds a fake recording so the recording.ready flow can be exercised offline. */
-  addRecording(providerRoomId: string, durationSec?: number): LiveRecording
+  /** `externalRoomId` lets another module instance (another route bundle) add one without the room in memory. */
+  addRecording(providerRoomId: string, durationSec?: number, externalRoomId?: string): LiveRecording
   /** Reads a ticket the mock issued (used by the app's `/live/mock` page). Null if forged or expired. */
   readTicket(token: string): { providerRoomId: string; externalUserId: string; role: LiveRole; displayName: string } | null
 }
@@ -145,14 +146,14 @@ export function createMockLiveClassProvider(opts: {
       recordings.delete(providerRecordingId)
     },
 
-    addRecording(providerRoomId, durationSec = 3600) {
+    addRecording(providerRoomId, durationSec = 3600, externalRoomId) {
       const state = rooms.get(providerRoomId)
-      if (!state) throw new IntegrationError('live:mock', `Unknown room ${providerRoomId}`)
+      if (!state && !externalRoomId) throw new IntegrationError('live:mock', `Unknown room ${providerRoomId}`)
       const end = now()
       const rec: LiveRecording = {
         providerRecordingId: `rec-${randomUUID().slice(0, 8)}`,
         providerRoomId,
-        externalRoomId: state.externalRoomId,
+        externalRoomId: state?.externalRoomId ?? externalRoomId ?? '',
         startedAt: new Date(end.getTime() - durationSec * 1000).toISOString(),
         endedAt: end.toISOString(),
         durationSec,

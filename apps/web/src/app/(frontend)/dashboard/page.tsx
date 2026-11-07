@@ -1,9 +1,13 @@
 import { courseProgress, formatJalali, formatToman, rial, toPersianDigits } from '@edvora/core'
+import { Seal, cx } from '@edvora/ui'
 import type { Metadata } from 'next'
 import type { Where } from 'payload'
 import Link from 'next/link'
+import { ContinueCard, Header, LevelSection, NoCourses, PathBlock, Section, WeekSection, WelcomeCard, mergeBadges, type LearnItem } from '../../../components/panel/dashboard'
+import { greetingName } from '@edvora/core/names'
 import { ImportClaimForm } from '../../../components/ImportClaimForm'
 import { docOf, idOf } from '../../../lib/ids'
+import { getStudentDashboardGamification } from '../../../lib/gamificationQueries'
 import { getPayloadClient } from '../../../lib/payload'
 import { getLessons } from '../../../lib/queries'
 import { requireUser } from '../../../lib/session'
@@ -19,6 +23,12 @@ const ORDER_STATUS: Record<string, string> = {
   failed: 'ناموفق',
   refunded: 'مسترد شده',
   cancelled: 'لغو شده',
+}
+
+/** «یک تکلیف و دفاع نهایی باقی مانده است.» → «تا گواهی فقط یک تکلیف و دفاع نهایی مانده است.» */
+function remainingLine(text: string): string {
+  const m = /^(.*) باقی مانده است\.?$/.exec(text)
+  return m ? `تا گواهی فقط ${m[1]} مانده است.` : text
 }
 
 export default async function DashboardPage() {
@@ -39,28 +49,71 @@ export default async function DashboardPage() {
       ? (await payload.count({ collection: 'import-jobs', where: { and: [{ tenant: { equals: tenant.id } }, { status: { equals: 'done' } }] }, overrideAccess: true })).totalDocs > 0
       : false
 
-  const learning = await Promise.all(
-    enrollments.docs.map(async (e) => {
-      const course = docOf<Course>(e.course)
-      const lessons = course ? await getLessons(course.id) : []
-      const done = (e.completedLessons ?? []).map((l) => String(idOf(l)))
-      const progress = courseProgress(done, lessons.map((l) => String(l.id)))
-      const nextLesson = lessons.find((l) => !done.includes(String(l.id))) ?? lessons[0]
-      return { e, course, cohort: docOf<Cohort>(e.cohort), progress, nextLesson, total: lessons.length }
-    }),
+  const gam = await getStudentDashboardGamification().catch((err) => {
+    console.error('[dashboard gamification]', err)
+    return null
+  })
+  const viewOf = new Map((gam?.enrollments ?? []).map((x) => [x.view.enrollmentId, x.view]))
+  const on = Boolean(gam?.enabled)
+
+  const items: LearnItem[] = (
+    await Promise.all(
+      enrollments.docs.map(async (e): Promise<LearnItem | null> => {
+        const course = docOf<Course>(e.course)
+        if (!course) return null
+        const lessons = await getLessons(course.id)
+        const done = (e.completedLessons ?? []).map((l) => String(idOf(l)))
+        const progress = courseProgress(done, lessons.map((l) => String(l.id)))
+        const idx = lessons.findIndex((l) => !done.includes(String(l.id)))
+        const nextLesson = lessons[idx === -1 ? 0 : idx]
+        return {
+          id: e.id,
+          course: { id: course.id, title: course.title, slug: course.slug },
+          cohortTitle: docOf<Cohort>(e.cohort)?.title ?? null,
+          progress,
+          done: lessons.filter((l) => done.includes(String(l.id))).length,
+          total: lessons.length,
+          next: nextLesson ? { id: nextLesson.id, title: nextLesson.title, module: nextLesson.module ?? null, minutes: nextLesson.durationMinutes ?? null, number: (idx === -1 ? 0 : idx) + 1 } : null,
+          view: viewOf.get(e.id) ?? null,
+        }
+      }),
+    )
+  ).filter((x): x is LearnItem => x !== null)
+
+  const name = greetingName(user)
+  const primary = items[0]
+  const doneAll = items.reduce((n, i) => n + i.done, 0)
+  const view = primary?.view ?? null
+  const line = !primary
+    ? 'برنامهٔ یادگیری خود را انتخاب کنید.'
+    : doneAll === 0
+      ? 'خوش آمدید. اولین جلسه را شروع کنید.'
+      : on && view?.rhythm?.thisWeek.state === 'met'
+        ? 'این هفته برنامه را کامل کردید.'
+        : primary.progress >= 100 && view?.path.remainingText
+          ? remainingLine(view.path.remainingText)
+          : primary.progress >= 100 && view?.path.eligible
+            ? 'گواهی شما پس از تأیید آکادمی صادر می‌شود.'
+            : primary.next
+              ? `جلسهٔ بعد منتظر شماست: ${primary.next.title}`
+              : 'ادامه دهید.'
+
+  const badges = mergeBadges(items)
+  const nextHref = primary?.next ? `/learn/${primary.course.slug}/${primary.next.id}` : null
+  const showAside = on && items.length > 0
+  const firstVisit = items.length > 0 && doneAll === 0 && (gam?.total?.xp ?? 0) === 0
+  const flags = gam?.enrollments[0]?.view.flags
+  const logout = (
+    <form action="/logout" method="post" className="relative">
+      <button className="min-h-11 rounded-xl border border-line bg-bg px-4 text-sm hover:bg-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">خروج</button>
+    </form>
   )
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pt-10 md:px-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted">خوش آمدید</p>
-          <h1 className="text-3xl font-black">{user.name || 'دانشجوی عزیز'}</h1>
-        </div>
-        <form action="/logout" method="post">
-          <button className="rounded-xl border border-line px-4 py-2 text-sm hover:bg-sunken">خروج</button>
-        </form>
-      </div>
+    <div data-testid="dashboard" data-layout={on ? 'seal' : 'plain'} data-gamification={on ? 'on' : 'off'} className="mx-auto max-w-7xl px-4 pb-16 pt-8 md:px-8 md:pt-12">
+      <Header name={name} line={line}>
+        {logout}
+      </Header>
 
       {imported ? (
         <section className="mt-8 grid gap-3 rounded-2xl border border-line bg-surface p-5" aria-labelledby="old-site-title" data-testid="import-claim">
@@ -74,71 +127,83 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
-      <section className="pt-10">
-        <h2 className="mb-4 text-xl font-black">ادامه یادگیری</h2>
-        {learning.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
-            هنوز در دوره‌ای ثبت‌نام نکرده‌اید.{' '}
-            <Link href="/#programs" className="font-bold text-brand">
-              دوره‌ها را ببینید
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {learning.map(({ e, course, cohort, progress, nextLesson, total }) => (
-              <div key={e.id} className="rounded-2xl border border-line bg-surface p-6">
-                <p className="text-sm text-muted">{cohort?.title ?? 'دوره'}</p>
-                <h3 className="mt-1 text-lg font-bold">{course?.title}</h3>
-                <progress
-                  value={progress}
-                  max={100}
-                  aria-label="پیشرفت دوره"
-                  className="mt-4 block h-2 w-full appearance-none overflow-hidden rounded-full bg-sunken [&::-moz-progress-bar]:bg-brand [&::-webkit-progress-bar]:bg-sunken [&::-webkit-progress-value]:bg-brand"
-                />
-                <p className="mt-2 text-xs text-muted">
-                  {toPersianDigits(progress)}٪ · {toPersianDigits(total)} جلسه
-                </p>
-                {course ? (
-                  <Link href={`/learn/${course.slug}`} className="mt-4 me-3 inline-block text-sm font-bold text-brand hover:underline">
-                    جلسات، آزمون‌ها و تکالیف
-                  </Link>
-                ) : null}
-                {course && nextLesson ? (
-                  <Link href={`/learn/${course.slug}/${nextLesson.id}`} className="mt-4 inline-block rounded-xl bg-brand px-4 py-2 text-sm font-bold text-brand-ink">
-                    ▶ {nextLesson.title}
-                  </Link>
-                ) : null}
-              </div>
+      {items.length === 0 ? (
+        <div className="pt-10">
+          <NoCourses />
+        </div>
+      ) : (
+        <div className={cx('mt-8 grid grid-cols-1 gap-x-12 gap-y-10', showAside && 'lg:grid-cols-12')}>
+          <div className={cx('grid min-w-0 grid-cols-1 gap-y-6', showAside && 'lg:col-span-8')}>
+            {items.map((it) => (
+              <ContinueCard key={it.id} item={it} ring={on} />
             ))}
           </div>
-        )}
-      </section>
+
+          {showAside ? (
+            <aside aria-label="ریتم و سطح" className="flex min-w-0 flex-col gap-8 lg:col-span-4 lg:col-start-9 lg:row-span-2 lg:row-start-1">
+              {firstVisit ? <WelcomeCard name={name} /> : flags?.streak ? items.map((it) => <WeekSection key={it.id} item={it} showCourse={items.length > 1} />) : null}
+              {gam?.total ? (
+                <LevelSection
+                  xp={gam.total.xp}
+                  level={gam.total.level}
+                  badges={badges}
+                  showXp={Boolean(flags?.xp)}
+                  showLevel={Boolean(flags?.levels)}
+                  showBadges={Boolean(flags?.badges)}
+                  nextHref={nextHref}
+                  formatDate={formatJalali}
+                />
+              ) : flags?.badges ? (
+                <LevelSection xp={0} level={{ level: 1, name: '', next: null, pct: 0 }} badges={badges} showXp={false} showLevel={false} showBadges nextHref={nextHref} formatDate={formatJalali} />
+              ) : null}
+            </aside>
+          ) : null}
+
+          <div className={cx('grid min-w-0 grid-cols-1 gap-y-6 border-t border-line', showAside && 'lg:col-span-8')}>
+            {items.map((it) => (
+              <PathBlock key={it.id} item={it} gold={on} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {certificates.docs.length ? (
-        <section className="pt-12">
-          <h2 className="mb-4 text-xl font-black">گواهی‌های من</h2>
+        <Section id="certs" title="گواهی‌های من" className="pt-14">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {certificates.docs.map((c) => (
-              <div key={c.id} className="flex items-center justify-between rounded-2xl border border-line bg-surface p-6">
-                <div>
+              <div key={c.id} data-testid="certificate-card" className="flex items-center gap-5 rounded-md border border-line bg-surface p-6">
+                <Seal className="size-16" />
+                <div className="min-w-0 flex-1">
                   <p className="font-bold">{docOf<Course>(c.course)?.title}</p>
-                  <p dir="ltr" className="mt-1 text-end font-latin text-sm text-muted">{c.code}</p>
+                  <p dir="ltr" className="mt-1 text-end font-latin text-sm text-muted">
+                    {c.code}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+                    <Link href={`/dashboard/certificates/${c.id}`} className="inline-flex min-h-11 items-center rounded-sm text-sm font-bold text-brand-text underline-offset-4 hover:underline">
+                      مشاهدهٔ گواهی
+                    </Link>
+                    <Link href={`/verify?code=${encodeURIComponent(c.code ?? '')}`} className="inline-flex min-h-11 items-center rounded-sm text-sm font-bold text-brand-text underline-offset-4 hover:underline">
+                      صفحهٔ استعلام
+                    </Link>
+                  </div>
                 </div>
-                <Link href={`/verify?code=${encodeURIComponent(c.code ?? '')}`} className="text-sm font-bold text-brand">
-                  صفحه استعلام
-                </Link>
               </div>
             ))}
           </div>
-        </section>
+        </Section>
       ) : null}
 
-      <section className="pt-12">
-        <h2 className="mb-4 text-xl font-black">سفارش‌ها و اقساط</h2>
+      <section className="pt-14" aria-labelledby="orders">
+        <h2 id="orders" className="mb-5 font-display text-2xl font-black">
+          سفارش‌ها و اقساط
+        </h2>
         {orders.docs.length === 0 ? (
-          <p className="text-muted">سفارشی ندارید.</p>
+          <div data-testid="empty-orders">
+            <p className="font-bold">سفارشی ندارید.</p>
+            <p className="mt-1 text-sm text-muted">پرداخت‌های شما اینجا نمایش داده می‌شود.</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
+          <div className="overflow-x-auto rounded-md border border-line bg-surface">
             <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-sunken text-muted">
                 <tr>

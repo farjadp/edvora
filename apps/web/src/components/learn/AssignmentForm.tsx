@@ -39,7 +39,7 @@ export function AssignmentForm(props: { assignmentId: number; courseSlug: string
           <legend className="mb-1 font-bold">فایل‌های فرستاده‌شده</legend>
           {props.files.map((f) => (
             <label key={f.id} className="flex items-center justify-between gap-3 rounded-xl border border-line px-4 py-2">
-              <a href={f.href} className="text-brand hover:underline">
+              <a href={f.href} className="text-brand-text hover:underline">
                 {f.label}
               </a>
               <span className="flex items-center gap-2 text-muted">

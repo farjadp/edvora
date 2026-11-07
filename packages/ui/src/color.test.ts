@@ -51,6 +51,7 @@ describe('tenantPalette', () => {
     expect(contrast(p.accentInk, p.accent)).toBeGreaterThanOrEqual(4.5)
     for (const bg of SURFACES.light) expect(contrast(p.focus, bg)).toBeGreaterThanOrEqual(3)
     for (const bg of SURFACES.dark) expect(contrast(p.focusDark, bg)).toBeGreaterThanOrEqual(3)
+    for (const bg of SURFACES.dark) expect(contrast(p.brandTextDark, bg)).toBeGreaterThanOrEqual(4.5)
   })
 
   it('emits CSS that overrides both themes', () => {

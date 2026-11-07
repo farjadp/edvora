@@ -24,6 +24,7 @@ import {
 } from '@edvora/core'
 import type { Payload, PayloadRequest } from 'payload'
 import type { Enrollment, Question, Quiz, QuizAttempt } from '../payload-types'
+import { deferGamification, onQuizFinalized, safely } from './gamification'
 import { idOf } from './ids'
 
 type Ctx = { payload: Payload; req?: PayloadRequest }
@@ -47,13 +48,18 @@ const asAnswers = (v: unknown): Answers => (v && typeof v === 'object' && !Array
 async function finalize(ctx: Ctx, attempt: QuizAttempt, quiz: Quiz, answers: Answers, status: 'submitted' | 'auto_submitted', submittedAt: Date): Promise<QuizAttempt> {
   const snapshot = asSnapshot(attempt.snapshot)
   const grade = gradeAttempt(snapshot, answers, { passMark: quiz.passMark, partialCredit: Boolean(quiz.partialCredit) })
-  return ctx.payload.update({
+  const done = await ctx.payload.update({
     collection: 'quiz-attempts',
     id: attempt.id,
     overrideAccess: true,
     req: ctx.req,
     data: { status, answers, score: grade.score, maxScore: grade.maxScore, passed: grade.passed, submittedAt: submittedAt.toISOString() },
   })
+  // E-028: a pass pays XP once (never on fail). Own transaction; never breaks the submit. Inside someone else's
+  // transaction (ctx.req) it waits until after it, so the enrollment row is never written from two connections.
+  if (ctx.req) deferGamification('quiz finalized', () => onQuizFinalized({ payload: ctx.payload }, done, quiz))
+  else await safely('quiz finalized', () => onQuizFinalized({ payload: ctx.payload }, done, quiz))
+  return done
 }
 
 /** Q5: an in-progress attempt past its deadline (+ grace) is closed with its saved answers, whenever it is next read. */
