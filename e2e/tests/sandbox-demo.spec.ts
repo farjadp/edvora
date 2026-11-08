@@ -435,14 +435,9 @@ test.describe('S / isolation: sandbox admin against demo and iba', () => {
         await staffLogin(page, base, sb.admin)
         await page.waitForLoadState('networkidle')
         expect(page.url(), `${base} staff desk`).not.toMatch(/\/staff\/(overview|leads|courses|orders)/)
-        // Whatever token REST login minted, it opens nothing there.
+        // BUG-2: REST login with sandbox credentials outside that sandbox (no selector, or another academy's host) is refused.
         const tok = await other.request.post(`${base}/api/users/login`, { data: { email: sb.admin.email, password: sb.admin.password } })
-        if (tok.ok()) {
-          test.info().annotations.push({ type: 'observation', description: `REST /api/users/login with sandbox credentials mints a token on ${base} (it opens nothing there)` })
-          expect((await other.request.get(`${base}/staff/overview`, { maxRedirects: 0 })).status()).not.toBe(200)
-          const courses = ((await (await other.request.get(`${base}/api/courses?limit=100&depth=0`)).json()) as { docs: { tenant: unknown }[] }).docs
-          for (const c of courses) expect(idOf(c.tenant)).toBe(sbxId) // nothing from demo/iba, only its own sandbox
-        }
+        expect(tok.status(), `${base} REST login with sandbox credentials`).toBe(403)
       } finally {
         await other.close()
       }
@@ -455,6 +450,14 @@ test.describe('S / isolation: sandbox admin against demo and iba', () => {
     const rest = await playwright.request.newContext({ extraHTTPHeaders: { 'X-Forwarded-For': visitorIp() } })
     try {
       await rest.post(`${PLATFORM}/api/users/login`, { data: { email: staff.email, password: staff.password } })
+      // BUG-2: a real account cannot log in while a sandbox is selected (signed selector cookie on the platform host).
+      const selected = await playwright.request.newContext({ extraHTTPHeaders: { 'X-Forwarded-For': visitorIp() } })
+      try {
+        await selected.get(`${PLATFORM}${new URL(sb.loginUrl).pathname}`, { maxRedirects: 0 })
+        expect((await selected.post(`${PLATFORM}/api/users/login`, { data: { email: staff.email, password: staff.password } })).status()).toBe(403)
+      } finally {
+        await selected.dispose()
+      }
       const sandboxRows = ((await (await rest.get(`${PLATFORM}/api/courses?where[tenant][equals]=${sbxId}&limit=10&depth=0`)).json()) as { totalDocs: number }).totalDocs
       expect(sandboxRows, 'demo staff reads nothing from a sandbox').toBe(0)
     } finally {
@@ -524,6 +527,10 @@ test.describe('S / isolation: sandbox admin against demo and iba', () => {
       // And the new account is a sandbox account: sees only the sandbox, no /admin.
       const k = await playwright.request.newContext({ extraHTTPHeaders: { 'X-Forwarded-For': visitorIp() } })
       try {
+        // BUG-2: without the sandbox selected (no edvora_sbx cookie) a sandbox account cannot log in at all.
+        expect((await k.post(`${PLATFORM}/api/users/login`, { data: { email, password: 'Aa1!aaaaaaaa' } })).status()).toBe(403)
+        // Select the sandbox through its login address (sets the signed selector cookie), then log in.
+        await k.get(`${PLATFORM}${new URL(sb.loginUrl).pathname}`, { maxRedirects: 0 })
         const login = await k.post(`${PLATFORM}/api/users/login`, { data: { email, password: 'Aa1!aaaaaaaa' } })
         expect(login.ok()).toBeTruthy()
         const tenants = ((await (await k.get(`${PLATFORM}/api/tenants?limit=50&depth=0`)).json()) as { docs: { id: number }[] }).docs
@@ -616,6 +623,17 @@ test('S6, E4, E5, E6: upload quota refuses above the limit; cleanup deletes rows
     expect(media.length, 'only the two accepted files are stored').toBe(2)
     const names = media.map((m) => m.filename)
     for (const n of names) expect(existsSync(join(MEDIA_DIR, n)), `${n} on disk`).toBeTruthy()
+
+    // BUG-4: a sandbox's files are served only inside that sandbox (selector cookie on the platform host).
+    const fileUrl = `/api/media/file/${encodeURIComponent(names[0]!)}`
+    expect((await api.get(`${PLATFORM}${fileUrl}`)).status(), 'inside the sandbox').toBe(200)
+    const outsider = await playwright.request.newContext()
+    try {
+      expect((await outsider.get(`${PLATFORM}${fileUrl}`)).status(), 'platform host, no selector').not.toBe(200)
+      expect((await outsider.get(`${DEMO_HOST}${fileUrl}`)).status(), 'another academy host').not.toBe(200)
+    } finally {
+      await outsider.dispose()
+    }
 
     // E4: hard delete.
     await expireNow(v, true)
