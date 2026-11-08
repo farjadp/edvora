@@ -1,6 +1,8 @@
+import { isPermission } from '@edvora/core/permissions'
 import { sectionShown } from '@edvora/core/role-settings'
 import { deskDef, meets, type DeskKey, type Requirement, type StaffPerms } from '@edvora/core/staff'
 import type { ConsoleIconName, ShellNavGroup } from '@edvora/ui/console'
+import { hubPermissions } from './settingsRegistry'
 
 /**
  * The operator console's module map (E-035), one table for /staff and /admin.
@@ -26,6 +28,8 @@ type Mod = {
   read?: Requirement
   /** A custom staff page (not a desk) that both consoles link to instead of the Payload list, e.g. /staff/import. */
   page?: string
+  /** A custom /admin page (E-047 settings hub): internal in /admin, an external link from /staff. Needs `read`. */
+  adminPage?: string
 }
 type Group = { key: string; label: string; items: Mod[] }
 
@@ -90,7 +94,8 @@ export const CONSOLE_GROUPS: Group[] = [
     key: 'settings',
     label: 'تنظیمات',
     items: [
-      { key: 'tenants', label: 'آکادمی‌ها', icon: 'building', slug: 'tenants', read: any('settings.edit') },
+      // E-047 (ADR 019): one hub for everything configurable (replaces the Tenants edit screen for academy staff).
+      { key: 'settings', label: 'تنظیمات', icon: 'settings', adminPage: '/admin/settings', read: any(...hubPermissions().filter(isPermission)) },
       { key: 'roles', label: 'نقش‌ها', icon: 'roles', slug: 'roles', read: any('roles.view', 'roles.assign', 'roles.manage') },
       { key: 'memberships', label: 'عضویت‌ها و دسترسی‌ها', icon: 'membership', slug: 'memberships', read: any('roles.view', 'roles.assign', 'users.view') },
       { key: 'audit-logs', label: 'گزارش ممیزی', icon: 'audit', slug: 'audit-logs', read: any('audit.view') },
@@ -108,7 +113,7 @@ export function staffConsoleNav(who: StaffPerms): ShellNavGroup[] {
     if (!sectionShown(who.experience, g.key)) continue
     const items = g.items
       .filter((m) => (m.desk ? meets(who, deskDef(m.desk).access) : m.read ? meets(who, m.read) : false))
-      .map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.desk ? deskDef(m.desk).href : (m.page ?? adminHref(m)), external: !m.desk && !m.page }))
+      .map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.desk ? deskDef(m.desk).href : (m.page ?? m.adminPage ?? adminHref(m)), external: !m.desk && !m.page }))
     if (g.key === 'settings') items.push({ key: 'security', label: 'امنیت حساب', icon: 'shield', href: '/staff/security', external: false })
     if (items.length) groups.push({ key: g.key, label: g.label, items })
   }
@@ -122,8 +127,8 @@ export function adminConsoleNav(canRead: (slug: string) => boolean, who: StaffPe
   for (const g of CONSOLE_GROUPS) {
     if (!sectionShown(who.experience, g.key)) continue
     const items = g.items
-      .filter((m) => Boolean(m.slug && m.read && canRead(m.slug) && meets(who, m.read)))
-      .map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.page ?? adminHref(m), external: Boolean(m.page) }))
+      .filter((m) => Boolean(m.read && meets(who, m.read) && (m.adminPage || (m.slug && canRead(m.slug)))))
+      .map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.adminPage ?? m.page ?? adminHref(m), external: Boolean(m.page) }))
     if (g.key === 'dashboard') {
       items.unshift({ key: 'overview', label: 'داشبورد', icon: 'dashboard', href: '/admin', external: false })
       items.push({ key: 'desk', label: 'میز کار کارکنان', icon: 'desk', href: '/staff', external: true })

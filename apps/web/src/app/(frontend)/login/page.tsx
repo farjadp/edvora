@@ -20,7 +20,7 @@ export default async function LoginPage({ searchParams }: Props) {
 
   return (
     <AuthFrame brand={authBrand(tenant)} homeHref="/">
-      <StudentLoginForm next={next} showSessionNotice={fromProtected} supportPhone={tenant.contact?.phone?.trim() || null} />
+      <StudentLoginForm next={next} showSessionNotice={fromProtected} supportPhone={tenant.contact?.phone?.trim() || null} texts={tenant.loginTexts} />
     </AuthFrame>
   )
 }

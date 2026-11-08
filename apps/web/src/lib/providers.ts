@@ -3,8 +3,11 @@ import { createHash } from 'node:crypto'
 import { createPaymentProvider, createSmsProvider, type PaymentProvider, type SmsProvider } from '@edvora/integrations'
 import { createLiveClassProvider, type LiveClassProvider } from '@edvora/integrations/live-class'
 import { createObjectStorage, type ObjectStorage } from '@edvora/integrations/storage'
+import { renderTemplate, type MessageEvent } from '@edvora/core/settings'
 import { env } from '../env'
 import type { Tenant } from '../payload-types'
+import { getPayloadClient } from './payload'
+import { academyProvider } from './settings'
 
 let sms: SmsProvider | undefined
 
@@ -14,6 +17,26 @@ export function getSms(): SmsProvider {
     sms = createSmsProvider({ provider: e.SMS_PROVIDER, kavenegarApiKey: e.KAVENEGAR_API_KEY, kavenegarSender: e.KAVENEGAR_SENDER })
   }
   return sms
+}
+
+/**
+ * E-047 (ADR 019 §5): the academy's own SMS account when it is switched on, keyed and allowed by the platform;
+ * otherwise the platform default from env. Also returns the OTP template name to use with it.
+ */
+export async function getSmsFor(tenantId: number | null | undefined): Promise<{ sms: SmsProvider; otpTemplate: string }> {
+  const fallback = { sms: getSms(), otpTemplate: env().KAVENEGAR_OTP_TEMPLATE }
+  if (!tenantId) return fallback
+  const own = await academyProvider(await getPayloadClient(), tenantId, 'sms')
+  if (!own || own.provider !== 'kavenegar') return fallback
+  const sender = typeof own.config.sender === 'string' && own.config.sender ? own.config.sender : undefined
+  const otp = typeof own.config.otpTemplate === 'string' && own.config.otpTemplate ? own.config.otpTemplate : fallback.otpTemplate
+  return { sms: createSmsProvider({ provider: 'kavenegar', kavenegarApiKey: own.secret, kavenegarSender: sender }), otpTemplate: otp }
+}
+
+/** The academy's SMS text for an event when its template is on (settings hub), else `fallback`. */
+export function messageFor(tenant: Pick<Tenant, 'name' | 'messageTemplates'>, event: MessageEvent, vars: Record<string, string | number>, fallback: string): string {
+  const t = (tenant.messageTemplates ?? []).find((m) => m.event === event && m.channel === 'sms' && m.enabled && m.body?.trim())
+  return t?.body ? renderTemplate(t.body, { academy: tenant.name, ...vars }).trim() || fallback : fallback
 }
 
 /** Each academy can use its own gateway account; falls back to the platform default. */
@@ -64,11 +87,12 @@ export function getStorage(): ObjectStorage {
   return storage
 }
 
-/** Notifications never break the main flow: failures are logged, not thrown. */
-export async function notify(to: string | null | undefined, text: string): Promise<void> {
+/** Notifications never break the main flow: failures are logged, not thrown. With `tenantId`, the academy's own SMS account is used when set. */
+export async function notify(to: string | null | undefined, text: string, tenantId?: number | null): Promise<void> {
   if (!to) return
   try {
-    const res = await getSms().send({ to, text })
+    const { sms: provider } = await getSmsFor(tenantId)
+    const res = await provider.send({ to, text })
     if (!res.ok) console.error(`[notify] SMS to ${to} failed: ${res.error}`)
   } catch (err) {
     console.error('[notify] SMS error', err)

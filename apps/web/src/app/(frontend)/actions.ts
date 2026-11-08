@@ -14,7 +14,7 @@ import { canIn } from '../../access/permissions'
 import { onLessonMarked, onLessonWatched, safely, type WatchResult } from '../../lib/gamification'
 import { blockersFor, findEnrollment, loadCourseState } from '../../lib/learning'
 import { getPayloadClient } from '../../lib/payload'
-import { getSms, notify } from '../../lib/providers'
+import { getSmsFor, messageFor, notify } from '../../lib/providers'
 import { QuizError, saveAnswers, startAttempt, submitAttempt } from '../../lib/quizAttempts'
 import { getCurrentUser, startSession } from '../../lib/session'
 import { getStaffSession } from '../../lib/staff'
@@ -88,7 +88,12 @@ export async function submitLead(_prev: FormState, form: FormData): Promise<Form
           source: { page: data.page ?? null, utmSource: utm.get('utm_source'), utmCampaign: utm.get('utm_campaign') },
         },
       })
-      await notify(data.phone, `${tenant.name}: درخواست مشاوره شما ثبت شد. مشاوران ما به‌زودی با شما تماس می‌گیرند.`)
+      const courseTitle = data.courseId ? ((await payload.findByID({ collection: 'courses', id: data.courseId, depth: 0, overrideAccess: true, disableErrors: true }))?.title ?? '') : ''
+      await notify(
+        data.phone,
+        messageFor(tenant, 'lead.received', { name: data.name, course: courseTitle }, `${tenant.name}: درخواست مشاوره شما ثبت شد. مشاوران ما به‌زودی با شما تماس می‌گیرند.`),
+        tenant.id,
+      )
     }
     return { ok: true, message: 'درخواست شما ثبت شد. مشاوران ما به‌زودی با شما تماس می‌گیرند.' }
   } catch (err) {
@@ -169,7 +174,8 @@ export async function requestOtp(_prev: FormState, form: FormData): Promise<Form
       overrideAccess: true,
       data: { phone, codeHash: hashOtp(code, phone, env().SESSION_SECRET), expiresAt: new Date(Date.now() + OTP_TTL_MS).toISOString() },
     })
-    const sent = await getSms().sendTemplate({ to: phone, template: env().KAVENEGAR_OTP_TEMPLATE, tokens: [code] })
+    const { sms, otpTemplate } = await getSmsFor((await getCurrentTenant()).id)
+    const sent = await sms.sendTemplate({ to: phone, template: otpTemplate, tokens: [code] })
     if (!sent.ok) return { ok: false, step: 'phone', message: 'ارسال پیامک انجام نشد. دوباره تلاش کنید.' }
 
     return {
@@ -177,8 +183,9 @@ export async function requestOtp(_prev: FormState, form: FormData): Promise<Form
       step: 'code',
       phone,
       message: 'کد ورود پیامک شد.',
-      // Only with the mock SMS provider, so local dev and agents can log in without a phone.
-      devCode: env().SMS_PROVIDER === 'mock' ? code : undefined,
+      // Only with the mock SMS provider, so local dev and agents can log in without a phone. Checks the provider
+      // actually used: an academy's own real SMS account (E-047) never shows the code on screen.
+      devCode: env().SMS_PROVIDER === 'mock' && sms.name === 'mock' ? code : undefined,
     }
   } catch (err) {
     console.error('[requestOtp]', err)

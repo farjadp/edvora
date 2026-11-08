@@ -7,7 +7,7 @@ import { EnrollCard } from '../../../../components/EnrollCard'
 import { LeadForm } from '../../../../components/LeadForm'
 import { getCourseBySlug, getLessons, getOpenCohorts } from '../../../../lib/queries'
 import { findRedirect } from '../../../../lib/redirects'
-import { getCurrentTenant } from '../../../../lib/tenant'
+import { getCurrentTenant, siteSectionOn } from '../../../../lib/tenant'
 import { hasRichText, lexicalToPlainText } from '@edvora/core/richtext'
 import { RichText } from '../../../../components/RichText'
 
@@ -196,11 +196,13 @@ export default async function CoursePage({ params }: Props) {
             instalmentPreview={instalmentPreview}
             statusLabel={cohort ? `${cohort.title} · ${cohort.status === 'preregistration' ? 'پیش‌ثبت‌نام' : 'ثبت‌نام باز'}` : 'به‌زودی'}
           />
-          <div className="mt-4 rounded-3xl border border-line bg-surface p-6">
-            <p className="font-bold">سؤال دارید؟</p>
-            <p className="mb-4 mt-1 text-sm text-muted">مشاور آموزشی با شما تماس می‌گیرد.</p>
-            <LeadForm courseId={course.id} page={`/courses/${course.slug}`} compact />
-          </div>
+          {siteSectionOn(tenant, 'leadForm') ? (
+            <div className="mt-4 rounded-3xl border border-line bg-surface p-6">
+              <p className="font-bold">سؤال دارید؟</p>
+              <p className="mb-4 mt-1 text-sm text-muted">مشاور آموزشی با شما تماس می‌گیرد.</p>
+              <LeadForm courseId={course.id} page={`/courses/${course.slug}`} compact />
+            </div>
+          ) : null}
         </aside>
       </div>
     </div>

@@ -37,6 +37,7 @@ import { BeforeLogin as BeforeLogin_f54936618bb42a105f1e4f7049b2245f } from '../
 import { TenantSelector as TenantSelector_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 import { TenantSelectionProvider as TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 import { RolesCompare as RolesCompare_59ca701930e825a6e9ab59882212054f } from '../../../components/admin/RolesCompare'
+import { SettingsHub as SettingsHub_d02eed6f7577d91a9511331ddb5e25ac } from '../../../components/admin/settings/SettingsHub'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
@@ -81,6 +82,7 @@ export const importMap = {
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelector": TenantSelector_d6d5f193a167989e2ee7d14202901e62,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelectionProvider": TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62,
   "/components/admin/RolesCompare#RolesCompare": RolesCompare_59ca701930e825a6e9ab59882212054f,
+  "/components/admin/settings/SettingsHub#SettingsHub": SettingsHub_d02eed6f7577d91a9511331ddb5e25ac,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24
 }
