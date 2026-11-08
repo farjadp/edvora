@@ -383,6 +383,9 @@ async function saveIntegration(a: SettingsActor, t: number, fd: FormData): Promi
   const k = kind as IntegrationKind
   const provider = str(fd, 'provider')
   if (!isKnownProvider(k, provider)) return { ok: false, error: 'سرویس‌دهندهٔ نامعتبر' }
+  // E-029 (ADR 013): a demo sandbox keeps the mock with nothing stored (403), and never tests a real connection.
+  const sandbox = await isSandboxAcademy(a.req.payload, t)
+  if (sandbox && provider !== 'mock') return { ok: false, error: 'forbidden' }
   const schema = integrationConfigSchema(k, provider)
   if (!schema) return { ok: false, error: 'سرویس‌دهندهٔ نامعتبر' }
   const cfgRaw = Object.fromEntries([...fd.keys()].filter((x) => x.startsWith('config.')).map((x) => [x.slice(7), str(fd, x)]))
@@ -393,8 +396,6 @@ async function saveIntegration(a: SettingsActor, t: number, fd: FormData): Promi
   const enabled = str(fd, 'enabled') === 'on'
   const intent = str(fd, 'intent') === 'test' ? 'test' : 'save'
 
-  // E-029 (ADR 013): a demo sandbox keeps the mock with nothing stored (403), and never tests a real connection.
-  const sandbox = await isSandboxAcademy(a.req.payload, t)
   if (sandbox && sandboxIntegrationViolations({ provider, secret: decision.action === 'set' ? decision.value : '', config }).length) return { ok: false, error: 'forbidden' }
 
   const existing = await rawIntegration(a.req.payload, t, k)
