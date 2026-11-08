@@ -62,6 +62,7 @@ export interface Config {
     'ai-documents': AiDocument;
     'ai-memories': AiMemory;
     'ai-actions': AiAction;
+    'integration-settings': IntegrationSetting;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -112,6 +113,7 @@ export interface Config {
     'ai-documents': AiDocumentsSelect<false> | AiDocumentsSelect<true>;
     'ai-memories': AiMemoriesSelect<false> | AiMemoriesSelect<true>;
     'ai-actions': AiActionsSelect<false> | AiActionsSelect<true>;
+    'integration-settings': IntegrationSettingsSelect<false> | IntegrationSettingsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -123,9 +125,11 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
+    'platform-settings': PlatformSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
+    'platform-settings': PlatformSettingsSelect<false> | PlatformSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
@@ -184,8 +188,18 @@ export interface Tenant {
     | null;
   plan?: ('starter' | 'growth' | 'pro') | null;
   features?: ('site' | 'lms' | 'payments' | 'crm' | 'certificates' | 'live' | 'consulting' | 'b2b')[] | null;
+  limits?: {
+    maxStudents?: number | null;
+    maxStaff?: number | null;
+    maxCourses?: number | null;
+    storageMb?: number | null;
+  };
   tagline?: string | null;
   logo?: (number | null) | Media;
+  logoDark?: (number | null) | Media;
+  favicon?: (number | null) | Media;
+  ogImage?: (number | null) | Media;
+  fontDisplay?: ('morabba' | 'vazirmatn') | null;
   primaryColor?: string | null;
   accentColor?: string | null;
   defaultTheme?: ('light' | 'dark') | null;
@@ -233,6 +247,45 @@ export interface Tenant {
     phone?: string | null;
     email?: string | null;
     address?: string | null;
+    social?:
+      | {
+          platform:
+            | 'instagram'
+            | 'telegram'
+            | 'linkedin'
+            | 'youtube'
+            | 'aparat'
+            | 'x'
+            | 'whatsapp'
+            | 'eitaa'
+            | 'bale'
+            | 'website';
+          url: string;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  seo?: {
+    titleSuffix?: string | null;
+    description?: string | null;
+    keywords?: string | null;
+    noindex?: boolean | null;
+  };
+  loginTexts?: {
+    title?: string | null;
+    subtitle?: string | null;
+    help?: string | null;
+  };
+  toggles?: {
+    journal?: boolean | null;
+    faculty?: boolean | null;
+    verify?: boolean | null;
+    leadForm?: boolean | null;
+  };
+  legal?: {
+    terms?: (number | null) | Page;
+    privacy?: (number | null) | Page;
+    refund?: (number | null) | Page;
   };
   /**
    * Turning it off hides XP, levels, streaks, badges and celebrations; history is kept, so turning it back on restores everything.
@@ -284,10 +337,28 @@ export interface Tenant {
    * Certificate codes look like PREFIX-PROGRAM-001 (IBA: BA-MBA-181).
    */
   certificatePrefix: string;
-  /**
-   * The academy's own gateway. Money goes straight to the academy.
-   */
-  zarinpalMerchantId?: string | null;
+  certificateSigner?: {
+    name?: string | null;
+    title?: string | null;
+    signature?: (number | null) | Media;
+  };
+  messageTemplates?:
+    | {
+        event:
+          | 'otp'
+          | 'lead.received'
+          | 'payment.received'
+          | 'instalment.due'
+          | 'enrolment.confirmed'
+          | 'live.reminder'
+          | 'certificate.issued';
+        channel: 'sms' | 'email';
+        enabled?: boolean | null;
+        subject?: string | null;
+        body?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -332,6 +403,63 @@ export interface Media {
       filename?: string | null;
     };
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  slug: string;
+  status: 'draft' | 'published';
+  showInNav?: boolean | null;
+  sortOrder?: number | null;
+  intro?: string | null;
+  cover?: (number | null) | Media;
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  faq?:
+    | {
+        question: string;
+        answer: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Where this was imported from
+   */
+  sourceUrl?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -505,6 +633,7 @@ export interface Role {
         | 'reports.learning'
         | 'settings.edit'
         | 'audit.view'
+        | 'settings.integrations'
         | 'payments.settings'
         | 'import.view'
         | 'import.run'
@@ -1687,63 +1816,6 @@ export interface Post {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "pages".
- */
-export interface Page {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  title: string;
-  slug: string;
-  status: 'draft' | 'published';
-  showInNav?: boolean | null;
-  sortOrder?: number | null;
-  intro?: string | null;
-  cover?: (number | null) | Media;
-  body?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  faq?:
-    | {
-        question: string;
-        answer: {
-          root: {
-            type: string;
-            children: {
-              type: any;
-              version: number;
-              [k: string]: unknown;
-            }[];
-            direction: ('ltr' | 'rtl') | null;
-            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-            indent: number;
-            version: number;
-          };
-          [k: string]: unknown;
-        };
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Where this was imported from
-   */
-  sourceUrl?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "otp-codes".
  */
 export interface OtpCode {
@@ -2137,6 +2209,35 @@ export interface AiMemory {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "integration-settings".
+ */
+export interface IntegrationSetting {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  kind: 'sms' | 'email' | 'live';
+  provider: 'mock' | 'kavenegar' | 'smtp' | 'bigbluebutton';
+  enabled?: boolean | null;
+  config?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  secretSealed?: string | null;
+  secretSetAt?: string | null;
+  lastTest?: {
+    ok?: boolean | null;
+    at?: string | null;
+    message?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -2427,6 +2528,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'ai-actions';
         value: number | AiAction;
+      } | null)
+    | ({
+        relationTo: 'integration-settings';
+        value: number | IntegrationSetting;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -2485,8 +2590,20 @@ export interface TenantsSelect<T extends boolean = true> {
       };
   plan?: T;
   features?: T;
+  limits?:
+    | T
+    | {
+        maxStudents?: T;
+        maxStaff?: T;
+        maxCourses?: T;
+        storageMb?: T;
+      };
   tagline?: T;
   logo?: T;
+  logoDark?: T;
+  favicon?: T;
+  ogImage?: T;
+  fontDisplay?: T;
   primaryColor?: T;
   accentColor?: T;
   defaultTheme?: T;
@@ -2524,6 +2641,43 @@ export interface TenantsSelect<T extends boolean = true> {
         phone?: T;
         email?: T;
         address?: T;
+        social?:
+          | T
+          | {
+              platform?: T;
+              url?: T;
+              id?: T;
+            };
+      };
+  seo?:
+    | T
+    | {
+        titleSuffix?: T;
+        description?: T;
+        keywords?: T;
+        noindex?: T;
+      };
+  loginTexts?:
+    | T
+    | {
+        title?: T;
+        subtitle?: T;
+        help?: T;
+      };
+  toggles?:
+    | T
+    | {
+        journal?: T;
+        faculty?: T;
+        verify?: T;
+        leadForm?: T;
+      };
+  legal?:
+    | T
+    | {
+        terms?: T;
+        privacy?: T;
+        refund?: T;
       };
   gamification?:
     | T
@@ -2559,7 +2713,23 @@ export interface TenantsSelect<T extends boolean = true> {
             };
       };
   certificatePrefix?: T;
-  zarinpalMerchantId?: T;
+  certificateSigner?:
+    | T
+    | {
+        name?: T;
+        title?: T;
+        signature?: T;
+      };
+  messageTemplates?:
+    | T
+    | {
+        event?: T;
+        channel?: T;
+        enabled?: T;
+        subject?: T;
+        body?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3721,6 +3891,28 @@ export interface AiActionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "integration-settings_select".
+ */
+export interface IntegrationSettingsSelect<T extends boolean = true> {
+  tenant?: T;
+  kind?: T;
+  provider?: T;
+  enabled?: T;
+  config?: T;
+  secretSealed?: T;
+  secretSetAt?: T;
+  lastTest?:
+    | T
+    | {
+        ok?: T;
+        at?: T;
+        message?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -3793,6 +3985,21 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "platform-settings".
+ */
+export interface PlatformSetting {
+  id: number;
+  staff2fa?: ('env' | 'required' | 'optional') | null;
+  academyProviders?: {
+    sms?: boolean | null;
+    email?: boolean | null;
+    live?: boolean | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -3808,6 +4015,23 @@ export interface PayloadJobsStat {
     | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "platform-settings_select".
+ */
+export interface PlatformSettingsSelect<T extends boolean = true> {
+  staff2fa?: T;
+  academyProviders?:
+    | T
+    | {
+        sms?: T;
+        email?: T;
+        live?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

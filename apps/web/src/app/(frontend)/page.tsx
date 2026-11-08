@@ -8,7 +8,7 @@ import { LeadForm } from '../../components/LeadForm'
 import type { Media } from '../../payload-types'
 import { getOpenCohorts, getPosts, getPublishedCourses, getTestimonials } from '../../lib/queries'
 import { findRedirect, homeQueryPath } from '../../lib/redirects'
-import { getCurrentTenant } from '../../lib/tenant'
+import { getCurrentTenant, siteSectionOn } from '../../lib/tenant'
 import { hasRichText } from '@edvora/core/richtext'
 import { RichText } from '../../components/RichText'
 
@@ -71,9 +71,11 @@ export default async function HomePage({ searchParams }: HomeProps) {
               <Link href={`/courses/${featured.slug}`} className="rounded-xl bg-brand px-6 py-3 font-bold text-brand-ink hover:opacity-90">
                 مشاهده دوره و ثبت‌نام
               </Link>
-              <Link href="#consult" className="rounded-xl border border-line px-6 py-3 font-bold hover:bg-sunken">
-                مشاوره رایگان
-              </Link>
+              {siteSectionOn(tenant, 'leadForm') ? (
+                <Link href="#consult" className="rounded-xl border border-line px-6 py-3 font-bold hover:bg-sunken">
+                  مشاوره رایگان
+                </Link>
+              ) : null}
             </div>
           </div>
           <Link href={`/courses/${featured.slug}`} className="order-1 block aspect-video overflow-hidden rounded-3xl border border-line md:order-2">
@@ -220,13 +222,15 @@ export default async function HomePage({ searchParams }: HomeProps) {
             <button className="h-12 rounded-xl bg-ink px-5 font-bold text-bg">استعلام</button>
           </form>
         </div>
-        <div id="consult" className="rounded-3xl bg-brand p-8 text-brand-ink">
-          <h2 className="text-2xl font-black">نمی‌دانید کدام دوره؟</h2>
-          <p className="mt-3 leading-8 opacity-90">شماره‌تان را بگذارید. مشاور آموزشی تماس می‌گیرد و مسیر مناسب را پیشنهاد می‌دهد.</p>
-          <div className="mt-6 text-ink">
-            <LeadForm page="/" compact />
+        {siteSectionOn(tenant, 'leadForm') ? (
+          <div id="consult" className="rounded-3xl bg-brand p-8 text-brand-ink">
+            <h2 className="text-2xl font-black">نمی‌دانید کدام دوره؟</h2>
+            <p className="mt-3 leading-8 opacity-90">شماره‌تان را بگذارید. مشاور آموزشی تماس می‌گیرد و مسیر مناسب را پیشنهاد می‌دهد.</p>
+            <div className="mt-6 text-ink">
+              <LeadForm page="/" compact />
+            </div>
           </div>
-        </div>
+        ) : null}
       </section>
     </>
   )

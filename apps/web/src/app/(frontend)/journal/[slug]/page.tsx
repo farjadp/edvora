@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { RichText } from '../../../../components/RichText'
 import type { Media } from '../../../../payload-types'
 import { getPostBySlug } from '../../../../lib/queries'
-import { getCurrentTenant } from '../../../../lib/tenant'
+import { getCurrentTenant, siteSectionOn } from '../../../../lib/tenant'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -29,6 +29,7 @@ export default async function PostPage({ params }: Props) {
   const slug = decode((await params).slug)
   if (!slug) notFound()
   const tenant = await getCurrentTenant()
+  if (!siteSectionOn(tenant, 'journal')) notFound()
   const post = await getPostBySlug(tenant.id, slug)
   if (!post) notFound()
   const cover = typeof post.cover === 'object' ? (post.cover as Media | null) : null

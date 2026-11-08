@@ -4,7 +4,7 @@ import type { Payload } from 'payload'
 import type { Order, Tenant } from '../payload-types'
 import { CheckoutError, findCoupon, toCoreCoupon } from './coupons'
 import { idOf } from './ids'
-import { notify } from './providers'
+import { messageFor, notify } from './providers'
 
 export { CheckoutError, findCoupon }
 
@@ -89,5 +89,9 @@ export async function onFirstPayment(payload: Payload, order: Order, tenant: Ten
 
   const user = await payload.findByID({ collection: 'users', id: userId, depth: 0, overrideAccess: true })
   const course = await payload.findByID({ collection: 'courses', id: courseId, depth: 0, overrideAccess: true })
-  await notify(user.phone, `${tenant.name}: ثبت‌نام شما در «${course.title}» قطعی شد. مبلغ کل: ${formatToman(rial(order.total))}`)
+  await notify(
+    user.phone,
+    messageFor(tenant, 'enrolment.confirmed', { name: user.name ?? '', course: course.title, amount: formatToman(rial(order.total)) }, `${tenant.name}: ثبت‌نام شما در «${course.title}» قطعی شد. مبلغ کل: ${formatToman(rial(order.total))}`),
+    tenant.id,
+  )
 }
