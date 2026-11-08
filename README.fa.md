@@ -18,7 +18,7 @@
 ![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
 ![RTL · Persian-first](https://img.shields.io/badge/RTL-Persian--first-0b6a65)
 
-[ادورا چیست](#ادورا-چیست) · [امکانات](#امکانات) · [تصویرها](#تصویرها) · [راه‌اندازی سریع](#راهاندازی-سریع) · [ساختار پروژه](#ساختار-پروژه) · [مستندات](#مستندات) · [مشارکت](#مشارکت)
+[ادورا چیست](#ادورا-چیست) · [امکانات](#امکانات) · [تصویرها](#تصویرها) · [راه‌اندازی سریع](#راه‌اندازی-سریع) · [ساختار پروژه](#ساختار-پروژه) · [مستندات](#مستندات) · [مشارکت](#مشارکت)
 
 </div>
 
@@ -71,9 +71,6 @@
     <td><img src="docs/images/readme/pay-mock.webp" alt="پرداخت در درگاه آزمایشی"><br><sub>پرداخت (درگاه آزمایشی)</sub></td>
     <td><img src="docs/images/readme/verify.webp" alt="استعلام عمومی گواهی با نتیجهٔ معتبر"><br><sub>استعلام گواهی</sub></td>
   </tr>
-  <tr>
-    <td colspan="2"><img src="docs/images/readme/login.webp" alt="ورود دانشجو با شمارهٔ موبایل و کد پیامکی"><br><sub>ورود دانشجو (موبایل و کد پیامکی)</sub></td>
-  </tr>
 </table>
 
 **پنل دانشجو**
@@ -98,7 +95,7 @@
   </tr>
 </table>
 
-**میز کار کارکنان و بخش مدیریت**
+**میز کار کارکنان، مدیریت و ورود**
 
 <table>
   <tr>
@@ -109,7 +106,8 @@
     <td width="50%"><img src="docs/images/readme/admin-dark.webp" alt="داشبورد مدیریت در پوستهٔ تیره"><br><sub>مدیریت، پوستهٔ تیره</sub></td>
   </tr>
   <tr>
-    <td colspan="2"><img src="docs/images/readme/admin-login.webp" alt="کارت ورود به بخش مدیریت"><br><sub>ورود به بخش مدیریت</sub></td>
+    <td width="50%"><img src="docs/images/readme/login.webp" alt="ورود دانشجو با شمارهٔ موبایل و کد پیامکی"><br><sub>ورود دانشجو (موبایل و کد پیامکی)</sub></td>
+    <td width="50%"><img src="docs/images/readme/admin-login.webp" alt="کارت ورود به بخش مدیریت"><br><sub>ورود به بخش مدیریت</sub></td>
   </tr>
 </table>
 

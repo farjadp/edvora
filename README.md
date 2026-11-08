@@ -69,9 +69,6 @@ All shots are from the `demo` tenant with seed data and mock providers.
     <td><img src="docs/images/readme/pay-mock.webp" alt="Checkout on the mock payment gateway"><br><sub>Checkout (mock gateway)</sub></td>
     <td><img src="docs/images/readme/verify.webp" alt="Public certificate verification showing a valid certificate"><br><sub>Certificate verification</sub></td>
   </tr>
-  <tr>
-    <td colspan="2"><img src="docs/images/readme/login.webp" alt="Student login: phone number and one-time SMS code"><br><sub>Student login (phone + SMS code)</sub></td>
-  </tr>
 </table>
 
 **Student panel**
@@ -96,7 +93,7 @@ All shots are from the `demo` tenant with seed data and mock providers.
   </tr>
 </table>
 
-**Staff console and admin**
+**Staff console, admin and sign-in**
 
 <table>
   <tr>
@@ -107,7 +104,8 @@ All shots are from the `demo` tenant with seed data and mock providers.
     <td width="50%"><img src="docs/images/readme/admin-dark.webp" alt="Admin dashboard in dark mode"><br><sub>Admin, dark</sub></td>
   </tr>
   <tr>
-    <td colspan="2"><img src="docs/images/readme/admin-login.webp" alt="Admin login card"><br><sub>Admin login</sub></td>
+    <td width="50%"><img src="docs/images/readme/login.webp" alt="Student login: phone number and one-time SMS code"><br><sub>Student login (phone + SMS code)</sub></td>
+    <td width="50%"><img src="docs/images/readme/admin-login.webp" alt="Admin login card"><br><sub>Admin login</sub></td>
   </tr>
 </table>
 
