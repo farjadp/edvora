@@ -990,6 +990,273 @@ body:has(.login.template-minimal) .payload-toast-item.toast-error {
   gap: calc(var(--base) / 2);
 }
 
+/* ---------- Roles: grouped permissions field + compare view (E-039, ADR 016) ---------- */
+.ed-perms__sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ed-perms {
+  margin-block-end: var(--base);
+}
+.ed-perms__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-end: 16px;
+}
+.ed-perms__title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--c-ink);
+}
+.ed-perms__count {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--c-muted);
+}
+.ed-perms__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ed-perms__search {
+  min-inline-size: min(100%, 260px);
+  block-size: 40px;
+  padding-inline: 12px;
+  border: 1px solid var(--c-line-strong);
+  border-radius: var(--style-radius-m);
+  background: var(--c-surface);
+  color: var(--c-ink);
+  font: inherit;
+}
+.ed-perms__search:focus-visible,
+.ed-perms__all:focus-visible,
+.ed-perms__compare:focus-visible,
+.ed-perms__item input:focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 2px;
+}
+.ed-perms__compare {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-brand-text);
+}
+.ed-perms__groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+}
+.ed-perms__group {
+  position: relative;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 12px 16px 8px;
+  border: 1px solid var(--c-line);
+  border-radius: 16px;
+  background: var(--c-surface);
+}
+.ed-perms__legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 4px;
+  font-weight: 700;
+  color: var(--c-ink);
+}
+.ed-perms__chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--c-sunken);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-muted);
+}
+.ed-perms__chip[data-full='true'] {
+  background: var(--c-brand-wash);
+  color: var(--c-brand-text);
+}
+.ed-perms__all {
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-end: 12px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--style-radius-s);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: var(--c-brand-text);
+  cursor: pointer;
+}
+.ed-perms__all:hover {
+  background: var(--c-sunken);
+}
+.ed-perms__list {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ed-perms__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-block: 6px;
+  cursor: pointer;
+}
+.ed-perms__item input {
+  flex: none;
+  inline-size: 16px;
+  block-size: 16px;
+  margin-block-start: 3px;
+  accent-color: var(--c-primary);
+}
+.ed-perms__text {
+  display: grid;
+  min-inline-size: 0;
+  gap: 2px;
+}
+.ed-perms__desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--c-ink);
+}
+.ed-perms__key {
+  justify-self: start;
+  font-size: 11px;
+  color: var(--c-muted);
+  background: none;
+  padding: 0;
+}
+
+.ed-roles-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-end: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--c-line);
+  border-radius: 16px;
+  background: var(--c-surface);
+}
+.ed-roles-link p {
+  margin: 0;
+  max-inline-size: 70ch;
+  color: var(--c-muted);
+}
+
+.ed-cmp {
+  padding-block: 24px 48px;
+}
+.ed-cmp__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-block-end: 20px;
+}
+.ed-cmp__title {
+  margin: 4px 0;
+  font-family: var(--ed-display);
+  font-size: 28px;
+}
+.ed-cmp__empty {
+  padding: 24px;
+  border: 1px dashed var(--c-line-strong);
+  border-radius: 16px;
+  color: var(--c-muted);
+}
+.ed-cmp__scroll {
+  max-inline-size: 100%;
+  overflow: auto;
+  max-block-size: 75vh;
+  border: 1px solid var(--c-line);
+  border-radius: 16px;
+  background: var(--c-surface);
+}
+.ed-cmp__scroll:focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 2px;
+}
+.ed-cmp__table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-inline-size: 100%;
+  font-size: 13px;
+}
+.ed-cmp__table th,
+.ed-cmp__table td {
+  padding: 8px 12px;
+  border-block-end: 1px solid var(--c-line);
+  text-align: start;
+  vertical-align: top;
+}
+.ed-cmp__table td {
+  text-align: center;
+  min-inline-size: 96px;
+}
+.ed-cmp__table thead th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  background: var(--c-sunken);
+  white-space: nowrap;
+}
+.ed-cmp__table thead th a {
+  font-weight: 700;
+  color: var(--c-ink);
+}
+.ed-cmp__table thead th[data-archived='true'] a {
+  color: var(--c-muted);
+}
+.ed-cmp__sub {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--c-muted);
+}
+.ed-cmp__table tbody th[scope='row'] {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  min-inline-size: 240px;
+  max-inline-size: 320px;
+  background: var(--c-surface);
+  font-weight: 400;
+}
+.ed-cmp__table .ed-perms__desc,
+.ed-cmp__table .ed-perms__key {
+  display: block;
+}
+.ed-cmp__table .ed-cmp__corner {
+  inset-inline-start: 0;
+  z-index: 3;
+}
+.ed-cmp__section th {
+  background: var(--c-bg);
+  font-weight: 700;
+  color: var(--c-brand-text);
+}
+.ed-cmp__table td[data-on='true'] {
+  background: var(--c-brand-wash);
+}
+.ed-cmp__yes {
+  font-weight: 700;
+  color: var(--c-ok);
+}
+.ed-cmp__no {
+  color: var(--c-line-strong);
+}
+
 /* ---------- Rich text editor (Lexical) ----------
  * Toolbars, blocks, tables, checklist, upload card, link popup and drawers. Same tokens as the rest of Seal; logical
  * properties only so RTL (Persian) and LTR blocks both read correctly. Light/dark come from the --ed-* tokens.
