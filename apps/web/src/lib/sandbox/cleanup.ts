@@ -11,6 +11,17 @@ import { idOf } from '../ids'
  * refuses to run if one is missing.
  */
 const PURGE_ORDER: CollectionSlug[] = [
+  // E-046 (develop): AI assistant. Its vectors (raw `ai_chunks` table) go with the tenant (FK ON DELETE CASCADE).
+  'ai-actions',
+  'ai-messages',
+  'ai-memories',
+  'ai-conversations',
+  'ai-documents',
+  'ai-settings',
+  // E-045 (develop): payments before orders; receipts are uploads, deleted through Payload with their files.
+  'payment-receipts',
+  'payments',
+  'payment-methods',
   // E-028 / E-033 / E-032 (develop): ledger, live classes, WordPress import — all point at users/courses/sessions.
   'learning-events',
   'attendance',
