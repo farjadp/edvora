@@ -27,6 +27,7 @@
     "./console": "./src/console.ts",
     "./live": "./src/live.ts",
     "./wpimport": "./src/wpimport.ts",
+    "./ai": "./src/ai/index.ts",
     "./phone": "./src/phone.ts"
   },
   "scripts": {
