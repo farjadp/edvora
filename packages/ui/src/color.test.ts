@@ -60,3 +60,20 @@ describe('tenantPalette', () => {
     expect(css).toContain("html:root[data-theme='dark']{--focus:#")
   })
 })
+
+describe('colourChecks (E-047)', () => {
+  it('a dark brand passes everything; a pale one fails text and the console chip', async () => {
+    const { colourChecks } = await import('./color')
+    expect(colourChecks('#123C55', '#C9A45C').every((c) => c.pass)).toBe(true)
+    const pale = colourChecks('#A7F3D0', '#C9A45C')
+    expect(pale.find((c) => c.key === 'brand-text')?.pass).toBe(false)
+    expect(pale.find((c) => c.key === 'brand-console')?.pass).toBe(false)
+  })
+
+  it('suggestions always pass', async () => {
+    const { colourChecks, suggestAccent, suggestBrand } = await import('./color')
+    for (const c of ['#A7F3D0', '#FFFF00', '#40B5AD', '#1A56DB'] as const) {
+      expect(colourChecks(suggestBrand(c), suggestAccent(c)).every((x) => x.pass), c).toBe(true)
+    }
+  })
+})

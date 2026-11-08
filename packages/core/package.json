@@ -27,7 +27,9 @@
     "./console": "./src/console.ts",
     "./live": "./src/live.ts",
     "./wpimport": "./src/wpimport.ts",
-    "./phone": "./src/phone.ts"
+    "./phone": "./src/phone.ts",
+    "./settings": "./src/settings.ts",
+    "./settings-secrets": "./src/settingsSecrets.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
