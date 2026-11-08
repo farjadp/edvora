@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 /**
  * Display only — the server decides expiry. First render uses the server's clock (no layout shift on hydrate, no
  * mismatch); afterwards it ticks with the browser clock corrected by the server offset. Fixed single-line height,
- * truncates on 360 px, logical spacing only (RTL). No close button.
+ * wraps to two lines on 360 px inside a fixed-height bar, logical spacing only (RTL). No close button.
  */
 export function SandboxCountdown({ expiresAt, serverNow, contactHref }: { expiresAt: string; serverNow: number; contactHref: string }) {
   const end = new Date(expiresAt).getTime()
@@ -32,11 +32,12 @@ export function SandboxCountdown({ expiresAt, serverNow, contactHref }: { expire
       role="status"
       aria-live="polite"
       className={cx(
-        'flex h-10 items-center justify-between gap-3 border-b px-4 text-xs sm:text-sm',
+        // Fixed height per breakpoint (two lines on phones), so the tone change never moves the page (BUG-6).
+        'flex h-14 items-center justify-between gap-3 border-b px-4 text-xs leading-5 sm:h-10 sm:text-sm',
         tone === 'normal' ? 'border-line bg-sunken text-ink' : 'border-accent bg-accent text-accent-ink',
       )}
     >
-      <span className="min-w-0 truncate">
+      <span className="line-clamp-2 min-w-0 sm:line-clamp-1">
         {tone === 'normal' ? (
           <>
             <span className="sm:hidden">{formatRemainingFa(left)} تا پایان دمو</span>
