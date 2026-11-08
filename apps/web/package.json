@@ -12,6 +12,7 @@
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/run.ts",
+    "seed:access": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/scripts/seed-access-users.ts",
     "import:iba": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env src/seed/import-iba.ts",
     "test": "vitest run"
   },
