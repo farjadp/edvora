@@ -2,8 +2,7 @@ import 'server-only'
 import {
   canOpenDesk,
   meets,
-  deskDef,
-  landingDesk,
+  landingTarget,
   safeStaffNext,
   staffGate,
   staffNav,
@@ -76,6 +75,11 @@ export async function requireStaff(path: string, desk?: DeskKey): Promise<StaffS
       redirect(withNext('/staff/2fa/verify', path))
     case 'needs-enrol':
       redirect(withNext('/staff/2fa/enrol', path))
+    // E-039 (ADR 016): every staff role here is switched off by its own rule for this session.
+    case 'session-too-old':
+      redirect(withNext('/staff/login', path).replace('?', '?error=session&'))
+    case 'outside-hours':
+      redirect('/staff/login?error=hours')
     case 'no-membership':
     case 'student':
       forbidden()
@@ -94,9 +98,9 @@ export function settledRedirect(s: StaffSession, next: string): string | null {
   return null
 }
 
+/** Where /staff sends a settled session: the role's landing page (ADR 016), else the desk priority, else /staff. */
 export function landingHref(s: StaffGate): string {
-  const desk = landingDesk(s)
-  return desk ? deskDef(desk).href : '/staff'
+  return landingTarget(s) ?? '/staff'
 }
 
 export function navItems(s: StaffGate): { items: StaffNavItem[]; secondaryItems: StaffNavItem[] } {

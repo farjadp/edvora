@@ -2,6 +2,7 @@ import 'server-only'
 import { formatJalali, formatToman, rial } from '@edvora/core'
 import { PERIOD_DAYS, periodDelta, settledPayments, sharePct, trendOf, trendSince, type DatedValue, type Trend } from '@edvora/core/console'
 import { toPersianDigits } from '@edvora/core/digits'
+import { DASHBOARD_WIDGETS, widgetShown, type DashboardWidgetKey, type MergedExperience } from '@edvora/core/role-settings'
 import { meets, type StaffPerms } from '@edvora/core/staff'
 import { financeInbox } from '@edvora/core/staff-goals'
 import type { ActivityItem, AlertItem, BarSeries, DonutSegment, KpiCardProps, KpiDelta, PageLink, QuickAction } from '@edvora/ui/console'
@@ -196,6 +197,8 @@ export type OverviewData = {
   quick: QuickAction[]
   activity: ActivityItem[]
   summary: { totalValue: string; rows: { label: string; value: string; pct: number; tone: 'ok' | 'warn' | 'brand' }[]; footer: { label: string; value: string }[] } | null
+  /** E-039 (ADR 016): blocks the person's roles hide. Hidden blocks render nothing, not even an empty state. */
+  hidden?: Partial<Record<DashboardWidgetKey, true>>
 }
 
 const WEEK_LABELS = ['۶ روز پیش', '۵', '۴', '۳', '۲', 'دیروز', 'امروز']
@@ -417,3 +420,23 @@ export function staffAccess(who: StaffPerms): CollAccess {
   }
 }
 export { has }
+
+/**
+ * E-039 (ADR 016): drops the dashboard blocks the person's roles hide. UX only: the data was already loaded with
+ * the person's own access, so this can only remove, never add.
+ */
+export function applyWidgets(data: OverviewData, experience: MergedExperience | null | undefined): OverviewData {
+  const hidden: Partial<Record<DashboardWidgetKey, true>> = {}
+  for (const w of DASHBOARD_WIDGETS) if (!widgetShown(experience, w.value)) hidden[w.value] = true
+  return {
+    ...data,
+    kpis: hidden.kpis ? [] : data.kpis,
+    donut: hidden.donut ? null : data.donut,
+    bars: hidden.bars ? null : data.bars,
+    summary: hidden.summary ? null : data.summary,
+    alerts: hidden.alerts ? [] : data.alerts,
+    activity: hidden.activity ? [] : data.activity,
+    quick: hidden.quick ? [] : data.quick,
+    hidden,
+  }
+}

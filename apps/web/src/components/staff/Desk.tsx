@@ -33,7 +33,7 @@ export function OverviewPanels({ data }: { data: OverviewData }) {
           <KpiCard key={key} {...k} />
         ))}
       </KpiGrid>
-      {data.kpis.length === 0 ? (
+      {data.kpis.length === 0 && !data.hidden?.kpis ? (
         <Panel title="آمار">
           <p className="text-muted">برای نقش شما هنوز آماری فعال نشده است.</p>
         </Panel>
@@ -41,12 +41,16 @@ export function OverviewPanels({ data }: { data: OverviewData }) {
       <MainSide
         main={
           <>
-            <Panel title="هشدارها" headingId="h-alerts" chip={data.alerts.length ? `${fa(data.alerts.length)} مورد` : undefined}>
-              <AlertList items={data.alerts} emptyTitle="موردی نیاز به توجه ندارد." emptyDescription="اقساط سررسیدگذشته، تکلیف‌های بی‌نمره و سرنخ‌های بی‌پیگیری اینجا نمایش داده می‌شوند." />
-            </Panel>
-            <Panel title="رویدادهای اخیر" headingId="h-activity">
-              <ActivityList items={data.activity} emptyTitle="هنوز رویدادی ثبت نشده است." emptyDescription="سفارش‌ها، ثبت‌نام‌ها، سرنخ‌ها و تکلیف‌ها که برسند، اینجا دیده می‌شوند." />
-            </Panel>
+            {data.hidden?.alerts ? null : (
+              <Panel title="هشدارها" headingId="h-alerts" chip={data.alerts.length ? `${fa(data.alerts.length)} مورد` : undefined}>
+                <AlertList items={data.alerts} emptyTitle="موردی نیاز به توجه ندارد." emptyDescription="اقساط سررسیدگذشته، تکلیف‌های بی‌نمره و سرنخ‌های بی‌پیگیری اینجا نمایش داده می‌شوند." />
+              </Panel>
+            )}
+            {data.hidden?.activity ? null : (
+              <Panel title="رویدادهای اخیر" headingId="h-activity">
+                <ActivityList items={data.activity} emptyTitle="هنوز رویدادی ثبت نشده است." emptyDescription="سفارش‌ها، ثبت‌نام‌ها، سرنخ‌ها و تکلیف‌ها که برسند، اینجا دیده می‌شوند." />
+              </Panel>
+            )}
           </>
         }
         side={
@@ -74,9 +78,11 @@ export function OverviewPanels({ data }: { data: OverviewData }) {
                 )}
               </Panel>
             ) : null}
-            <Panel title="میان‌برها" headingId="h-quick">
-              <QuickActions items={data.quick} />
-            </Panel>
+            {data.hidden?.quick ? null : (
+              <Panel title="میان‌برها" headingId="h-quick">
+                <QuickActions items={data.quick} />
+              </Panel>
+            )}
             {data.summary ? (
               <Panel title="سفارش‌های ۳۰ روز اخیر" headingId="h-summary">
                 <SummaryCard totalLabel="ارزش سفارش‌های ثبت‌شده در این دوره" totalValue={data.summary.totalValue} rows={data.summary.rows} footer={data.summary.footer} />

@@ -7,12 +7,17 @@ import {
   accessWhere,
   activeMemberships,
   can,
+  hasPolicy,
   isPlatformAdmin,
+  rolePolicyBlock,
   tenantsWith,
   type AccessContext,
   type Id,
   type MembershipGrant,
+  type RoleExperience,
+  type RolePolicy,
   type ScopeFields,
+  type SessionFacts,
   type Target,
   type UserStatus,
 } from '@edvora/core'
@@ -27,6 +32,7 @@ export const SYSTEM_CONTEXT = 'edvoraSystem'
 
 type Cached = { uid: Id; ctx: AccessContext }
 type TwoFactorState = { verifiedSessions?: { sid?: string | null }[] | null }
+type RoleDoc = { archived?: boolean | null; permissions?: string[] | null; security?: RolePolicy | null; experience?: RoleExperience | null }
 
 const ids = (v: unknown): Id[] => (Array.isArray(v) ? v.map(idOf).filter((x): x is number => x !== null) : [])
 
@@ -40,8 +46,12 @@ export function sessionIdOf(req: PayloadRequest): string | null {
   return typeof sid === 'string' ? sid : null
 }
 
-/** Every membership of a user (any status), with the union of its non-archived roles' permissions. */
-export async function loadMembershipGrants(req: PayloadRequest, userId: Id): Promise<MembershipGrant[]> {
+/**
+ * Every membership of a user (any status), with the union of its non-archived roles' permissions.
+ * With `session` (the signed-in user's own request) each role's security rule (ADR 016) is checked first: a role
+ * whose rule fails grants nothing and is listed in `withheld`. Without it (looking at someone else) every role counts.
+ */
+export async function loadMembershipGrants(req: PayloadRequest, userId: Id, session?: () => Promise<SessionFacts>): Promise<MembershipGrant[]> {
   const res = await req.payload.find({
     collection: 'memberships',
     where: { user: { equals: userId } },
@@ -51,32 +61,57 @@ export async function loadMembershipGrants(req: PayloadRequest, userId: Id): Pro
     overrideAccess: true,
     req,
   })
-  return res.docs.map((m) => {
-    const roles = (m.roles ?? []).filter((r): r is Exclude<typeof r, number> => typeof r === 'object' && r !== null)
+  const docs = res.docs.map((m) => ({ m, roles: (m.roles ?? []).filter((r): r is Exclude<typeof r, number> => typeof r === 'object' && r !== null) as (RoleDoc & object)[] }))
+  const facts = session && docs.some((d) => d.roles.some((r) => !r.archived && hasPolicy(r.security))) ? await session() : null
+  return docs.map(({ m, roles }) => {
+    const granting: RoleDoc[] = []
+    const withheld: NonNullable<MembershipGrant['withheld']>[number][] = []
+    for (const r of roles) {
+      if (r.archived) continue
+      const reason = facts ? rolePolicyBlock(r.security, facts) : null
+      if (reason) withheld.push({ reason, permissions: r.permissions ?? [] })
+      else granting.push(r)
+    }
     return {
       tenantId: idOf(m.tenant) ?? -1,
       status: m.status ?? 'active',
       expiresAt: m.expiresAt ?? null,
-      permissions: [...new Set(roles.filter((r) => !r.archived).flatMap((r) => r.permissions ?? []))],
+      permissions: [...new Set(granting.flatMap((r) => r.permissions ?? []))],
       scope: { courses: ids(m.scope?.courses), cohorts: ids(m.scope?.cohorts), ownRecordsOnly: Boolean(m.scope?.ownRecordsOnly) },
+      withheld,
+      experience: granting.map((r) => r.experience ?? {}),
     }
   })
 }
 
+type FullUser = { twoFactor?: unknown; sessions?: { id: string; createdAt?: string | null }[] | null }
+
 async function load(req: PayloadRequest): Promise<AccessContext | null> {
   const user = req.user
   if (!user || user.collection !== 'users') return null
+  const sid = sessionIdOf(req)
 
-  const memberships = await loadMembershipGrants(req, user.id)
+  // The user record is read at most once, and only when 2FA is on or some role has a security rule.
+  let full: Promise<FullUser> | null = null
+  const fullUser = () => (full ??= req.payload.findByID({ collection: 'users', id: user.id, depth: 0, showHiddenFields: true, overrideAccess: true, req }) as Promise<FullUser>)
+  const verified = async () => {
+    if (!user.twoFactorEnabled || sid === null) return false
+    const list = ((await fullUser()).twoFactor as TwoFactorState | undefined)?.verifiedSessions ?? []
+    return list.some((v) => v.sid === sid)
+  }
+  const sessionFacts = async (): Promise<SessionFacts> => {
+    const u = await fullUser()
+    const started = sid === null ? null : (u.sessions ?? []).find((x) => x.id === sid)?.createdAt ?? null
+    return { secondFactorVerified: await verified(), sessionStartedAt: started, now: new Date() }
+  }
+
+  const memberships = await loadMembershipGrants(req, user.id, sessionFacts)
 
   const platform = isSuperAdmin(user)
-  const isStaffUser = platform || memberships.some((m) => m.permissions.length > 0)
+  const isStaffUser = platform || memberships.some((m) => m.permissions.length > 0 || (m.withheld ?? []).some((w) => w.permissions.length > 0))
   let secondFactorOk = true
   if (user.twoFactorEnabled) {
-    const full = await req.payload.findByID({ collection: 'users', id: user.id, depth: 0, showHiddenFields: true, overrideAccess: true, req })
-    const sid = sessionIdOf(req)
-    const verified = (full.twoFactor as TwoFactorState | undefined)?.verifiedSessions ?? []
-    secondFactorOk = sid !== null && verified.some((v) => v.sid === sid)
+    secondFactorOk = await verified()
   } else if (isStaffUser && staff2faRequired()) {
     secondFactorOk = false
   }

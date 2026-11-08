@@ -1,7 +1,7 @@
 import { getTenantFromCookie } from '@payloadcms/plugin-multi-tenant/utilities'
 import { headers } from 'next/headers'
 import { cache } from 'react'
-import { activeMemberships, isPlatformAdmin } from '@edvora/core'
+import { activeMemberships, isPlatformAdmin, mergeExperience } from '@edvora/core'
 import type { StaffPerms } from '@edvora/core/staff'
 import { createLocalReq, type Payload, type PayloadRequest, type TypedUser } from 'payload'
 import { getAccess } from '../access/permissions'
@@ -63,7 +63,9 @@ export const getAdminConsoleContext = cache(async (payload: Payload): Promise<Ad
   if (!ctx) return null
   const platform = isPlatformAdmin(ctx)
   const active = activeMemberships(ctx).filter((m) => !tenant || String(m.tenantId) === String(tenant.id))
-  const who: StaffPerms = { isPlatformAdmin: platform, permissions: [...new Set(active.flatMap((m) => m.permissions))] }
+  // E-039 (ADR 016): menus and dashboard widgets follow the experience settings of the roles that grant here.
+  const experience = mergeExperience(platform ? [] : active.filter((m) => m.permissions.length > 0).flatMap((m) => m.experience ?? []))
+  const who: StaffPerms = { isPlatformAdmin: platform, permissions: [...new Set(active.flatMap((m) => m.permissions))], experience }
   const scope: ConsoleScope = tenant
     ? { kind: 'academy', tenantId: tenant.id }
     : platform

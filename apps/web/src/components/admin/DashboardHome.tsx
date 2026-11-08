@@ -1,6 +1,6 @@
 import { toPersianDigits } from '@edvora/core/digits'
 import type { ServerProps } from 'payload'
-import { PERIOD_DAYS, getOverview, scopeLabel, staffAccess, type CollAccess } from '../../lib/consoleData'
+import { PERIOD_DAYS, applyWidgets, getOverview, scopeLabel, staffAccess, type CollAccess } from '../../lib/consoleData'
 import { getAdminConsoleContext } from '../../lib/adminTenant'
 import { payloadAllows } from '../../lib/consoleNav'
 import { Activity, Alerts, BarsBlock, DonutBlock, Empty, Kpis, Panel, Quick, SummaryBlock } from './console'
@@ -26,7 +26,7 @@ export async function DashboardHome({ payload, permissions, user: serverUser }: 
     submissions: staff.submissions && can('submissions', 'read'),
     create: { courses: can('courses', 'create'), coupons: can('coupons', 'create'), posts: can('posts', 'create'), users: can('users', 'create') },
   }
-  const data = await getOverview({ payload, user, scope, req: ctx.req }, access)
+  const data = applyWidgets(await getOverview({ payload, user, scope, req: ctx.req }, access), ctx.who.experience)
   const name = (serverUser as { name?: string | null } | undefined)?.name?.trim() || user.email
 
   return (
@@ -48,18 +48,22 @@ export async function DashboardHome({ payload, permissions, user: serverUser }: 
         ) : null}
       </header>
 
-      {data.kpis.length ? <Kpis items={data.kpis} /> : <Empty icon="chart" title="برای حساب شما هنوز آماری فعال نشده است." text="با مدیر آکادمی تماس بگیرید." />}
+      {data.kpis.length ? <Kpis items={data.kpis} /> : data.hidden?.kpis ? null : <Empty icon="chart" title="برای حساب شما هنوز آماری فعال نشده است." text="با مدیر آکادمی تماس بگیرید." />}
 
       <div className="c-grid">
         <div className="c-col">
-          <div id="alerts">
-            <Panel title="هشدارها" id="c-h-alerts" chip={data.alerts.length ? `${toPersianDigits(String(data.alerts.length))} مورد` : undefined}>
-              <Alerts items={data.alerts} />
+          {data.hidden?.alerts ? null : (
+            <div id="alerts">
+              <Panel title="هشدارها" id="c-h-alerts" chip={data.alerts.length ? `${toPersianDigits(String(data.alerts.length))} مورد` : undefined}>
+                <Alerts items={data.alerts} />
+              </Panel>
+            </div>
+          )}
+          {data.hidden?.activity ? null : (
+            <Panel title="رویدادهای اخیر" id="c-h-activity">
+              <Activity items={data.activity} />
             </Panel>
-          </div>
-          <Panel title="رویدادهای اخیر" id="c-h-activity">
-            <Activity items={data.activity} />
-          </Panel>
+          )}
         </div>
         <div className="c-col">
           {data.donut ? (
@@ -72,9 +76,11 @@ export async function DashboardHome({ payload, permissions, user: serverUser }: 
               <BarsBlock bars={data.bars} />
             </Panel>
           ) : null}
-          <Panel title="میان‌برها" id="c-h-quick">
-            <Quick items={data.quick} />
-          </Panel>
+          {data.hidden?.quick ? null : (
+            <Panel title="میان‌برها" id="c-h-quick">
+              <Quick items={data.quick} />
+            </Panel>
+          )}
           {data.summary ? (
             <Panel title="سفارش‌های ۳۰ روز اخیر" id="c-h-summary">
               <SummaryBlock s={data.summary} />
