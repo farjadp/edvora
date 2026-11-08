@@ -3,6 +3,7 @@
  * request and passes them in; nothing here trusts a token. Default deny everywhere.
  */
 import { PERMISSIONS, isPlatformPermission, isScopedPermission, permissionBase, satisfies, validateRolePermissions } from './permissions'
+import type { RoleExperience, WithheldReason } from './roleSettings'
 
 export type Id = number | string
 export type UserStatus = 'active' | 'suspended' | 'archived'
@@ -24,6 +25,10 @@ export type MembershipGrant = {
   /** Union of the permissions of the membership's (non-archived) roles. */
   permissions: readonly string[]
   scope?: Scope | null
+  /** E-039: roles whose security rule failed in this session; they grant nothing (ADR 016). */
+  withheld?: readonly { reason: WithheldReason; permissions: readonly string[] }[] | null
+  /** E-039: experience settings of the roles that do grant (UX only). */
+  experience?: readonly RoleExperience[] | null
 }
 
 export type AccessContext = {

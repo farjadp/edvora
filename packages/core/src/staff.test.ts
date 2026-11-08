@@ -160,7 +160,8 @@ describe('staffGate', () => {
   })
   it('platform admin is ok without a membership', () => {
     const g = staffGate(base(ctx([], { isPlatformAdmin: true })))
-    expect(g).toEqual({ state: 'ok', permissions: [], isPlatformAdmin: true })
+    expect(g).toMatchObject({ state: 'ok', permissions: [], isPlatformAdmin: true })
+    expect(g.experience.menuSections).toBe('all')
   })
 })
 

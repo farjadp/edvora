@@ -108,6 +108,27 @@ describe('payloadAllows', () => {
   })
 })
 
+describe('E-039 role experience: menu sections', () => {
+  it('MENU_SECTIONS keys are exactly the console group keys', async () => {
+    const { MENU_SECTIONS } = await import('@edvora/core/role-settings')
+    expect(MENU_SECTIONS.map((s) => s.value).sort()).toEqual(CONSOLE_GROUPS.map((g) => g.key).sort())
+  })
+
+  it('hides groups the role does not show, keeps the security link, never adds anything', async () => {
+    const { mergeExperience } = await import('@edvora/core/role-settings')
+    const full = role('academy-admin')
+    const onlyCrm: StaffPerms = { ...full, experience: mergeExperience([{ menuSections: ['crm'] }]) }
+    const staff = staffConsoleNav(onlyCrm)
+    expect(staff.map((g) => g.key)).toEqual(['crm', 'account'])
+    expect(keys(staff)).toContain('security')
+    const admin = adminConsoleNav(everyRead, onlyCrm)
+    expect(admin.map((g) => g.key)).toEqual(['crm', 'account'])
+    // A section the person has no permission for stays hidden even if the role lists it.
+    const advisorFinance: StaffPerms = { ...role('advisor'), experience: mergeExperience([{ menuSections: ['sales', 'crm'] }]) }
+    expect(keys(staffConsoleNav(advisorFinance))).not.toContain('orders')
+  })
+})
+
 describe('modules built alongside the console (E-032, E-033, E-030)', () => {
   it('platform admin sees WordPress import, live classes, attendance, pages and redirects in /admin', () => {
     const k = keys(adminConsoleNav(everyRead, PLATFORM))

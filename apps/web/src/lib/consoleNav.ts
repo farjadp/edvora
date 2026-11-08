@@ -1,3 +1,4 @@
+import { sectionShown } from '@edvora/core/role-settings'
 import { deskDef, meets, type DeskKey, type Requirement, type StaffPerms } from '@edvora/core/staff'
 import type { ConsoleIconName, ShellNavGroup } from '@edvora/ui/console'
 
@@ -10,6 +11,8 @@ import type { ConsoleIconName, ShellNavGroup } from '@edvora/ui/console'
  *  - /admin: shown when Payload's `permissions.collections[slug].read` is true AND `read` holds for the person's
  *    memberships, so nobody gets a link to a list of nothing but their own purchases.
  * Both filters are cosmetic: access rules in the collections still decide what a request may do.
+ *  - E-039 (ADR 016): a role may also hide whole groups (`experience.menuSections`, keys = group keys below). The
+ *    person's own security / account link always stays.
  */
 type Mod = {
   key: string
@@ -102,12 +105,14 @@ const adminHref = (m: Mod) => (m.slug ? `/admin/collections/${m.slug}` : '/admin
 export function staffConsoleNav(who: StaffPerms): ShellNavGroup[] {
   const groups: ShellNavGroup[] = []
   for (const g of CONSOLE_GROUPS) {
+    if (!sectionShown(who.experience, g.key)) continue
     const items = g.items
       .filter((m) => (m.desk ? meets(who, deskDef(m.desk).access) : m.read ? meets(who, m.read) : false))
       .map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.desk ? deskDef(m.desk).href : (m.page ?? adminHref(m)), external: !m.desk && !m.page }))
     if (g.key === 'settings') items.push({ key: 'security', label: 'امنیت حساب', icon: 'shield', href: '/staff/security', external: false })
     if (items.length) groups.push({ key: g.key, label: g.label, items })
   }
+  if (!sectionShown(who.experience, 'settings')) groups.push({ key: 'account', label: 'حساب', items: [{ key: 'security', label: 'امنیت حساب', icon: 'shield', href: '/staff/security', external: false }] })
   return groups
 }
 
@@ -115,6 +120,7 @@ export function staffConsoleNav(who: StaffPerms): ShellNavGroup[] {
 export function adminConsoleNav(canRead: (slug: string) => boolean, who: StaffPerms): ShellNavGroup[] {
   const groups: ShellNavGroup[] = []
   for (const g of CONSOLE_GROUPS) {
+    if (!sectionShown(who.experience, g.key)) continue
     const items = g.items
       .filter((m) => Boolean(m.slug && m.read && canRead(m.slug) && meets(who, m.read)))
       .map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.page ?? adminHref(m), external: Boolean(m.page) }))
@@ -125,6 +131,7 @@ export function adminConsoleNav(canRead: (slug: string) => boolean, who: StaffPe
     if (g.key === 'settings') items.push({ key: 'account', label: 'حساب من و امنیت', icon: 'shield', href: '/admin/account', external: false })
     if (items.length) groups.push({ key: g.key, label: g.label, items })
   }
+  if (!sectionShown(who.experience, 'settings')) groups.push({ key: 'account', label: 'حساب', items: [{ key: 'account', label: 'حساب من و امنیت', icon: 'shield', href: '/admin/account', external: false }] })
   return groups
 }
 
