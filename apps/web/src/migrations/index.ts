@@ -11,6 +11,7 @@ import * as migration_20261108_150947_e039_role_settings from './20261108_150947
 import * as migration_20261108_165628_e045_payment_methods from './20261108_165628_e045_payment_methods';
 import * as migration_20261108_174447_e046_ai_assistant from './20261108_174447_e046_ai_assistant';
 import * as migration_20261108_174500_e046_ai_admin_grant from './20261108_174500_e046_ai_admin_grant';
+import * as migration_20261108_181700_e029_demo_sandboxes from './20261108_181700_e029_demo_sandboxes';
 
 export const migrations = [
   {
@@ -77,5 +78,10 @@ export const migrations = [
     up: migration_20261108_174500_e046_ai_admin_grant.up,
     down: migration_20261108_174500_e046_ai_admin_grant.down,
     name: '20261108_174500_e046_ai_admin_grant',
+  },
+  {
+    up: migration_20261108_181700_e029_demo_sandboxes.up,
+    down: migration_20261108_181700_e029_demo_sandboxes.down,
+    name: '20261108_181700_e029_demo_sandboxes'
   },
 ];
