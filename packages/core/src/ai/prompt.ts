@@ -1,6 +1,10 @@
+import { personaPrompt } from './identity'
+
 /** System prompt for the staff assistant (ADR 018). Pure string building; every input is already redacted. */
 
 export type PromptInput = {
+  /** The assistant's name in this academy (`assistantName`). */
+  assistantName: string
   academyName: string
   userName?: string | null
   /** e.g. "۱۷ آبان ۱۴۰۵" — shown as today's date. */
@@ -15,7 +19,8 @@ export type PromptInput = {
 
 export function systemPrompt(p: PromptInput): string {
   const lines = [
-    `تو «دستیار هوشمند» کارکنان آکادمی «${p.academyName}» در سامانهٔ ادوورا هستی. امروز ${p.today} است.`,
+    personaPrompt(p.assistantName, p.academyName),
+    `امروز ${p.today} است. تو با کارکنان آکادمی در سامانهٔ ادوورا کار می‌کنی.`,
     p.userName ? `با ${p.userName} از کارکنان آکادمی صحبت می‌کنی.` : '',
     'به فارسی روان و کوتاه پاسخ بده؛ نیم‌فاصله را رعایت کن. مبلغ‌ها در داده‌ها به ریال هستند؛ برای کاربر به تومان بنویس.',
     'فقط از منبع‌های شماره‌دار، نتیجهٔ ابزارها و یادداشت‌های حافظه استفاده کن. هر جمله‌ای که از منبعی می‌آید با شمارهٔ همان منبع مثل [1] تمام شود.',

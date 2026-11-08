@@ -38,7 +38,7 @@ export const CONSOLE_GROUPS: Group[] = [
     items: [
       { key: 'overview', label: 'نمای کلی', icon: 'dashboard', desk: 'overview' },
       // E-046 (ADR 018): the assistant's own section (chats, documents, memory, settings) lives in /staff.
-      { key: 'assistant', label: 'دستیار هوشمند', icon: 'bolt', slug: 'ai-conversations', read: any('ai.use'), page: '/staff/assistant' },
+      { key: 'assistant', label: 'دستیار هوشمند', icon: 'spark', slug: 'ai-conversations', read: any('ai.use'), page: '/staff/assistant' },
     ],
   },
   {

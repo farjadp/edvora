@@ -22,6 +22,7 @@ const bool = z.preprocess((v) => v === 'on' || v === 'true', z.boolean())
 
 const Settings = z.object({
   enabled: bool,
+  assistantName: z.string().trim().max(24).optional().transform((v) => v || null),
   provider: z.enum(AI_PROVIDERS),
   model: z.string().trim().min(1).max(100),
   baseUrl: z.string().trim().max(300).optional().transform((v) => v || null),
@@ -51,6 +52,7 @@ export async function saveSettingsAction(_: AiActionState, form: FormData): Prom
   }
   const data = {
     enabled: v.enabled,
+    assistantName: v.assistantName,
     provider: v.provider,
     model: v.model,
     baseUrl: v.provider === 'custom' ? v.baseUrl : null,

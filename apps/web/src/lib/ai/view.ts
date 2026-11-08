@@ -12,12 +12,14 @@ export function privacyLine(p: PrivacyPolicy): string {
 }
 
 /** What the drawer needs on a page, or null when the person may not use the assistant here. Never throws. */
-export async function drawerProps(): Promise<{ privacyNote: string; enabled: boolean; sectionHref: string } | null> {
+export type DrawerProps = { name: string; userName: string | null; privacyNote: string; enabled: boolean; sectionHref: string }
+
+export async function drawerProps(): Promise<DrawerProps | null> {
   try {
     const auth = await aiSession()
     if (!auth.ok) return null
     const cfg = await loadAiConfig(await getPayloadClient(), auth.s.tenant.id)
-    return { privacyNote: privacyLine(cfg.privacy), enabled: cfg.enabled, sectionHref: '/staff/assistant' }
+    return { name: cfg.name, userName: auth.s.user.name ?? null, privacyNote: privacyLine(cfg.privacy), enabled: cfg.enabled, sectionHref: '/staff/assistant' }
   } catch (err) {
     console.error('[ai] drawer props failed', err)
     return null

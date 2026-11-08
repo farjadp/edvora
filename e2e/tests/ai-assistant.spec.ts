@@ -37,8 +37,10 @@ async function userWithRole(label: string, permissions: string[]): Promise<Staff
   return user
 }
 
+const launcher = (page: Page) => page.getByTestId('ai-launcher')
+
 async function openDrawer(page: Page) {
-  await page.getByRole('button', { name: 'دستیار', exact: true }).click()
+  await launcher(page).click()
   const drawer = page.getByRole('dialog', { name: 'دستیار هوشمند' })
   await expect(drawer).toBeVisible()
   return drawer
@@ -65,6 +67,9 @@ test.describe.serial('AI assistant (mock provider)', () => {
     await ask(page, drawer, 'سلام، امروز چه کارهایی می‌توانی برایم انجام بدهی؟')
     await expect(drawer.locator('[data-role="assistant"]').last()).toContainText('ارائه‌دهندهٔ آزمایشی')
     await expect(drawer).toContainText('بازیابی، نه آموزش مدل')
+    // Identity: the default name on the launcher, in the header and in every answer's mark.
+    await expect(drawer.getByRole('heading', { level: 2 })).toContainText('دانا')
+    await expect(drawer.locator('[data-role="assistant"] .ai-mark')).toHaveCount(1)
     await shot(page, '01-drawer-chat')
 
     await page.goto(`${DEMO}/staff/assistant`)
@@ -74,12 +79,13 @@ test.describe.serial('AI assistant (mock provider)', () => {
     await page.getByLabel('جست‌وجو در گفت‌وگوها').press('Enter')
     await expect(page.getByRole('complementary', { name: 'گفت‌وگوهای ذخیره‌شده' })).toContainText('سلام، امروز چه کارهایی')
     // The section has its own chat, so no floating button there.
-    await expect(page.getByRole('button', { name: 'دستیار', exact: true })).toHaveCount(0)
+    await expect(launcher(page)).toHaveCount(0)
 
     // Same drawer in /admin.
     // (Ctrl+J: in dev mode Next's issues badge covers the bottom corner where the button sits.)
     await page.goto(`${DEMO}/admin`)
-    await expect(page.getByRole('button', { name: 'دستیار', exact: true })).toBeAttached()
+    await expect(launcher(page)).toBeAttached()
+    await expect(launcher(page)).toContainText('دانا')
     await page.keyboard.press('Control+j')
     const adminDrawer = page.getByRole('dialog', { name: 'دستیار هوشمند' })
     await expect(adminDrawer).toBeVisible()
@@ -145,7 +151,7 @@ test.describe.serial('AI assistant (mock provider)', () => {
     await api.dispose()
     await staffLogin(page, DEMO, advisor, '/staff/leads')
     await expect(page).toHaveURL(/\/staff\/leads/)
-    await expect(page.getByRole('button', { name: 'دستیار', exact: true })).toHaveCount(0)
+    await expect(launcher(page)).toHaveCount(0)
     const res = await page.goto(`${DEMO}/staff/assistant`)
     expect(res?.status()).toBe(403)
 
@@ -174,10 +180,25 @@ test.describe.serial('AI assistant (mock provider)', () => {
     await m.dispose()
   })
 
-  test('settings: the key is write-only and the test connection works', async ({ page, playwright }) => {
+  test('settings: the key is write-only, the test connection works, and the academy can rename the assistant', async ({ page, playwright }) => {
     await staffLogin(page, DEMO, manager, '/staff/assistant/settings')
     await expect(page).toHaveURL(/\/staff\/assistant\/settings/)
     await expect(page.getByLabel(/کلید API/)).toHaveValue('')
+
+    // Rename: the new name follows the assistant everywhere, then back to the default.
+    const rename = async (name: string) => {
+      await page.getByLabel('نام دستیار').fill(name)
+      await page.getByRole('button', { name: 'ذخیرهٔ تنظیمات' }).click()
+      await expect(page.getByText('تنظیمات دستیار ذخیره شد.')).toBeVisible()
+      await page.waitForLoadState('load')
+      await expect(page.getByRole('heading', { level: 1 })).toContainText(name || 'دانا', { timeout: 15_000 })
+    }
+    await rename('هم‌یار')
+    await page.goto(`${DEMO}/staff`)
+    await expect(launcher(page)).toContainText('هم‌یار')
+    await page.goto(`${DEMO}/staff/assistant/settings`)
+    await rename('')
+
     await page.getByRole('button', { name: 'آزمایش اتصال' }).click()
     await expect(page.getByText(/اتصال آزمایشی برقرار است/)).toBeVisible({ timeout: 30_000 })
     await shot(page, '06-settings')

@@ -10,6 +10,7 @@ import * as migration_20261107_141016_e030_iba_import from './20261107_141016_e0
 import * as migration_20261108_150947_e039_role_settings from './20261108_150947_e039_role_settings';
 import * as migration_20261108_170721_e046_ai_assistant from './20261108_170721_e046_ai_assistant';
 import * as migration_20261108_170800_e046_ai_admin_grant from './20261108_170800_e046_ai_admin_grant';
+import * as migration_20261108_172946_e046_assistant_identity from './20261108_172946_e046_assistant_identity';
 
 export const migrations = [
   {
@@ -71,5 +72,10 @@ export const migrations = [
     up: migration_20261108_170800_e046_ai_admin_grant.up,
     down: migration_20261108_170800_e046_ai_admin_grant.down,
     name: '20261108_170800_e046_ai_admin_grant',
+  },
+  {
+    up: migration_20261108_172946_e046_assistant_identity.up,
+    down: migration_20261108_172946_e046_assistant_identity.down,
+    name: '20261108_172946_e046_assistant_identity'
   },
 ];

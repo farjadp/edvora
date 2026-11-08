@@ -7,7 +7,9 @@ import {
   FOUR_EYES_APPROVALS,
   LOCAL_EMBEDDING_MODEL,
   PROPOSAL_TTL_MS,
+  assistantName,
   budgetDecision,
+  greeting,
   chunkText,
   citationsIn,
   confirmDecision,
@@ -195,11 +197,24 @@ describe('retrieval', () => {
   })
 
   it('builds a Persian system prompt with sources and the confirmation rule', () => {
-    const p = systemPrompt({ academyName: 'آکادمی آزمایشی', today: '۱۷ آبان ۱۴۰۵', memories: ['بازپرداخت تا ۱۴ روز'], sources: '[1] (سند: x)\nمتن', canPropose: true, page: { path: '/staff/leads' } })
+    const p = systemPrompt({ assistantName: 'دانا', academyName: 'آکادمی آزمایشی', today: '۱۷ آبان ۱۴۰۵', memories: ['بازپرداخت تا ۱۴ روز'], sources: '[1] (سند: x)\nمتن', canPropose: true, page: { path: '/staff/leads' } })
     expect(p).toContain('آکادمی آزمایشی')
+    expect(p).toContain('«دانا»')
     expect(p).toContain('propose_')
     expect(p).toContain('[1]')
     expect(p).toContain('/staff/leads')
+  })
+})
+
+describe('identity', () => {
+  it('uses the academy name when valid, else دانا', () => {
+    expect(assistantName(null)).toBe('دانا')
+    expect(assistantName('  هم‌یار   آکادمی ')).toBe('هم‌یار آکادمی')
+    expect(assistantName('x'.repeat(40))).toBe('دانا')
+  })
+  it('greets by first name and time of day', () => {
+    expect(greeting('دانا', 'سارا احمدی', 9)).toBe('صبح‌تان بخیر، سارا. من دانا هستم؛ چه کمکی از من برمی‌آید؟')
+    expect(greeting('دانا', null, 20)).toContain('عصرتان بخیر. من دانا')
   })
 })
 

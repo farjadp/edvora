@@ -173,6 +173,7 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<ChatEvent> {
     const record = input.page?.path ? await pageRecord(t, input.page.path) : null
     const tools = toolsFor(ctx, tenantId)
     const system = systemPrompt({
+      assistantName: cfg.name,
       academyName: tenant.name,
       userName: cfg.privacy.names ? (user.name ?? null) : null,
       today: formatJalali(new Date()),

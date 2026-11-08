@@ -47,7 +47,8 @@
   border-block-end: 1px solid var(--c-line);
 }
 .ai-head h2 { margin: 0; font-size: 1.05rem; font-weight: 800; flex: 1; min-inline-size: 0; }
-.ai-head .ai-btn { white-space: nowrap; padding-inline: 0.6rem; }
+.ai-head .ai-btn { white-space: nowrap; padding-inline: 0.6rem; font-size: 0.82rem; }
+.ai-head .ai-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ai-head .ai-sub { display: block; font-size: 0.78rem; font-weight: 400; color: var(--c-muted); }
 
 .ai-page {
@@ -144,3 +145,19 @@
 }
 .ai-honest { font-size: 0.75rem; color: var(--c-muted); line-height: 1.8; margin: 0; }
 .ai-sr { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* The mark */
+.ai-mark { flex: 0 0 auto; border-radius: 999px; }
+.ai-mark--pulse { animation: ai-pulse 1.6s ease-in-out infinite; }
+@keyframes ai-pulse { 50% { transform: scale(0.92); opacity: 0.85; } }
+@media (prefers-reduced-motion: reduce) { .ai-mark--pulse { animation: none; } }
+.ai-launch .ai-mark { margin-inline-start: -0.35rem; }
+.ai-head .ai-mark { margin-inline-end: 0.15rem; }
+.ai-name { font-weight: 800; }
+.ai-greet { display: flex; gap: 0.6rem; align-items: flex-start; color: var(--c-ink); line-height: 1.95; }
+.ai-greet p { margin: 0; }
+.ai-greet .ai-tag { display: block; font-size: 0.78rem; color: var(--c-muted); }
+.ai-msg--assistant { display: grid; grid-template-columns: 1.5rem 1fr; gap: 0.55rem; }
+.ai-msg--assistant > .ai-mark { margin-block-start: 0.45rem; }
+.ai-msg--assistant > .ai-body { min-inline-size: 0; }
+.ai-typing { font-size: 0.8rem; color: var(--c-muted); }

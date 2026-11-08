@@ -28,6 +28,7 @@
     "./live": "./src/live.ts",
     "./wpimport": "./src/wpimport.ts",
     "./ai": "./src/ai/index.ts",
+    "./ai/identity": "./src/ai/identity.ts",
     "./phone": "./src/phone.ts"
   },
   "scripts": {

@@ -52,7 +52,7 @@ export default async function AssistantHome({ searchParams }: { searchParams: Se
 
   return (
     <div className="grid max-w-6xl gap-6">
-      <AssistantHeader current="chats" manage={s.manage} />
+      <AssistantHeader current="chats" manage={s.manage} name={cfg.name} />
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         <aside className="grid content-start gap-3" aria-label="گفت‌وگوهای ذخیره‌شده">
           <form method="get" role="search" className="grid gap-1.5">
@@ -75,7 +75,9 @@ export default async function AssistantHome({ searchParams }: { searchParams: Se
                     aria-current={d.id === open?.id ? 'page' : undefined}
                     className={`block rounded-lg px-3 py-2 text-sm leading-6 hover:bg-sunken ${d.id === open?.id ? 'bg-wash font-bold' : ''}`}
                   >
-                    {d.title}
+                    <span dir="auto" className="block">
+                      {d.title}
+                    </span>
                     <span className="block text-xs text-muted">
                       {d.lastMessageAt ? formatJalali(d.lastMessageAt) : ''} · {toPersianDigits(d.messageCount ?? 0)} پیام
                     </span>
@@ -85,7 +87,7 @@ export default async function AssistantHome({ searchParams }: { searchParams: Se
             </ul>
           )}
         </aside>
-        <AssistantPanel key={open?.id ?? 'new'} mode="page" conversationId={open?.id ?? null} initialMessages={initial} privacyNote={privacyLine(cfg.privacy)} enabled={cfg.enabled} />
+        <AssistantPanel key={open?.id ?? 'new'} mode="page" name={cfg.name} userName={s.user.name ?? null} conversationId={open?.id ?? null} initialMessages={initial} privacyNote={privacyLine(cfg.privacy)} enabled={cfg.enabled} />
       </div>
     </div>
   )

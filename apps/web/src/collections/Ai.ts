@@ -31,6 +31,8 @@ export const AiSettings: CollectionConfig = {
   },
   fields: [
     { name: 'enabled', type: 'checkbox', defaultValue: false },
+    /** The assistant's name in this academy; empty = Edvora's default «دانا» (core `assistantName`). */
+    { name: 'assistantName', type: 'text', maxLength: 24 },
     { name: 'provider', type: 'select', required: true, defaultValue: 'mock', options: AI_PROVIDERS.map((p) => ({ value: p, label: PROVIDER_LABELS[p] })) },
     { name: 'model', type: 'text', required: true, defaultValue: 'mock-1' },
     { name: 'baseUrl', type: 'text', admin: { description: 'Custom OpenAI-compatible endpoint only, e.g. https://api.avalai.ir/v1' } },

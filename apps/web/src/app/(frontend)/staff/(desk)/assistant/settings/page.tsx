@@ -58,13 +58,14 @@ export default async function AssistantSettings() {
 
   return (
     <div className="grid max-w-4xl gap-6">
-      <AssistantHeader current="settings" manage />
+      <AssistantHeader current="settings" name={cfg.name} manage />
       {forced ? <Notice tone="warn">این سرور با AI_PROVIDER_OVERRIDE=mock اجرا شده؛ همهٔ آکادمی‌ها از ارائه‌دهندهٔ آزمایشی استفاده می‌کنند و کلید واقعی به کار نمی‌رود.</Notice> : null}
 
       <Card className="grid gap-5">
         <h2 className="text-lg font-black">ارائه‌دهنده و مدل</h2>
         <ActionForm action={saveSettingsAction} submit="ذخیرهٔ تنظیمات" className="grid gap-5">
-          <Check name="enabled" label="دستیار در این آکادمی روشن باشد" checked={cfg.enabled} />
+          <Check name="enabled" label={`${cfg.name} در این آکادمی روشن باشد`} checked={cfg.enabled} />
+          <Field name="assistantName" label="نام دستیار" value={cfg.customName ?? ''} hint="خالی = «دانا»، نام پیش‌فرض ادوورا. حداکثر ۲۴ نویسه؛ در همهٔ صفحه‌ها و در معرفی خودش به کار می‌رود." />
           <label className="grid gap-1.5 text-sm font-bold">
             ارائه‌دهنده
             <select name="provider" defaultValue={cfg.provider} className={fieldInput}>

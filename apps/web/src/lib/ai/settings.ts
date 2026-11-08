@@ -1,5 +1,5 @@
 import 'server-only'
-import { DEFAULT_RATE_LIMITS, keyHint, openAiKey, privacyPolicy, sealAiKey, type BudgetSettings, type PrivacyPolicy, type RateLimits } from '@edvora/core/ai'
+import { DEFAULT_RATE_LIMITS, assistantName, keyHint, openAiKey, privacyPolicy, sealAiKey, type BudgetSettings, type PrivacyPolicy, type RateLimits } from '@edvora/core/ai'
 import { AiError, createAiProvider, type AiProvider, type AiProviderName } from '@edvora/integrations/ai'
 import type { Payload } from 'payload'
 import type { AiSetting } from '../../payload-types'
@@ -16,6 +16,10 @@ export const sealKey = (plain: string) => ({ apiKeySealed: sealAiKey(plain.trim(
 export type AiConfig = {
   id: number | null
   enabled: boolean
+  /** Resolved name («دانا» unless the academy renamed it). */
+  name: string
+  /** What the academy typed, for the settings form. */
+  customName: string | null
   provider: AiProviderName
   model: string
   baseUrl: string | null
@@ -37,6 +41,8 @@ export async function loadAiConfig(payload: Payload, tenantId: number): Promise<
   return {
     id: s?.id ?? null,
     enabled: Boolean(s?.enabled),
+    name: assistantName(s?.assistantName),
+    customName: s?.assistantName ?? null,
     provider: (s?.provider ?? 'mock') as AiProviderName,
     model: s?.model || 'mock-1',
     baseUrl: s?.baseUrl ?? null,

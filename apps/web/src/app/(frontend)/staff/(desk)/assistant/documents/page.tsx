@@ -27,7 +27,7 @@ export default async function AssistantDocuments() {
 
   return (
     <div className="grid max-w-5xl gap-6">
-      <AssistantHeader current="documents" manage />
+      <AssistantHeader current="documents" name={cfg.name} manage />
       <Card className="grid gap-4">
         <h2 className="text-lg font-black">بارگذاری سند</h2>
         <p className="leading-8 text-muted">

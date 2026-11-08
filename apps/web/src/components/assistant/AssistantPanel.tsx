@@ -1,6 +1,8 @@
 'use client'
 
+import { greeting } from '@edvora/core/ai/identity'
 import { toPersianDigits } from '@edvora/core/digits'
+import { AssistantMark } from './AssistantMark'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import './assistant.css'
 
@@ -11,6 +13,9 @@ export type ChatMessage = { key: string; role: 'user' | 'assistant'; content: st
 
 export type PanelProps = {
   mode: 'drawer' | 'page'
+  /** The assistant's name in this academy. */
+  name: string
+  userName?: string | null
   conversationId?: number | null
   initialMessages?: ChatMessage[]
   /** Shown under the input: what is redacted before anything is sent. */
@@ -76,7 +81,7 @@ function ProposalCard({ p, onChange }: { p: Proposal; onChange: (next: Proposal)
   )
 }
 
-function Message({ m, onProposal }: { m: ChatMessage; onProposal: (p: Proposal) => void }) {
+function Message({ m, name, onProposal }: { m: ChatMessage; name: string; onProposal: (p: Proposal) => void }) {
   if (m.role === 'user')
     return (
       <div className="ai-msg ai-msg--user" dir="auto">
@@ -85,6 +90,9 @@ function Message({ m, onProposal }: { m: ChatMessage; onProposal: (p: Proposal) 
     )
   return (
     <div className="ai-msg ai-msg--assistant" data-role="assistant">
+      <AssistantMark size={24} pulse={Boolean(m.streaming) && !m.content} />
+      <div className="ai-body">
+      {m.streaming && !m.content ? <span className="ai-typing">{name} در حال نوشتن…</span> : null}
       {m.tools?.length ? (
         <div className="ai-tools" aria-label="کارهای انجام‌شده">
           {m.tools.map((t, i) => (
@@ -122,6 +130,7 @@ function Message({ m, onProposal }: { m: ChatMessage; onProposal: (p: Proposal) 
           </ol>
         </div>
       ) : null}
+      </div>
     </div>
   )
 }
@@ -136,7 +145,7 @@ type Event =
   | { t: 'done'; messageId: number | null }
   | { t: 'error'; message: string }
 
-export function AssistantPanel({ mode, conversationId: initialId = null, initialMessages = [], privacyNote, enabled, sectionHref, onClose, headerExtra }: PanelProps) {
+export function AssistantPanel({ mode, name, userName = null, conversationId: initialId = null, initialMessages = [], privacyNote, enabled, sectionHref, onClose, headerExtra }: PanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [conversationId, setConversationId] = useState<number | null>(initialId)
   const [input, setInput] = useState('')
@@ -226,9 +235,10 @@ export function AssistantPanel({ mode, conversationId: initialId = null, initial
   return (
     <section className={mode === 'drawer' ? 'ai-drawer' : 'ai-page'} aria-label="دستیار هوشمند" role={mode === 'drawer' ? 'dialog' : undefined}>
       <header className="ai-head">
+        <AssistantMark size={32} />
         <h2>
-          دستیار هوشمند
-          <span className="ai-sub">{mode === 'drawer' ? 'در حد دسترسی‌های شما' : 'پاسخ از اسناد و داده‌های همین آکادمی، در حد دسترسی‌های شما'}</span>
+          <span className="ai-name">{name}</span>
+          <span className="ai-sub">{mode === 'drawer' ? 'دستیار هوشمند' : 'دستیار هوشمند آکادمی · پاسخ از اسناد و داده‌های همین آکادمی، در حد دسترسی‌های شما'}</span>
         </h2>
         {headerExtra}
         <button type="button" className="ai-btn ai-btn--quiet" onClick={newChat} disabled={busy && !abort.current}>
@@ -251,7 +261,13 @@ export function AssistantPanel({ mode, conversationId: initialId = null, initial
           <div className="ai-empty">
             {enabled ? (
               <>
-                از دستیار بپرسید یا کاری بخواهید؛ هر تغییری اول به شکل پیشنهاد نشان داده می‌شود و تا شما تأیید نکنید انجام نمی‌شود.
+                <div className="ai-greet">
+                  <AssistantMark size={28} />
+                  <p>
+                    {greeting(name, userName)}
+                    <span className="ai-tag">بپرسید یا کاری بخواهید؛ هر تغییری اول به شکل پیشنهاد نشان داده می‌شود و تا شما تأیید نکنید انجام نمی‌شود.</span>
+                  </p>
+                </div>
                 <ul>
                   {SUGGESTIONS.map((s) => (
                     <li key={s}>
@@ -263,11 +279,11 @@ export function AssistantPanel({ mode, conversationId: initialId = null, initial
                 </ul>
               </>
             ) : (
-              'دستیار هوشمند در این آکادمی هنوز روشن نشده است. مدیر آکادمی آن را در «دستیار هوشمند › تنظیمات» روشن می‌کند.'
+              `${name} در این آکادمی هنوز روشن نشده است. مدیر آکادمی آن را در «دستیار هوشمند › تنظیمات» روشن می‌کند.`
             )}
           </div>
         ) : (
-          messages.map((m) => <Message key={m.key} m={m} onProposal={updateProposal} />)
+          messages.map((m) => <Message key={m.key} m={m} name={name} onProposal={updateProposal} />)
         )}
       </div>
 
@@ -289,7 +305,7 @@ export function AssistantPanel({ mode, conversationId: initialId = null, initial
             rows={1}
             value={input}
             maxLength={4000}
-            placeholder={enabled ? 'پیام خود را بنویسید…' : 'دستیار خاموش است'}
+            placeholder={enabled ? `از ${name} بپرسید…` : `${name} خاموش است`}
             disabled={!enabled}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -310,7 +326,7 @@ export function AssistantPanel({ mode, conversationId: initialId = null, initial
           )}
         </form>
         <p className="ai-honest">
-          دستیار با اسناد و یادداشت‌های همین آکادمی پاسخ می‌دهد (بازیابی، نه آموزش مدل). {privacyNote}
+          {name} با اسناد و یادداشت‌های همین آکادمی پاسخ می‌دهد (بازیابی، نه آموزش مدل). {privacyNote}
         </p>
       </div>
     </section>

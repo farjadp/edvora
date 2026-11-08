@@ -4,6 +4,7 @@ import { ActionForm } from '../../../../../../components/staff/assistant/Assista
 import { AssistantHeader } from '../../../../../../components/staff/assistant/AssistantTabs'
 import { Card, fieldInput } from '../../../../../../components/staff/ui'
 import { requireAi } from '../../../../../../lib/ai/pageAccess'
+import { loadAiConfig } from '../../../../../../lib/ai/settings'
 import type { AiMemory, User } from '../../../../../../payload-types'
 import { addMemoryAction, decideMemoryAction } from '../actions'
 
@@ -47,10 +48,10 @@ export default async function AssistantMemory() {
   const s = await requireAi('/staff/assistant/memory', 'manage')
   const find = (status: 'proposed' | 'approved') =>
     s.req.payload.find({ collection: 'ai-memories', where: { and: [{ tenant: { equals: s.tenant.id } }, { status: { equals: status } }] }, sort: '-createdAt', limit: 200, depth: 1, overrideAccess: true })
-  const [proposed, approved] = await Promise.all([find('proposed'), find('approved')])
+  const [cfg, proposed, approved] = await Promise.all([loadAiConfig(s.req.payload, s.tenant.id), find('proposed'), find('approved')])
   return (
     <div className="grid max-w-4xl gap-6">
-      <AssistantHeader current="memory" manage intro="یادداشت‌های حافظه واقعیت‌های ماندگار آکادمی‌اند (مثلاً سیاست بازپرداخت). دستیار می‌تواند از دل گفت‌وگوها یادداشت پیشنهاد کند؛ فقط یادداشت‌هایی که شما تأیید کنید در پاسخ‌ها به کار می‌روند و به‌عنوان منبع نشان داده می‌شوند." />
+      <AssistantHeader current="memory" name={cfg.name} manage intro={`یادداشت‌های حافظه واقعیت‌های ماندگار آکادمی‌اند (مثلاً سیاست بازپرداخت). ${cfg.name} می‌تواند از دل گفت‌وگوها یادداشت پیشنهاد کند؛ فقط یادداشت‌هایی که شما تأیید کنید در پاسخ‌ها به کار می‌روند و به‌عنوان منبع نشان داده می‌شوند.`} />
       <Card className="grid gap-4">
         <h2 className="text-lg font-black">در انتظار تأیید ({toPersianDigits(proposed.totalDocs)})</h2>
         {proposed.docs.length ? <ul className="grid gap-4">{proposed.docs.map((m) => <MemoryRow key={m.id} m={m} />)}</ul> : <p className="text-muted">پیشنهادی در انتظار نیست.</p>}

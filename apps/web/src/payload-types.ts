@@ -1814,6 +1814,7 @@ export interface AiSetting {
   id: number;
   tenant?: (number | null) | Tenant;
   enabled?: boolean | null;
+  assistantName?: string | null;
   provider: 'openai' | 'anthropic' | 'gemini' | 'custom' | 'mock';
   model: string;
   /**
@@ -3301,6 +3302,7 @@ export interface RedirectsSelect<T extends boolean = true> {
 export interface AiSettingsSelect<T extends boolean = true> {
   tenant?: T;
   enabled?: T;
+  assistantName?: T;
   provider?: T;
   model?: T;
   baseUrl?: T;

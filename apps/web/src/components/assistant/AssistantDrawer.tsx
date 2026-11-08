@@ -3,11 +3,12 @@
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { AssistantMark } from './AssistantMark'
 import { AssistantPanel } from './AssistantPanel'
 import './assistant.css'
 
 /** E-046 · floating «دستیار» button + side drawer, on every /staff and /admin page for people with `ai.use`. */
-export function AssistantDrawer({ privacyNote, enabled, sectionHref }: { privacyNote: string; enabled: boolean; sectionHref: string }) {
+export function AssistantDrawer({ name, userName, privacyNote, enabled, sectionHref }: { name: string; userName: string | null; privacyNote: string; enabled: boolean; sectionHref: string }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   // Portal to <body>: in /admin the header (our mount point) creates a containing block for position: fixed.
@@ -33,13 +34,11 @@ export function AssistantDrawer({ privacyNote, enabled, sectionHref }: { privacy
   if (pathname?.startsWith('/staff/assistant') || !mounted) return null
   return createPortal(
     <>
-      {open ? <AssistantPanel mode="drawer" privacyNote={privacyNote} enabled={enabled} sectionHref={sectionHref} onClose={() => setOpen(false)} /> : null}
+      {open ? <AssistantPanel mode="drawer" name={name} userName={userName} privacyNote={privacyNote} enabled={enabled} sectionHref={sectionHref} onClose={() => setOpen(false)} /> : null}
       {!open ? (
-        <button ref={launcher} type="button" className="ai-launch" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-keyshortcuts="Control+J" title="دستیار هوشمند (Ctrl J)">
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z" />
-          </svg>
-          دستیار
+        <button ref={launcher} type="button" className="ai-launch" data-testid="ai-launcher" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-keyshortcuts="Control+J" aria-label={`${name}، دستیار هوشمند (Ctrl J)`} title={`${name}، دستیار هوشمند (Ctrl J)`}>
+          <AssistantMark size={26} />
+          {name}
         </button>
       ) : null}
     </>,

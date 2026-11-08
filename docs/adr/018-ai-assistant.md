@@ -85,6 +85,14 @@ scan is fine for an academy's few thousand chunks; an HNSW index per dimension c
 Anthropic has no embeddings API: with Claude, or when embedding fails, a local hashed n-gram embedding
 (`local-hash-v2-1024`: hashed words and in-word trigrams, stop words dropped) is used — keyword-like, no outside call. Search keeps passages above a similarity of 0.12 for the local embedding and 0.3 for provider embeddings.
 
+### Identity
+One persona across the platform: the default name is **«دانا»** (the one who knows), the mark is an eight-point
+spark on a petrol disc (the Seal family's small cousin), the voice is warm, short and professional, first person,
+never pretending to have done something. Because Edvora is white-label, an academy may rename it
+(`ai-settings.assistantName`, ≤ 24 chars; empty = دانا) and the name follows it everywhere: launcher, drawer header,
+every answer's mark, the section header, the system prompt (`personaPrompt`) and the greeting (`greeting`).
+`packages/core/src/ai/identity.ts` holds the words; `components/assistant/AssistantMark.tsx` the mark.
+
 ### Permissions
 Two new academy keys: `ai.use` (use the assistant) and `ai.manage` (settings, key, knowledge base, memory approval).
 "Which roles can use it" is the role editor: granting `ai.use` to a role. The settings page lists which roles hold it.
@@ -108,7 +116,7 @@ that sees the traffic — needs its own decision); (c) the big three directly on
 above matter most in that case, and the academy should know who the gateway is.
 
 ## Consequences
-- New collections: `ai-settings`, `ai-conversations`, `ai-messages`, `ai-documents`, `ai-memories`, `ai-actions`;
+- New collections (plus `assistantName` on settings): `ai-settings`, `ai-conversations`, `ai-messages`, `ai-documents`, `ai-memories`, `ai-actions`;
   raw table `ai_chunks`; two permission keys; CI Postgres image becomes `pgvector/pgvector:pg16`.
 - Uploaded documents are visible (through answers) to everyone with `ai.use` in the academy. The upload screen says so.
 - Each new write action needs: a core definition with its permission, a server executor that uses the local API as the
