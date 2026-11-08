@@ -4,6 +4,7 @@ import {
   decideCreation,
   generateSandboxPassword,
   hashCreatorKey,
+  plainTextToLexical,
   randomCertificatePrefix,
   randomCreatorKey,
   randomSandboxSlug,
@@ -14,6 +15,7 @@ import {
 } from '@edvora/core'
 import { sql, type PostgresAdapter } from '@payloadcms/db-postgres'
 import { commitTransaction, createLocalReq, initTransaction, killTransaction, type Payload, type PayloadRequest, type Where } from 'payload'
+import type { Tenant } from '../../payload-types'
 import { createAcademy } from '../academies'
 import { buildTemplate } from './template'
 
@@ -130,7 +132,7 @@ export async function buildSandbox(payload: Payload, cfg: SandboxConfig, reserva
         defaultTheme: 'light',
         certificatePrefix,
         notice: { enabled: true, text: 'آکادمی آزمایشی: داده‌ها نمونه‌اند، پرداخت‌ها ساختگی‌اند و پیامک یا ایمیلی ارسال نمی‌شود.' },
-        manifesto: 'این متن نمونهٔ «دربارهٔ ما» است. در آکادمی واقعی، داستان و روش آموزش خودتان را اینجا می‌نویسید.',
+        manifesto: plainTextToLexical('این متن نمونهٔ «دربارهٔ ما» است. در آکادمی واقعی، داستان و روش آموزش خودتان را اینجا می‌نویسید.') as Tenant['manifesto'],
         isSandbox: true,
         expiresAt: expiresAt.toISOString(),
         purgeAt: sandboxPurgeAt(expiresAt, cfg.graceHours).toISOString(),

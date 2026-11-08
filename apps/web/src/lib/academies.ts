@@ -7,9 +7,9 @@ type NewTenant = Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'>
 /**
  * Defaults every new academy starts with. The Tenants `afterChange` hook adds the role templates (ADR 006 §4).
  *
- * E-028 seam: when gamification ships with "on by default for new academies", set that default here (or in the
- * Tenants field `defaultValue` / afterChange hook). Demo sandboxes are created through `createAcademy`, so they
- * inherit it with no sandbox-specific code (E-029 S11).
+ * E-028: gamification is on for new academies through the `tenants.gamification` field defaults
+ * (`GAMIFICATION_DEFAULTS`, fields/gamification.ts), which `payload.create` applies here. Demo sandboxes are created
+ * through `createAcademy`, so they inherit it (and any later default) with no sandbox-specific code (E-029 S11).
  */
 export const NEW_ACADEMY_DEFAULTS: Partial<NewTenant> = {
   plan: 'starter',

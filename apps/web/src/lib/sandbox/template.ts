@@ -1,5 +1,5 @@
 import 'server-only'
-import { buildInstalmentPlan, tomanToRial } from '@edvora/core'
+import { buildInstalmentPlan, plainTextToLexical as rt, tomanToRial } from '@edvora/core'
 import { randomBytes } from 'node:crypto'
 import type { PayloadRequest } from 'payload'
 import type { Order } from '../../payload-types'
@@ -54,8 +54,8 @@ export async function buildTemplate(ctx: TemplateContext): Promise<TemplateResul
       { title: 'ماژول ۲ — پروژه', hours: 8 },
     ],
     faq: [
-      { question: 'آیا مبلغ‌ها واقعی‌اند؟', answer: 'خیر. مبلغ‌ها نمونه‌اند و پرداخت در این آکادمی آزمایشی ساختگی است.' },
-      { question: 'آیا این گواهی معتبر است؟', answer: 'خیر. گواهی‌های این آکادمی آزمایشی نمونه‌اند و ارزش رسمی ندارند.' },
+      { question: 'آیا مبلغ‌ها واقعی‌اند؟', answer: rt('خیر. مبلغ‌ها نمونه‌اند و پرداخت در این آکادمی آزمایشی ساختگی است.') },
+      { question: 'آیا این گواهی معتبر است؟', answer: rt('خیر. گواهی‌های این آکادمی آزمایشی نمونه‌اند و ارزش رسمی ندارند.') },
     ],
   })
   const workshop = await create<{ id: number }>('courses', {
@@ -103,7 +103,7 @@ export async function buildTemplate(ctx: TemplateContext): Promise<TemplateResul
   for (const [i, spec] of lessonSpecs.entries()) {
     const l = await create<{ id: number }>('lessons', {
       course: main.id, title: spec.title, order: i + 1, module: spec.module, durationMinutes: 20 + i * 5, isFreePreview: i === 0,
-      notes: `${SAMPLE_NOTE} در این جلسه ویدیوی واقعی وجود ندارد.`, drip: { days: null, releaseAt: null, ...spec.drip },
+      notes: rt(`${SAMPLE_NOTE} در این جلسه ویدیوی واقعی وجود ندارد.`), drip: { days: null, releaseAt: null, ...spec.drip },
     })
     lessonIds.push(l.id)
   }
@@ -120,13 +120,13 @@ export async function buildTemplate(ctx: TemplateContext): Promise<TemplateResul
   for (const q of questions) questionIds.push((await create<{ id: number }>('questions', { course: main.id, points: 1, archived: false, ...q })).id)
   await create('quizzes', {
     course: main.id, lesson: lessonIds[1], title: 'آزمون نمونهٔ جلسهٔ تحلیل بازار',
-    description: 'آزمون نمونه: برای باز شدن جلسهٔ بعد در آن قبول شوید.',
+    description: rt('آزمون نمونه: برای باز شدن جلسهٔ بعد در آن قبول شوید.'),
     status: 'published', required: true, passMark: 60, attemptsLimit: 3, timeLimitMin: 10, countedAttempt: 'best', review: 'full', fullReviewWhen: 'afterPass',
     partialCredit: false, allowRetakeAfterPass: false, shuffle: false, questions: questionIds.map((question) => ({ question })),
   })
   await create('assignments', {
     course: main.id, title: 'تکلیف نمونه: تحلیل SWOT یک کسب‌وکار',
-    description: 'یک کسب‌وکار فرضی انتخاب کنید و جدول SWOT آن را با دست‌کم دو مورد در هر بخش بنویسید. (تکلیف نمونه)',
+    description: rt('یک کسب‌وکار فرضی انتخاب کنید و جدول SWOT آن را با دست‌کم دو مورد در هر بخش بنویسید. (تکلیف نمونه)'),
     dueAt: iso(7 * DAY), maxScore: 20, passScore: 12, required: true, allowLate: true, status: 'published',
   })
   await create('coupons', { code: 'NEMOONE10', kind: 'percent', value: 10, active: true, note: 'کد تخفیف نمونه' })

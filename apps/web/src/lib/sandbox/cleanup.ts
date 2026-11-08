@@ -11,6 +11,17 @@ import { idOf } from '../ids'
  * refuses to run if one is missing.
  */
 const PURGE_ORDER: CollectionSlug[] = [
+  // E-028 / E-033 / E-032 (develop): ledger, live classes, WordPress import — all point at users/courses/sessions.
+  'learning-events',
+  'attendance',
+  'live-events',
+  'live-sessions',
+  'import-refs',
+  'import-jobs',
+  'import-nonces',
+  'import-connections',
+  'redirects',
+  'pages',
   'quiz-attempts',
   'submissions',
   'submission-files',

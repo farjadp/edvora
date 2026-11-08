@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { BareAuthLayout } from '../../../../components/staff/BareAuthLayout'
+import { AuthFrame } from '../../../../components/auth/AuthFrame'
+import { AuthHeading } from '../../../../components/auth/kit'
+import { authBrand } from '../../../../lib/authBrand'
 import { ErrorText, btnPrimary, fieldInput, linkClass } from '../../../../components/staff/ui'
 import { isActive, remainingFa } from '../../../../lib/sandbox/demoState'
 import { demoRequest } from '../../../../lib/sandbox/guard'
@@ -26,8 +28,9 @@ export default async function DemoLoginPage({ searchParams }: Props) {
   if (!tenant || !isActive(tenant)) redirect('/demo?state=ended')
   const error = ERRORS[(await searchParams).error ?? '']
   return (
-    <BareAuthLayout tenantName={tenant.name} title="ورود به آکادمی آزمایشی">
-      <form method="post" action="/demo/api/login" className="grid gap-4">
+    <AuthFrame brand={authBrand(tenant)}>
+      <AuthHeading title="ورود به آکادمی آزمایشی" sub="با نام کاربری و رمزی که هنگام ساخت دمو دیدید." />
+      <form method="post" action="/demo/api/login" className="mt-7 grid gap-4">
         <p className="text-sm leading-7 text-muted">{remainingFa(tenant.expiresAt)} تا پایان این آکادمی آزمایشی.</p>
         {error ? <ErrorText>{error}</ErrorText> : null}
         <label className="grid gap-2 text-sm font-bold">
@@ -47,6 +50,6 @@ export default async function DemoLoginPage({ searchParams }: Props) {
           </a>
         </p>
       </form>
-    </BareAuthLayout>
+    </AuthFrame>
   )
 }
