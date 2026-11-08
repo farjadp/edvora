@@ -19,6 +19,8 @@ Notion page 06 and are created only when their work starts.
 | `farjad-inbox` | Collects every question/approval/to-do waiting on Farjad into one Persian list (`/inbox`), takes his answers and delivers them back; ledger `docs/agents/inbox.md` | sonnet | 2026-11-07 | Farjad can't keep up with asks from many parallel agents |
 | `ux-writer` | Persian microcopy, FAQ and user guides in `docs/guide/`, checked against the running app | sonnet | 2026-11-07 | E-036 user guides (#07) |
 | `github-manager` | Keeps PRs moving: fixes red CI, resolves conflicts and migration clashes, labels `hold`, prepares release PRs (never merges); works with `automerge.yml` (green PRs into develop merge themselves) | sonnet | 2026-11-08 | Farjad didn't want to watch GitHub and merge by hand |
+| `security-auditor` | Security review before releases and after access/auth/payment/upload changes; proven findings, regression tests, security GO/NO-GO (`docs/security/`) | opus | 2026-11-08 | Farjad asked for a security agent (#16, created early) |
+| `access-tester` | Creates demo test users per access level, tests admin/console/student/API access, keeps `docs/qa/access-matrix.md` + `e2e/tests/access-matrix.spec.ts`, reports role/profile gaps | sonnet | 2026-11-08 | Farjad asked for an agent that tests the system as users with different access levels |
 
 ## Planned (create when needed — Notion page 06)
 | # | Agent | Create when |
@@ -28,7 +30,6 @@ Notion page 06 and are created only when their work starts.
 | 11 | `frontend-developer` | UI volume exceeds what ui-designer + tech-lead can do |
 | 12 | `backend-developer` | same, for backend |
 | 13 | `integrations-engineer` | real Zarinpal/Kavenegar/Arvan VOD/Skyroom work starts |
-| 16 | `security-auditor` | before each production release |
 | 17 | `data-analyst` | tracking plan and dashboards (module 13) |
 | 18 | `sales-ops` | advisor process mapping for the CRM desk (E-015) |
 | 19 | `growth-marketer` | cohort launch campaigns |
