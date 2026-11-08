@@ -341,3 +341,27 @@ export function countdownTone(ms: number): 'normal' | 'warning' | 'over' {
 export function mockGatewayAllowed(paymentProvider: string | undefined, tenant: SandboxFlags): boolean {
   return (paymentProvider ?? 'mock') === 'mock' || tenant.isSandbox === true
 }
+
+const filled = (v: unknown) => (Array.isArray(v) ? v.length > 0 : typeof v === 'string' ? v.trim() !== '' : v !== null && v !== undefined && v !== false)
+
+/**
+ * Payment-method writes a demo sandbox may never make (E-029, ADR 013): gateway credentials (`cred_*` inputs or the
+ * sealed blob), live mode, card numbers, USDT wallets, or enabling a card/USDT/manual method at all. (Manual channels
+ * are only labels and have defaults, so they are not checked; the manual method itself cannot be enabled.)
+ * Returns the offending keys; empty = allowed (a gateway row in sandbox mode with no secrets, which runs on the mock).
+ */
+export function sandboxPaymentMethodViolations(data: Record<string, unknown>, kind: 'gateway' | 'card' | 'usdt' | 'manual' | null): string[] {
+  const out = Object.keys(data).filter((k) => k.startsWith('cred_') && filled(data[k]))
+  for (const k of ['credentialsSealed', 'cards', 'wallets'] as const) if (filled(data[k])) out.push(k)
+  if (data.mode === 'live') out.push('mode')
+  if (data.enabled === true && kind !== null && kind !== 'gateway') out.push(`enabled:${kind}`)
+  return out
+}
+
+/** AI-settings writes a demo sandbox may never make: a provider key, a non-mock provider or a custom endpoint. */
+export function sandboxAiSettingsViolations(data: Record<string, unknown>): string[] {
+  const out: string[] = []
+  for (const k of ['apiKeySealed', 'apiKeyHint', 'baseUrl'] as const) if (filled(data[k])) out.push(k)
+  if (typeof data.provider === 'string' && data.provider !== 'mock') out.push('provider')
+  return out
+}

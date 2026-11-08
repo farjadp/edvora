@@ -10,6 +10,8 @@ import {
   isPlatformHost,
   leadingZeroBits,
   mockGatewayAllowed,
+  sandboxAiSettingsViolations,
+  sandboxPaymentMethodViolations,
   parseSandboxConfig,
   remainingMs,
   sandboxExpiresAt,
@@ -314,5 +316,26 @@ describe('mockGatewayAllowed (BUG-1)', () => {
   it('closed for a real academy on a real gateway', () => {
     expect(mockGatewayAllowed('zarinpal', { isSandbox: false })).toBe(false)
     expect(mockGatewayAllowed('zarinpal', {})).toBe(false)
+  })
+})
+
+describe('sandbox secrets locks (payments, AI)', () => {
+  it('payment methods: no credentials, live mode, cards, wallets, or card/usdt/manual enabled', () => {
+    expect(sandboxPaymentMethodViolations({ method: 'zarinpal', enabled: true, mode: 'sandbox', title: 'x' }, 'gateway')).toEqual([])
+    expect(sandboxPaymentMethodViolations({ cred_merchantId: 'abc', cred_terminalId: '' }, 'gateway')).toEqual(['cred_merchantId'])
+    expect(sandboxPaymentMethodViolations({ credentialsSealed: 'v1.x' }, 'gateway')).toEqual(['credentialsSealed'])
+    expect(sandboxPaymentMethodViolations({ mode: 'live' }, 'gateway')).toEqual(['mode'])
+    expect(sandboxPaymentMethodViolations({ cards: [{ number: '6037991234567890' }] }, 'card')).toEqual(['cards'])
+    expect(sandboxPaymentMethodViolations({ wallets: [{ network: 'trc20', address: 'T...' }] }, 'usdt')).toEqual(['wallets'])
+    expect(sandboxPaymentMethodViolations({ enabled: true }, 'manual')).toEqual(['enabled:manual'])
+    expect(sandboxPaymentMethodViolations({ enabled: true, cards: [] }, 'card')).toEqual(['enabled:card'])
+    expect(sandboxPaymentMethodViolations({ enabled: false, cards: [] }, 'card')).toEqual([])
+  })
+  it('AI settings: only the mock provider, no key, no custom endpoint', () => {
+    expect(sandboxAiSettingsViolations({ provider: 'mock', enabled: true, model: 'mock-1' })).toEqual([])
+    expect(sandboxAiSettingsViolations({ provider: 'openai' })).toEqual(['provider'])
+    expect(sandboxAiSettingsViolations({ apiKeySealed: 'v1.x', apiKeyHint: 'sk-…abcd' })).toEqual(['apiKeySealed', 'apiKeyHint'])
+    expect(sandboxAiSettingsViolations({ baseUrl: 'https://api.example.com/v1' })).toEqual(['baseUrl'])
+    expect(sandboxAiSettingsViolations({ apiKeySealed: null, apiKeyHint: null })).toEqual([])
   })
 })

@@ -2,8 +2,8 @@
  * Sandbox guards shared by collections (E-029, ADR 013). A sandbox is a tenant with `isSandbox = true`; its
  * accounts carry `users.sandboxTenant`. Flags are read from the DB (never from a token) and cached per request.
  */
-import { clampMembershipExpiry, isPlatformHost, parseSandboxConfig, sandboxState, toPersianDigits, verifySandboxSelector, type SandboxConfig } from '@edvora/core'
-import type { Access, CollectionBeforeChangeHook, CollectionBeforeOperationHook, PayloadRequest, Where } from 'payload'
+import { PAYMENT_METHODS, clampMembershipExpiry, isPlatformHost, sandboxAiSettingsViolations, sandboxPaymentMethodViolations, parseSandboxConfig, sandboxState, toPersianDigits, verifySandboxSelector, type SandboxConfig } from '@edvora/core'
+import type { Access, CollectionBeforeChangeHook, CollectionBeforeOperationHook, CollectionBeforeValidateHook, PayloadRequest, Where } from 'payload'
 import { APIError, parseCookies } from 'payload'
 import { idOf } from '../lib/ids'
 import { isSystemWrite } from './permissions'
@@ -141,4 +141,32 @@ export const mediaRead: Access = ({ req }) => {
   const realAcademy: Where = { 'tenant.isSandbox': { not_equals: true } }
   const sel = selectedSandboxOf(req)
   return sel ? { or: [realAcademy, { tenant: { equals: sel } }] } : realAcademy
+}
+
+// ---------------------------------------------------------------- secrets never enter a sandbox
+
+/**
+ * payment-methods (E-045): a sandbox never stores gateway credentials, live mode, card numbers or USDT wallets, and
+ * cannot enable card-to-card, Tether or manual methods. Checked on the raw data (write-only `cred_*`
+ * inputs included) for every writer: REST, the staff settings page and server code. 403, nothing written.
+ */
+export const lockSandboxPaymentSecrets: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
+  if (!data) return data
+  const flags = await tenantFlags(req, idOf(data.tenant ?? originalDoc?.tenant))
+  if (!flags?.isSandbox) return data
+  const method = (data.method ?? originalDoc?.method) as keyof typeof PAYMENT_METHODS | undefined
+  const kind = method && method in PAYMENT_METHODS ? PAYMENT_METHODS[method].kind : null
+  const bad = sandboxPaymentMethodViolations(data as Record<string, unknown>, kind)
+  if (bad.length) throw new APIError(`در آکادمی آزمایشی اطلاعات پرداخت واقعی ذخیره نمی‌شود و فقط درگاه آزمایشی فعال است (${bad.join(', ')}).`, 403)
+  return data
+}
+
+/** ai-settings (E-046): a sandbox only ever uses the mock provider; no key, no other provider, no custom endpoint. */
+export const lockSandboxAiSecrets: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
+  if (!data) return data
+  const flags = await tenantFlags(req, idOf(data.tenant ?? originalDoc?.tenant))
+  if (!flags?.isSandbox) return data
+  const bad = sandboxAiSettingsViolations(data as Record<string, unknown>)
+  if (bad.length) throw new APIError(`در آکادمی آزمایشی دستیار فقط با ارائه‌دهندهٔ آزمایشی کار می‌کند (${bad.join(', ')}).`, 403)
+  return data
 }

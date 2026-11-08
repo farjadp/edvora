@@ -2,6 +2,7 @@ import { PAYMENT_METHOD_KEYS, PAYMENT_METHODS, USDT_NETWORK_KEYS, isValidCardNum
 import type { CollectionBeforeChangeHook, CollectionBeforeValidateHook, CollectionConfig, Field } from 'payload'
 import { APIError } from 'payload'
 import { allow, nobody } from '../access/permissions'
+import { lockSandboxPaymentSecrets } from '../access/sandbox'
 import { auditChange } from '../hooks/audit'
 import { idOf } from '../lib/ids'
 import { CREDENTIAL_KEYS, openCredentials, sealCredentials, type CredentialKey } from '../lib/paymentSecrets'
@@ -140,7 +141,8 @@ export const PaymentMethods: CollectionConfig = {
     delete: nobody,
   },
   hooks: {
-    beforeValidate: [uniquePerAcademy],
+    // E-029: demo sandboxes never hold real payment secrets (ADR 013).
+    beforeValidate: [lockSandboxPaymentSecrets, uniquePerAcademy],
     beforeChange: [sealAndCheck],
     afterChange: [auditChange('payment-methods')],
   },
