@@ -229,10 +229,9 @@ export default async function DashboardPage() {
                       <td className="p-4">{ORDER_STATUS[o.status] ?? o.status}</td>
                       <td className="p-4 text-end">
                         {next ? (
-                          <form action="/payments/start" method="post">
-                            <input type="hidden" name="orderId" value={o.id} />
-                            <button className="rounded-lg bg-ink px-3 py-1.5 text-xs font-bold text-bg">پرداخت {formatToman(rial(next.amount))}</button>
-                          </form>
+                          <Link href={`/pay/${o.id}`} className="inline-block rounded-lg bg-ink px-3 py-1.5 text-xs font-bold text-bg">
+                            پرداخت {formatToman(rial(next.amount))}
+                          </Link>
                         ) : null}
                       </td>
                     </tr>

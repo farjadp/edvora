@@ -28,6 +28,8 @@ import { Attendance, LiveEvents, LiveSessions } from './collections/LiveSessions
 import { Media } from './collections/Media'
 import { Memberships } from './collections/Memberships'
 import { Orders } from './collections/Orders'
+import { PaymentMethods } from './collections/PaymentMethods'
+import { PaymentReceipts, Payments } from './collections/Payments'
 import { Questions } from './collections/Questions'
 import { QuizAttempts } from './collections/QuizAttempts'
 import { Quizzes } from './collections/Quizzes'
@@ -92,6 +94,9 @@ export default buildConfig({
     LearningEvents,
     Leads,
     Orders,
+    PaymentMethods,
+    Payments,
+    PaymentReceipts,
     Coupons,
     Testimonials,
     Posts,
@@ -158,6 +163,10 @@ export default buildConfig({
         certificates: {},
         leads: {},
         orders: {},
+        // E-045 (ADR 017): payment methods, payments, private receipts.
+        'payment-methods': {},
+        payments: {},
+        'payment-receipts': {},
         coupons: {},
         testimonials: {},
         posts: {},

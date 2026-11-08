@@ -28,11 +28,22 @@ export async function login(page: Page, base: string, phone: string, next = '/da
 }
 
 /** The course page's enrol card: pick a payment plan, optional coupon, go to the gateway. */
-export async function startCheckout(page: Page, base: string, slug: string, opts: { instalmentsLabel?: string; coupon?: string } = {}) {
+export async function startCheckout(page: Page, base: string, slug: string, opts: { instalmentsLabel?: string; coupon?: string; stopAtMethods?: boolean } = {}) {
   await page.goto(`${base}/courses/${slug}`)
   if (opts.instalmentsLabel) await page.locator('label', { hasText: opts.instalmentsLabel }).click()
   if (opts.coupon) await page.getByPlaceholder('کد تخفیف (اختیاری)').fill(opts.coupon)
   await page.getByRole('button', { name: 'ثبت‌نام و پرداخت' }).click()
+  // ADR 017: checkout lands on the order's payment page; the first online gateway leads to the mock bank page.
+  await page.waitForURL(/\/pay\/\d+/)
+  if (opts.stopAtMethods) return
+  await payWithFirstGateway(page)
+}
+
+/** On /pay/<order>: opens the first online-gateway method and goes to the (mock) bank page. */
+export async function payWithFirstGateway(page: Page) {
+  const gw = page.locator('details', { has: page.locator('form[action="/payments/start"]') }).first()
+  if (!(await gw.evaluate((d) => (d as HTMLDetailsElement).open))) await gw.locator('summary').click()
+  await gw.getByRole('button', { name: /^پرداخت/ }).click()
   await page.waitForURL(/\/pay\/mock\?/)
 }
 
