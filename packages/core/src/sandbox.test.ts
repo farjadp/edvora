@@ -9,6 +9,7 @@ import {
   formatRemainingFa,
   isPlatformHost,
   leadingZeroBits,
+  mockGatewayAllowed,
   parseSandboxConfig,
   remainingMs,
   sandboxExpiresAt,
@@ -301,5 +302,17 @@ describe('display', () => {
     expect(countdownTone(16 * 60_000)).toBe('normal')
     expect(countdownTone(15 * 60_000)).toBe('warning')
     expect(countdownTone(0)).toBe('over')
+  })
+})
+
+describe('mockGatewayAllowed (BUG-1)', () => {
+  it('open on a mock instance, and for sandboxes on a real-gateway instance', () => {
+    expect(mockGatewayAllowed('mock', { isSandbox: false })).toBe(true)
+    expect(mockGatewayAllowed(undefined, {})).toBe(true)
+    expect(mockGatewayAllowed('zarinpal', { isSandbox: true, expiresAt: '2099-01-01T00:00:00Z' })).toBe(true)
+  })
+  it('closed for a real academy on a real gateway', () => {
+    expect(mockGatewayAllowed('zarinpal', { isSandbox: false })).toBe(false)
+    expect(mockGatewayAllowed('zarinpal', {})).toBe(false)
   })
 })

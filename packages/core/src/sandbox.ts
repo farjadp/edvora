@@ -331,3 +331,13 @@ export function countdownTone(ms: number): 'normal' | 'warning' | 'over' {
   if (ms <= 0) return 'over'
   return ms <= SANDBOX_WARNING_MS ? 'warning' : 'normal'
 }
+
+// ---------------------------------------------------------------- Provider forcing (C8)
+
+/**
+ * The mock payment page exists when the instance runs the mock gateway, or for a sandbox academy (which always uses
+ * the mock, whatever PAYMENT_PROVIDER says). A real academy on a real gateway never gets it.
+ */
+export function mockGatewayAllowed(paymentProvider: string | undefined, tenant: SandboxFlags): boolean {
+  return (paymentProvider ?? 'mock') === 'mock' || tenant.isSandbox === true
+}
