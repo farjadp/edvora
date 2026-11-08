@@ -101,11 +101,20 @@ test('/admin: palette via Ctrl+K and 375 nav drawer', async ({ page }) => {
 test('/admin 375: nav drawer traps Tab, Esc closes it and focus returns to the burger', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
   await page.goto(`${DEMO}/admin`)
-  await page.waitForLoadState('networkidle')
-  await page.locator('.template-default__nav-toggler').focus()
-  await page.keyboard.press('Enter')
   const nav = page.locator('aside.nav')
-  await expect(nav).toHaveClass(/nav--nav-open/)
+  // The burger only works once Payload's nav has hydrated; under CI load networkidle can come first, and an Enter
+  // pressed before that is lost. Wait for the hydrated class, then retry the toggle until the drawer is open.
+  await expect(nav).toHaveClass(/nav--nav-hydrated/)
+  const burger = page.locator('.template-default__nav-toggler')
+  await expect(async () => {
+    if (!/nav--nav-open/.test((await nav.getAttribute('class')) ?? '')) {
+      await burger.focus()
+      await page.keyboard.press('Enter')
+    }
+    await expect(nav).toHaveClass(/nav--nav-open/, { timeout: 2_000 })
+  }).toPass({ timeout: 30_000 })
+  // The focus trap is attached in an effect after the drawer opens; give it a tick before tabbing.
+  await expect(burger).toBeFocused()
   const leaks: number[] = []
   for (let i = 0; i < 40; i++) {
     await page.keyboard.press('Tab')

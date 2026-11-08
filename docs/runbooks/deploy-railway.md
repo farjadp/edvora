@@ -153,6 +153,13 @@ shared DB are unreachable without it; delete them only with Farjad's approval.
 
 ## Deploy / redeploy
 
+**Automatic since 2026-11-07 (E-038):** `web` and `web-iba` are connected to GitHub `farjadp/edvora`, branch `main`.
+Every merge into `main` builds and deploys both; new migrations apply on boot. Before that, deploys were manual uploads
+and merges never reached the demo. If a release adds a migration that needs new seed data, run the seed (above) right
+after the deploy.
+
+Manual deploy (only for a hotfix outside `main`; the next merge into `main` replaces it):
+
 ```bash
 railway up --service web --detach        # from the repo root; uploads the working tree (respects .gitignore)
 railway logs --service web --build       # build logs
