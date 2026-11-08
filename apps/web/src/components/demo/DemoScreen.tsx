@@ -310,7 +310,7 @@ function Credentials({ ready, ttlFa, contactHref }: { ready: Ready; ttlFa: strin
           ))}
         </ol>
         <p className="mt-4 leading-8 text-muted">اینجا دادهٔ واقعی وجود ندارد. هرچه می‌خواهید تغییر دهید یا حذف کنید.</p>
-        <p className="mt-2 text-sm leading-7 text-muted">برای امتحان پرداخت ناموفق، در صفحهٔ درگاه ساختگی گزینهٔ «ناموفق» را بزنید.</p>
+        <p className="mt-2 text-sm leading-7 text-muted">برای امتحان پرداخت ناموفق، در صفحهٔ درگاه ساختگی دکمهٔ «انصراف از پرداخت» را بزنید.</p>
         <div className="mt-5">
           <TalkButton contactHref={contactHref} source="talk" />
         </div>
