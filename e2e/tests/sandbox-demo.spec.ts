@@ -21,6 +21,7 @@ import {
   type Sandbox,
   type Visitor,
 } from './sandbox-helpers'
+import { payWithFirstGateway } from './helpers'
 import { adminCreds, apiAs, createStaff, staffLogin, tenantId } from './staff-helpers'
 
 /**
@@ -218,7 +219,9 @@ test.describe('V: visitor gets a demo', () => {
       await enterAs(v, 'student')
       await v.page.goto('/courses/nemoone-kargah-forush')
       await v.page.getByRole('button', { name: 'ثبت‌نام و پرداخت' }).click()
-      await v.page.waitForURL(/\/pay\/mock\?/)
+      // E-045: checkout lands on the order's payment page; the first online gateway leads to the (mock) bank page.
+      await v.page.waitForURL(/\/pay\/\d+/)
+      await payWithFirstGateway(v.page)
       expect(new URL(v.page.url()).origin).toBe(PLATFORM)
       await v.page.getByRole('link', { name: 'انصراف از پرداخت' }).click()
       await v.page.waitForURL(`${PLATFORM}/payments/result?**`)
@@ -227,7 +230,9 @@ test.describe('V: visitor gets a demo', () => {
 
       await v.page.goto('/courses/nemoone-kargah-forush')
       await v.page.getByRole('button', { name: 'ثبت‌نام و پرداخت' }).click()
-      await v.page.waitForURL(/\/pay\/mock\?/)
+      // E-045: checkout lands on the order's payment page; the first online gateway leads to the (mock) bank page.
+      await v.page.waitForURL(/\/pay\/\d+/)
+      await payWithFirstGateway(v.page)
       await v.page.getByRole('link', { name: 'پرداخت موفق' }).click()
       await v.page.waitForURL(`${PLATFORM}/payments/result?**`)
       expect(new URL(v.page.url()).searchParams.get('status')).toBe('paid')
