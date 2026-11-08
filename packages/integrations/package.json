@@ -10,7 +10,8 @@
     "./sms": "./src/sms/index.ts",
     "./live-class": "./src/live-class/index.ts",
     "./storage": "./src/storage/index.ts",
-    "./wordpress": "./src/wordpress/index.ts"
+    "./wordpress": "./src/wordpress/index.ts",
+    "./connection": "./src/connection/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
