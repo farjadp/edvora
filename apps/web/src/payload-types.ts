@@ -347,7 +347,6 @@ export interface Tenant {
         id?: string | null;
       }[]
     | null;
-  zarinpalMerchantId?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2525,7 +2524,6 @@ export interface TenantsSelect<T extends boolean = true> {
         body?: T;
         id?: T;
       };
-  zarinpalMerchantId?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -7,7 +7,6 @@ import { auditChange } from '../hooks/audit'
 import { richTextField, tenantSelf } from '../lib/richText'
 
 const platformOnly = ({ req }: { req: { user?: unknown } }) => isSuperAdmin(req.user as never)
-const settingsField = fieldAllow('settings.edit', (d) => d?.id)
 const templatesField = fieldAllow('templates.edit', (d) => d?.id)
 
 /** An academy on Edvora. Everything else belongs to exactly one tenant. */
@@ -284,14 +283,6 @@ export const Tenants: CollectionConfig = {
                 { name: 'subject', type: 'text' },
                 { name: 'body', type: 'textarea' },
               ],
-            },
-            {
-              // Legacy (ADR 019 §9): moved to a sealed Zarinpal row in payment-methods (E-045) by migration
-              // e047_zarinpal_to_payment_methods; nothing reads it any more. Dropping the column needs Farjad's OK.
-              name: 'zarinpalMerchantId',
-              type: 'text',
-              access: { read: settingsField, update: () => false },
-              admin: { hidden: true },
             },
           ],
         },
