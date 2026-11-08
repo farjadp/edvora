@@ -1,14 +1,16 @@
+import { notFound } from 'next/navigation'
 import { formatJalali } from '@edvora/core'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { Media } from '../../../payload-types'
 import { getPosts } from '../../../lib/queries'
-import { getCurrentTenant } from '../../../lib/tenant'
+import { getCurrentTenant, siteSectionOn } from '../../../lib/tenant'
 
 export const metadata: Metadata = { title: 'مجله' }
 
 export default async function JournalPage() {
   const tenant = await getCurrentTenant()
+  if (!siteSectionOn(tenant, 'journal')) notFound()
   const posts = await getPosts(tenant.id, 100)
 
   return (

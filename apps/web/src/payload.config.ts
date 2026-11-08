@@ -37,7 +37,9 @@ import { Quizzes } from './collections/Quizzes'
 import { Roles } from './collections/Roles'
 import { SubmissionFiles } from './collections/SubmissionFiles'
 import { Submissions } from './collections/Submissions'
+import { IntegrationSettings } from './collections/IntegrationSettings'
 import { Tenants } from './collections/Tenants'
+import { PlatformSettings } from './globals/PlatformSettings'
 import { Users } from './collections/Users'
 import { richTextEditor } from './lib/richText'
 import { IMPORT_QUEUE, importTasks } from './lib/wpimport/tasks'
@@ -63,7 +65,12 @@ export default buildConfig({
       afterLogin: ['/components/admin/LoginSkin#AfterLogin'],
       beforeDashboard: ['/components/admin/DashboardHome#DashboardHome'],
       // E-039 (ADR 016): who-can-do-what table across the selected academy's roles.
-      views: { rolesCompare: { Component: '/components/admin/RolesCompare#RolesCompare', path: '/roles-compare' } },
+      views: {
+        rolesCompare: { Component: '/components/admin/RolesCompare#RolesCompare', path: '/roles-compare' },
+        // E-047 (ADR 019): the settings hub.
+        settings: { Component: '/components/admin/settings/SettingsHub#SettingsHub', path: '/settings', exact: true, meta: { title: 'تنظیمات' } },
+        settingsSection: { Component: '/components/admin/settings/SettingsHub#SettingsHub', path: '/settings/:section', meta: { title: 'تنظیمات' } },
+      },
     },
     // Dates with `timezone: true` (drip release, assignment deadline) are entered in Tehran time and stored UTC.
     timezones: { supportedTimezones: [{ label: 'تهران (Asia/Tehran)', value: 'Asia/Tehran' }], defaultTimezone: 'Asia/Tehran' },
@@ -115,7 +122,10 @@ export default buildConfig({
     DemoLeads,
     // E-046: AI assistant (ADR 018).
     ...AI_COLLECTIONS,
+    // E-047: settings hub (ADR 019).
+    IntegrationSettings,
   ],
+  globals: [PlatformSettings],
   // E-032: first use of the Payload jobs queue (ADR 011 §Resumability). Each import task works ≤ 20 s, then re-queues
   // itself with its cursor. One app process runs the queue (IMPORT_QUEUE_AUTORUN=false on the others).
   jobs: {
@@ -206,6 +216,8 @@ export default buildConfig({
         'ai-documents': {},
         'ai-memories': {},
         'ai-actions': {},
+        // E-047: an academy's own providers (sealed keys).
+        'integration-settings': {},
       },
       // No hard delete: academies are never removed, so never cascade-delete their records. The one exception,
       // demo sandboxes (ADR 013), is purged explicitly by lib/sandbox/cleanup.ts, collection by collection.

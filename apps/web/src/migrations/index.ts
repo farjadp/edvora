@@ -11,7 +11,10 @@ import * as migration_20261108_150947_e039_role_settings from './20261108_150947
 import * as migration_20261108_165628_e045_payment_methods from './20261108_165628_e045_payment_methods';
 import * as migration_20261108_174447_e046_ai_assistant from './20261108_174447_e046_ai_assistant';
 import * as migration_20261108_174500_e046_ai_admin_grant from './20261108_174500_e046_ai_admin_grant';
-import * as migration_20261108_181700_e029_demo_sandboxes from './20261108_181700_e029_demo_sandboxes';
+import * as migration_20261108_181437_e047_settings_hub from './20261108_181437_e047_settings_hub';
+import * as migration_20261108_181700_e047_drop_tenant_zarinpal from './20261108_181700_e047_drop_tenant_zarinpal';
+import * as migration_20261108_181500_e047_admin_integrations_key from './20261108_181500_e047_admin_integrations_key';
+import * as migration_20261108_181600_e047_zarinpal_to_payment_methods from './20261108_181600_e047_zarinpal_to_payment_methods';
 
 export const migrations = [
   {
@@ -80,8 +83,23 @@ export const migrations = [
     name: '20261108_174500_e046_ai_admin_grant',
   },
   {
-    up: migration_20261108_181700_e029_demo_sandboxes.up,
-    down: migration_20261108_181700_e029_demo_sandboxes.down,
-    name: '20261108_181700_e029_demo_sandboxes'
+    up: migration_20261108_181437_e047_settings_hub.up,
+    down: migration_20261108_181437_e047_settings_hub.down,
+    name: '20261108_181437_e047_settings_hub',
+  },
+  {
+    up: migration_20261108_181500_e047_admin_integrations_key.up,
+    down: migration_20261108_181500_e047_admin_integrations_key.down,
+    name: '20261108_181500_e047_admin_integrations_key',
+  },
+  {
+    up: migration_20261108_181600_e047_zarinpal_to_payment_methods.up,
+    down: migration_20261108_181600_e047_zarinpal_to_payment_methods.down,
+    name: '20261108_181600_e047_zarinpal_to_payment_methods',
+  },
+  {
+    up: migration_20261108_181700_e047_drop_tenant_zarinpal.up,
+    down: migration_20261108_181700_e047_drop_tenant_zarinpal.down,
+    name: '20261108_181700_e047_drop_tenant_zarinpal',
   },
 ];

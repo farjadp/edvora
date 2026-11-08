@@ -32,7 +32,9 @@
     "./ai/identity": "./src/ai/identity.ts",
     "./phone": "./src/phone.ts",
     "./sandbox": "./src/sandbox.ts",
-    "./pow": "./src/pow.ts"
+    "./pow": "./src/pow.ts",
+    "./settings": "./src/settings.ts",
+    "./settings-secrets": "./src/settingsSecrets.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

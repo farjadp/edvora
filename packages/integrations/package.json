@@ -11,6 +11,7 @@
     "./live-class": "./src/live-class/index.ts",
     "./storage": "./src/storage/index.ts",
     "./wordpress": "./src/wordpress/index.ts",
+    "./connection": "./src/connection/index.ts",
     "./ai": "./src/ai/index.ts"
   },
   "scripts": {

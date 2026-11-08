@@ -67,5 +67,8 @@ export const getCurrentTenant = cache(async (): Promise<Tenant> => {
   return tenant
 })
 
+/** E-047: public-site sections the academy switched off in the settings hub (default on). */
+export const siteSectionOn = (tenant: Tenant, key: 'journal' | 'faculty' | 'verify' | 'leadForm'): boolean => tenant.toggles?.[key] !== false
+
 export const tenantHasFeature = (tenant: Tenant, feature: NonNullable<Tenant['features']>[number]) =>
   Boolean(tenant.features?.includes(feature))

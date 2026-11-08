@@ -145,3 +145,22 @@ describe('modules built alongside the console (E-032, E-033, E-030)', () => {
   })
 })
 
+
+describe('E-047 settings hub entry', () => {
+  it('replaces the tenants list: one internal /admin link, external from /staff', () => {
+    const admin = adminConsoleNav(everyRead, role('academy-admin')).flatMap((g) => g.items)
+    expect(admin.find((i) => i.key === 'settings')).toMatchObject({ href: '/admin/settings', external: false })
+    expect(admin.find((i) => i.key === 'tenants')).toBeUndefined()
+    const staff = staffConsoleNav(role('academy-admin')).flatMap((g) => g.items)
+    expect(staff.find((i) => i.key === 'settings')).toMatchObject({ href: '/admin/settings', external: true })
+  })
+
+  it('shown to settings holders only (default deny)', () => {
+    for (const t of ['advisor', 'finance', 'support', 'instructor', 'content-editor', 'teaching-assistant', 'sales-manager']) {
+      expect(keys(adminConsoleNav(everyRead, role(t))), t).not.toContain('settings')
+      expect(keys(staffConsoleNav(role(t))), t).not.toContain('settings')
+    }
+    expect(keys(adminConsoleNav(everyRead, { isPlatformAdmin: false, permissions: ['settings.integrations'] }))).toContain('settings')
+    expect(keys(adminConsoleNav(everyRead, { isPlatformAdmin: false, permissions: ['templates.edit'] }))).toContain('settings')
+  })
+})

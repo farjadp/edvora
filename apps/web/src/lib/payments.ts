@@ -255,7 +255,7 @@ async function confirmAndApply(payload: Payload, payment: Payment, from: Payment
   if (applied.firstPayment) await onFirstPayment(payload, updated, tenant)
   else {
     const user = await payload.findByID({ collection: 'users', id: idOf(order.user)!, depth: 0, overrideAccess: true })
-    await notify(user.phone, `${tenant.name}: پرداخت ${formatToman(rial(payment.amount))} برای سفارش ${order.id} تأیید شد.`, tenant)
+    await notify(user.phone, `${tenant.name}: پرداخت ${formatToman(rial(payment.amount))} برای سفارش ${order.id} تأیید شد.`, tenant.id)
   }
   return { order: updated, status: applied.status }
 }
@@ -592,7 +592,7 @@ export async function staffPaymentAction(s: StaffCtx, paymentId: number, action:
     if (!moved) throw new PaymentError(PAYMENT_ACTION_ERRORS.wrong_status)
     await audit(payload, s, { tenant: s.tenant.id, action: 'payments.rejected', docId: p.id, note: text, changes: { status: { from: p.status, to: 'rejected' } } })
     const user = await payload.findByID({ collection: 'users', id: idOf(p.user)!, depth: 0, overrideAccess: true })
-    await notify(user.phone, `${s.tenant.name}: پرداخت ${formatToman(rial(p.amount))} سفارش ${idOf(p.order)} تأیید نشد. دلیل و راه ادامه در پنل شما آمده است.`, s.tenant)
+    await notify(user.phone, `${s.tenant.name}: پرداخت ${formatToman(rial(p.amount))} سفارش ${idOf(p.order)} تأیید نشد. دلیل و راه ادامه در پنل شما آمده است.`, s.tenant.id)
     return 'rejected'
   }
   await confirmAndApply(payload, p, 'recorded', { confirmedBy: s.user.id, confirmedAt: now, verifiedBy: 'people' })

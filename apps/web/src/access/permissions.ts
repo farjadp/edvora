@@ -24,6 +24,7 @@ import {
 import type { Access, CollectionBeforeChangeHook, FieldAccess, PayloadRequest, Where } from 'payload'
 import { APIError } from 'payload'
 import { idOf } from '../lib/ids'
+import { loadPlatformSettings, staff2faRequiredNow } from '../lib/platformSettings'
 import { isSuperAdmin } from './roles'
 
 const CACHE_KEY = 'edvoraAccess'
@@ -36,8 +37,9 @@ type RoleDoc = { archived?: boolean | null; permissions?: string[] | null; secur
 
 const ids = (v: unknown): Id[] => (Array.isArray(v) ? v.map(idOf).filter((x): x is number => x !== null) : [])
 
+/** Staff 2FA rule: the platform policy (E-047, ADR 019) when set, else STAFF_2FA_REQUIRED. Warmed by getAccess. */
 export function staff2faRequired(): boolean {
-  return process.env.STAFF_2FA_REQUIRED === 'true'
+  return staff2faRequiredNow()
 }
 
 /** The current session id from Payload's sessions (`sid` in the JWT). */
@@ -105,7 +107,7 @@ async function load(req: PayloadRequest): Promise<AccessContext | null> {
     return { secondFactorVerified: await verified(), sessionStartedAt: started, now: new Date() }
   }
 
-  const memberships = await loadMembershipGrants(req, user.id, sessionFacts)
+  const [memberships] = await Promise.all([loadMembershipGrants(req, user.id, sessionFacts), loadPlatformSettings(req.payload)])
 
   const platform = isSuperAdmin(user)
   const isStaffUser = platform || memberships.some((m) => m.permissions.length > 0 || (m.withheld ?? []).some((w) => w.permissions.length > 0))

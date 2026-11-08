@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { ROLE_TEMPLATES } from '@edvora/core'
+import { FONT_DISPLAY, MESSAGE_EVENTS, PLAN_LIMITS, PLAN_LIMIT_LABELS, ROLE_TEMPLATES, SITE_TOGGLES, SOCIAL_PLATFORMS } from '@edvora/core'
 import { allow, asSystem, fieldAllow, nobody } from '../access/permissions'
 import { isSuperAdmin } from '../access/roles'
 import { gamificationSettingsField } from '../fields/gamification'
@@ -8,7 +8,7 @@ import { auditChange } from '../hooks/audit'
 import { richTextField, tenantSelf } from '../lib/richText'
 
 const platformOnly = ({ req }: { req: { user?: unknown } }) => isSuperAdmin(req.user as never)
-const settingsField = fieldAllow('settings.edit', (d) => d?.id)
+const templatesField = fieldAllow('templates.edit', (d) => d?.id)
 
 /** An academy on Edvora. Everything else belongs to exactly one tenant. */
 export const Tenants: CollectionConfig = {
@@ -120,6 +120,14 @@ export const Tenants: CollectionConfig = {
         { label: 'B2B accounts', value: 'b2b' },
       ],
     },
+    // E-047 (ADR 019): plan limits, platform only. Empty = no limit.
+    {
+      name: 'limits',
+      type: 'group',
+      label: { fa: 'سقف‌های طرح', en: 'Plan limits' },
+      access: { create: platformOnly, update: platformOnly },
+      fields: PLAN_LIMITS.map((k) => ({ name: k, type: 'number' as const, min: 0, label: { fa: PLAN_LIMIT_LABELS[k], en: k } })),
+    },
     {
       type: 'tabs',
       tabs: [
@@ -127,7 +135,18 @@ export const Tenants: CollectionConfig = {
           label: { fa: 'برند', en: 'Branding' },
           fields: [
             { name: 'tagline', type: 'text', label: { fa: 'شعار', en: 'Tagline' } },
-            { name: 'logo', type: 'upload', relationTo: 'media' },
+            { name: 'logo', type: 'upload', relationTo: 'media', label: { fa: 'لوگو (زمینهٔ روشن)', en: 'Logo (light)' } },
+            // E-047 (ADR 019): the rest of the identity set. Uploaded through the settings hub (type and size checked).
+            { name: 'logoDark', type: 'upload', relationTo: 'media', label: { fa: 'لوگو (زمینهٔ تیره)', en: 'Logo (dark)' } },
+            { name: 'favicon', type: 'upload', relationTo: 'media', label: { fa: 'نماد زبانه (favicon)', en: 'Favicon' } },
+            { name: 'ogImage', type: 'upload', relationTo: 'media', label: { fa: 'تصویر اشتراک‌گذاری (OG)', en: 'OG image' } },
+            {
+              name: 'fontDisplay',
+              type: 'select',
+              defaultValue: 'morabba',
+              label: { fa: 'قلم عنوان‌ها', en: 'Display font' },
+              options: FONT_DISPLAY.map((f) => ({ value: f.value, label: f.fa })),
+            },
             {
               name: 'primaryColor',
               type: 'text',
@@ -198,7 +217,61 @@ export const Tenants: CollectionConfig = {
                 { name: 'phone', type: 'text' },
                 { name: 'email', type: 'email' },
                 { name: 'address', type: 'text' },
+                {
+                  name: 'social',
+                  type: 'array',
+                  label: { fa: 'شبکه‌های اجتماعی', en: 'Social links' },
+                  maxRows: 12,
+                  fields: [
+                    { name: 'platform', type: 'select', required: true, options: SOCIAL_PLATFORMS.map((p) => ({ value: p.value, label: p.fa })) },
+                    {
+                      name: 'url',
+                      type: 'text',
+                      required: true,
+                      validate: (v: unknown) => (typeof v === 'string' && /^https:\/\//.test(v)) || 'https:// only',
+                    },
+                  ],
+                },
               ],
+            },
+            {
+              name: 'seo',
+              type: 'group',
+              label: { fa: 'پیش‌فرض‌های سئو', en: 'SEO defaults' },
+              fields: [
+                { name: 'titleSuffix', type: 'text', label: { fa: 'پسوند عنوان صفحه‌ها', en: 'Title suffix' } },
+                { name: 'description', type: 'textarea', label: { fa: 'توضیح پیش‌فرض', en: 'Default description' } },
+                { name: 'keywords', type: 'text', label: { fa: 'کلیدواژه‌ها', en: 'Keywords' } },
+                { name: 'noindex', type: 'checkbox', defaultValue: false, label: { fa: 'پنهان از موتورهای جست‌وجو', en: 'noindex' } },
+              ],
+            },
+            {
+              name: 'loginTexts',
+              type: 'group',
+              label: { fa: 'متن‌های صفحهٔ ورود', en: 'Login page texts' },
+              fields: [
+                { name: 'title', type: 'text' },
+                { name: 'subtitle', type: 'textarea' },
+                { name: 'help', type: 'text' },
+              ],
+            },
+            {
+              name: 'toggles',
+              type: 'group',
+              label: { fa: 'بخش‌های سایت', en: 'Site sections' },
+              fields: SITE_TOGGLES.map((t) => ({ name: t.key, type: 'checkbox' as const, defaultValue: true, label: { fa: t.fa, en: t.key } })),
+            },
+            {
+              name: 'legal',
+              type: 'group',
+              label: { fa: 'صفحه‌های حقوقی', en: 'Legal pages' },
+              fields: (['terms', 'privacy', 'refund'] as const).map((k) => ({
+                name: k,
+                type: 'relationship' as const,
+                relationTo: 'pages' as const,
+                // Only this academy's pages.
+                filterOptions: ({ id }: { id?: string | number }) => (id ? { tenant: { equals: id } } : false),
+              })),
             },
           ],
         },
@@ -218,10 +291,27 @@ export const Tenants: CollectionConfig = {
               validate: (v: unknown) => (typeof v === 'string' && /^[A-Z]{2,6}$/.test(v)) || '2–6 capital letters',
             },
             {
-              name: 'zarinpalMerchantId',
-              type: 'text',
-              access: { read: settingsField, update: settingsField },
-              admin: { description: "The academy's own gateway. Money goes straight to the academy." },
+              name: 'certificateSigner',
+              type: 'group',
+              label: { fa: 'امضاکنندهٔ گواهی', en: 'Certificate signer' },
+              fields: [
+                { name: 'name', type: 'text' },
+                { name: 'title', type: 'text' },
+                { name: 'signature', type: 'upload', relationTo: 'media' },
+              ],
+            },
+            {
+              name: 'messageTemplates',
+              type: 'array',
+              label: { fa: 'قالب‌های پیامک و ایمیل', en: 'Message templates' },
+              access: { read: templatesField, update: templatesField },
+              fields: [
+                { name: 'event', type: 'select', required: true, options: MESSAGE_EVENTS.map((e) => ({ value: e.key, label: e.fa })) },
+                { name: 'channel', type: 'select', required: true, options: [{ value: 'sms', label: 'SMS' }, { value: 'email', label: 'Email' }] },
+                { name: 'enabled', type: 'checkbox', defaultValue: false },
+                { name: 'subject', type: 'text' },
+                { name: 'body', type: 'textarea' },
+              ],
             },
           ],
         },

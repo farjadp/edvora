@@ -100,3 +100,47 @@ export function tenantPaletteCss(p: TenantPalette): string {
     `html:root[data-theme='dark']{--focus:${p.focusDark};--brand-text:${p.brandTextDark}}`
   )
 }
+
+/** The console's fixed surfaces (console-tokens.css: --c-bg, --c-surface, --c-sunken, --c-side). The tenant colour is the logo chip there. */
+export const CONSOLE_SURFACES = ['#f7f3e8', '#fdfbf5', '#efe9d9'] as const satisfies readonly Hex[]
+
+export type ColourCheck = { key: string; label: string; ratio: number; min: number; pass: boolean }
+
+const check = (key: string, label: string, ratio: number, min: number): ColourCheck => ({ key, label, ratio: Math.round(ratio * 100) / 100, min, pass: ratio >= min })
+const worst = (c: Hex, bgs: readonly Hex[]) => Math.min(...bgs.map((bg) => contrast(c, bg)))
+
+/**
+ * E-047 (ADR 019 §8): AA checks for an academy's two colours against the panel palettes. Dark-theme variants are
+ * derived by `tenantPalette` and always pass, so only the colours used as they are get checked:
+ *  - brand as text/links on the site's light surfaces (4.5:1),
+ *  - text on brand and accent fills (4.5:1, whichever ink reads better),
+ *  - the brand chip on the console surfaces (3:1, non-text).
+ */
+export function colourChecks(brand: Hex, accent: Hex): ColourCheck[] {
+  return [
+    check('brand-text', 'متن و پیوند به رنگ اصلی روی زمینهٔ روشن سایت', worst(brand, SURFACES.light), 4.5),
+    check('brand-ink', 'نوشته روی دکمه‌های رنگ اصلی', contrast(brand, readableInk(brand)), 4.5),
+    check('accent-ink', 'نوشته روی رنگ تأکیدی', contrast(accent, readableInk(accent)), 4.5),
+    check('brand-console', 'نشان آکادمی روی زمینهٔ پنل', worst(brand, CONSOLE_SURFACES), 3),
+  ]
+}
+
+/** The nearest shade of `brand` (darkened) that passes every brand check; `brand` itself when it passes. */
+export function suggestBrand(brand: Hex): Hex {
+  for (let step = 0; step <= 20; step++) {
+    const c = step === 0 ? brand : mix(brand, '#000000', step / 20)
+    if (colourChecks(c, '#000000').filter((x) => x.key !== 'accent-ink').every((x) => x.pass)) return c
+  }
+  return '#000000'
+}
+
+/** The nearest shade of `accent` whose fill keeps text readable. */
+export function suggestAccent(accent: Hex): Hex {
+  for (let step = 0; step <= 20; step++) {
+    for (const toward of ['#000000', '#ffffff'] as const) {
+      const c = step === 0 ? accent : mix(accent, toward, step / 20)
+      if (contrast(c, readableInk(c)) >= 4.5) return c
+    }
+  }
+  return '#000000'
+}
