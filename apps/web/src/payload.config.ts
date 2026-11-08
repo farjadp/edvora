@@ -18,6 +18,7 @@ import { Certificates } from './collections/Certificates'
 import { Cohorts } from './collections/Cohorts'
 import { OtpCodes, Pages, Posts, Testimonials } from './collections/Content'
 import { Coupons } from './collections/Coupons'
+import { DemoLeads, DemoSandboxes } from './collections/Demo'
 import { Courses } from './collections/Courses'
 import { Enrollments } from './collections/Enrollments'
 import { LearningEvents } from './collections/LearningEvents'
@@ -116,6 +117,9 @@ export default buildConfig({
     ImportJobs,
     ImportRefs,
     Redirects,
+    // E-029: platform-owned demo records (not tenant-owned, so not in multiTenantPlugin.collections).
+    DemoSandboxes,
+    DemoLeads,
     // E-046: AI assistant (ADR 018).
     ...AI_COLLECTIONS,
     // E-047: settings hub (ADR 019).
@@ -215,7 +219,8 @@ export default buildConfig({
         // E-047: an academy's own providers (sealed keys).
         'integration-settings': {},
       },
-      // No hard delete: academies are never removed, so never cascade-delete their records.
+      // No hard delete: academies are never removed, so never cascade-delete their records. The one exception,
+      // demo sandboxes (ADR 013), is purged explicitly by lib/sandbox/cleanup.ts, collection by collection.
       cleanupAfterTenantDelete: false,
       userHasAccessToAllTenants: (user) => isSuperAdmin(user),
       // Academy staff may set academies on users where they hold users.create / users.edit;

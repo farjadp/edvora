@@ -10,6 +10,7 @@ import { getPayloadClient } from './payload'
 import { academyProvider } from './settings'
 
 let sms: SmsProvider | undefined
+let mockSms: SmsProvider | undefined
 
 export function getSms(): SmsProvider {
   if (!sms) {
@@ -26,7 +27,11 @@ export function getSms(): SmsProvider {
 export async function getSmsFor(tenantId: number | null | undefined): Promise<{ sms: SmsProvider; otpTemplate: string }> {
   const fallback = { sms: getSms(), otpTemplate: env().KAVENEGAR_OTP_TEMPLATE }
   if (!tenantId) return fallback
-  const own = await academyProvider(await getPayloadClient(), tenantId, 'sms')
+  const payload = await getPayloadClient()
+  // E-029 (C8, ADR 013): a demo sandbox only ever gets the mock, whatever SMS_PROVIDER or its own settings say.
+  const t = await payload.findByID({ collection: 'tenants', id: tenantId, depth: 0, overrideAccess: true, disableErrors: true, select: { isSandbox: true } })
+  if (t?.isSandbox === true) return { sms: (mockSms ??= createSmsProvider({ provider: 'mock' })), otpTemplate: fallback.otpTemplate }
+  const own = await academyProvider(payload, tenantId, 'sms')
   if (!own || own.provider !== 'kavenegar') return fallback
   const sender = typeof own.config.sender === 'string' && own.config.sender ? own.config.sender : undefined
   const otp = typeof own.config.otpTemplate === 'string' && own.config.otpTemplate ? own.config.otpTemplate : fallback.otpTemplate
@@ -76,8 +81,12 @@ export function getStorage(): ObjectStorage {
   return storage
 }
 
-/** Notifications never break the main flow: failures are logged, not thrown. With `tenantId`, the academy's own SMS account is used when set. */
-export async function notify(to: string | null | undefined, text: string, tenantId?: number | null): Promise<void> {
+/**
+ * Notifications never break the main flow: failures are logged, not thrown. With `tenantId`, the academy's own SMS
+ * account is used when set. The academy argument is required (E-029): `null` only for platform messages, so a sandbox
+ * can never reach a real phone by a caller forgetting it.
+ */
+export async function notify(to: string | null | undefined, text: string, tenantId: number | null): Promise<void> {
   if (!to) return
   try {
     const { sms: provider } = await getSmsFor(tenantId)

@@ -1,6 +1,7 @@
 import { INTEGRATION_KINDS, INTEGRATION_LABELS, INTEGRATION_PROVIDERS } from '@edvora/core'
 import type { CollectionConfig } from 'payload'
 import { allow, nobody } from '../access/permissions'
+import { lockSandboxIntegrations } from '../access/sandbox'
 
 /**
  * E-047 (ADR 019 §5): an academy's own provider for one kind (SMS, email, live classes). The key is sealed
@@ -18,6 +19,8 @@ export const IntegrationSettings: CollectionConfig = {
     update: nobody,
     delete: nobody,
   },
+  // E-029: demo sandboxes only ever hold the mock (ADR 013).
+  hooks: { beforeValidate: [lockSandboxIntegrations] },
   indexes: [{ fields: ['tenant', 'kind'], unique: true }],
   fields: [
     {

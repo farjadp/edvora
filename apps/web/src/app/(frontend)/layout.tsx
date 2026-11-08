@@ -30,7 +30,8 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: tenant.name, template: `%s · ${suffix}` },
     description,
     keywords: tenant.seo?.keywords?.trim() || undefined,
-    robots: tenant.seo?.noindex ? { index: false, follow: false } : undefined,
+    // E-029: demo sandboxes are never indexed.
+    robots: tenant.isSandbox ? { index: false, follow: false, nocache: true } : tenant.seo?.noindex ? { index: false, follow: false } : undefined,
     icons: favicon ? { icon: favicon } : undefined,
     openGraph: { siteName: tenant.name, title: tenant.name, description, images: og ? [og] : undefined, locale: 'fa_IR', type: 'website' },
   }

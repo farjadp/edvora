@@ -1,5 +1,5 @@
 import 'server-only'
-import { activeMemberships, can, isPlatformAdmin, type AccessContext } from '@edvora/core'
+import { activeMemberships, can, isPlatformAdmin, sandboxIntegrationViolations, type AccessContext } from '@edvora/core'
 import {
   INTEGRATION_KINDS,
   MESSAGE_EVENTS,
@@ -344,6 +344,8 @@ export async function loadIntegrations(payload: Payload, tenantId: number): Prom
 
 /** The academy's own provider when it is on, keyed, allowed by the platform and opens; else null (use env). */
 export async function academyProvider(payload: Payload, tenantId: number, kind: IntegrationKind): Promise<{ provider: string; config: Record<string, unknown>; secret: string } | null> {
+  // E-029 (ADR 013): a demo sandbox never uses an academy-level provider (SMS, email, live), whatever is stored.
+  if (await isSandboxAcademy(payload, tenantId)) return null
   try {
     const platform = await loadPlatformSettings(payload)
     if (!academyOverrideAllowed(platform.academyProviders, kind)) return null
@@ -369,12 +371,21 @@ function connectionInput(kind: IntegrationKind, provider: string, config: Record
 /** Dev and CI may test against local servers (mailpit, a local BBB); production refuses internal addresses. */
 const connectionDeps = () => ({ allowPrivateHosts: process.env.NODE_ENV !== 'production' && process.env.SETTINGS_ALLOW_PRIVATE_HOSTS !== 'false' })
 
+/** E-029: demo sandboxes (flag read from the DB). */
+async function isSandboxAcademy(payload: Payload, tenantId: number): Promise<boolean> {
+  const t = await payload.findByID({ collection: 'tenants', id: tenantId, depth: 0, overrideAccess: true, disableErrors: true, select: { isSandbox: true } })
+  return t?.isSandbox === true
+}
+
 async function saveIntegration(a: SettingsActor, t: number, fd: FormData): Promise<SaveResult> {
   const kind = str(fd, 'kind')
   if (!(INTEGRATION_KINDS as readonly string[]).includes(kind)) return { ok: false, error: 'نوع سرویس نامعتبر است' }
   const k = kind as IntegrationKind
   const provider = str(fd, 'provider')
   if (!isKnownProvider(k, provider)) return { ok: false, error: 'سرویس‌دهندهٔ نامعتبر' }
+  // E-029 (ADR 013): a demo sandbox keeps the mock with nothing stored (403), and never tests a real connection.
+  const sandbox = await isSandboxAcademy(a.req.payload, t)
+  if (sandbox && provider !== 'mock') return { ok: false, error: 'forbidden' }
   const schema = integrationConfigSchema(k, provider)
   if (!schema) return { ok: false, error: 'سرویس‌دهندهٔ نامعتبر' }
   const cfgRaw = Object.fromEntries([...fd.keys()].filter((x) => x.startsWith('config.')).map((x) => [x.slice(7), str(fd, x)]))
@@ -384,6 +395,8 @@ async function saveIntegration(a: SettingsActor, t: number, fd: FormData): Promi
   const decision = decideSecret({ value: str(fd, 'secret'), clear: str(fd, 'secret.clear') === 'on' })
   const enabled = str(fd, 'enabled') === 'on'
   const intent = str(fd, 'intent') === 'test' ? 'test' : 'save'
+
+  if (sandbox && sandboxIntegrationViolations({ provider, secret: decision.action === 'set' ? decision.value : '', config }).length) return { ok: false, error: 'forbidden' }
 
   const existing = await rawIntegration(a.req.payload, t, k)
   const sealed = decision.action === 'set' ? sealSettingSecret(decision.value, { tenantId: t, kind: k }, serverKey()) : decision.action === 'clear' ? null : (existing?.secretSealed ?? null)
@@ -395,7 +408,8 @@ async function saveIntegration(a: SettingsActor, t: number, fd: FormData): Promi
     const secret = decision.action === 'set' ? decision.value : sealed ? (openSettingSecret(sealed, { tenantId: t, kind: k }, serverKey()) ?? '') : ''
     const input = connectionInput(k, provider, config, secret)
     let r: ConnectionResult = { ok: false, message: 'این سرویس آزمون اتصال ندارد' }
-    if (input) {
+    if (sandbox) r = { ok: true, message: 'آکادمی آزمایشی: فقط سرویس آزمایشی؛ اتصالی برقرار نمی‌شود' }
+    else if (input) {
       try {
         r = await checkConnection(input, connectionDeps())
       } catch {

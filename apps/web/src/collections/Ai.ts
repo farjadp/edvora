@@ -1,6 +1,7 @@
 import { AI_PROVIDERS } from '@edvora/integrations/ai'
 import type { CollectionConfig, FieldAccess } from 'payload'
 import { allow, allowCreate, anyOf, guard, nobody, ownRecords } from '../access/permissions'
+import { lockSandboxAiSecrets } from '../access/sandbox'
 import { auditChange } from '../hooks/audit'
 
 /**
@@ -26,6 +27,8 @@ export const AiSettings: CollectionConfig = {
   indexes: [{ fields: ['tenant'], unique: true }],
   access: { read: allow('ai.manage'), create: allowCreate('ai.manage'), update: allow('ai.manage'), delete: nobody },
   hooks: {
+    // E-029: demo sandboxes only use the mock provider (ADR 013).
+    beforeValidate: [lockSandboxAiSecrets],
     beforeChange: [guard({ create: ['ai.manage'], update: ['ai.manage'] })],
     afterChange: [auditChange('ai-settings')],
   },
