@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { allow, allowCreate, anyone, fieldAllow, guard, nobody, requireForFields } from '../access/permissions'
+import { allow, allowCreate, anyOf, fieldAllow, guard, nobody, requireForFields } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
 import { richTextField } from '../lib/richText'
 import { sourceUrlField } from './fields'
@@ -19,8 +19,9 @@ export const Courses: CollectionConfig = {
   admin: {
     components: { beforeListTable: ['/components/admin/ListKpis#ListKpis'] }, useAsTitle: 'title', defaultColumns: ['title', 'kind', 'price', 'status'], group: { fa: 'آموزش', en: 'Learning' } },
   access: {
-    // Public pages query through the server with explicit tenant + status filters.
-    read: anyone,
+    // ACC-04: the public API shows published courses only; drafts only to staff of that academy (and course scope).
+    // Public pages query through the server with explicit tenant + status filters (lib/queries.ts).
+    read: anyOf(() => ({ status: { equals: 'published' } }), allow('courses.view', { course: 'id' }), allow('courses.edit', { course: 'id' })),
     create: allowCreate('courses.edit'),
     update: allow('courses.edit', { course: 'id' }),
     delete: nobody,
