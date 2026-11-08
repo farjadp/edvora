@@ -19,6 +19,8 @@ import { startAttempt, submitAttempt } from '../lib/quizAttempts'
 import config from '../payload.config'
 import type { Answers } from '@edvora/core'
 import { sealConnectionSecret } from '../lib/wpimport/secrets'
+import { tronHexToBase58 } from '@edvora/integrations'
+import { createHash } from 'node:crypto'
 
 async function upsert<T extends Record<string, unknown>>(payload: Payload, collection: CollectionSlug, where: Where, data: T) {
   const found = await payload.find({ collection, where, limit: 1, depth: 0, overrideAccess: true })
@@ -285,6 +287,7 @@ async function seedDemo(payload: Payload) {
     lessonIds.push(lesson.id)
   }
   await seedDemoQuizAndAssignment(payload, t, course.id, lessonIds[1]!)
+  await seedDemoPaymentMethods(payload, t)
   await upsert(payload, 'coupons', { and: [{ tenant: { equals: t } }, { code: { equals: 'TEST20' } }] }, {
     tenant: t, code: 'TEST20', kind: 'percent', value: 20, active: true, note: 'Test coupon',
   })
@@ -370,6 +373,48 @@ async function seedDemoQuizAndAssignment(payload: Payload, t: number, courseId: 
  * Demo-only people for E-026: an instructor (grades in /admin, no password login — the e2e grades through the local
  * API as this user) and an enrolled student for screenshots. Fake numbers; login is phone OTP with the mock SMS code.
  */
+/**
+ * E-045 (ADR 017): every method on the demo academy, all against mocks (PAYMENT_PROVIDER=mock, CHAIN_VERIFIER=mock).
+ * Card number and wallets are fake test values nobody holds (card BIN 9999 is not an Iranian bank; wallets are
+ * hashes with no private key). Tether is OFF by default for real academies; it is on here only as test data.
+ */
+async function seedDemoPaymentMethods(payload: Payload, t: number) {
+  const fake = (label: string) => createHash('sha256').update(`edvora-demo-${label}`).digest('hex').slice(0, 40)
+  const rows: Record<string, unknown>[] = [
+    { method: 'zarinpal', enabled: true, position: 10, title: 'درگاه زرین‌پال (آزمایشی)', mode: 'sandbox' },
+    { method: 'saman', enabled: true, position: 20, title: 'درگاه بانک سامان (آزمایشی)', mode: 'sandbox' },
+    { method: 'mellat', enabled: false, position: 25, title: 'درگاه بانک ملت', mode: 'sandbox' },
+    { method: 'zibal', enabled: false, position: 30, title: 'زیبال', mode: 'sandbox' },
+    {
+      method: 'card',
+      enabled: true,
+      position: 40,
+      title: 'کارت‌به‌کارت',
+      instructions: 'آزمایشی: این شمارهٔ کارت ساختگی است و پولی واریز نکنید.',
+      cards: [{ number: '9999990000000006', holder: 'آکادمی نمونه (آزمایشی)', bank: 'بانک آزمایشی' }],
+    },
+    {
+      method: 'usdt',
+      enabled: true,
+      position: 50,
+      title: 'تتر (USDT) — آزمایشی',
+      mode: 'sandbox',
+      instructions: 'آزمایشی: آدرس‌ها ساختگی‌اند و کلید خصوصی ندارند. تتر واقعی نفرستید.',
+      usdtLegalAck: true,
+      // TODO(client): a test rate only. Each academy sets its own rate by hand.
+      usdtRateToman: 100_000,
+      wallets: [
+        { network: 'trc20', address: tronHexToBase58(`41${fake('trc20')}`) },
+        { network: 'bep20', address: `0x${fake('bep20')}` },
+      ],
+    },
+    { method: 'manual', enabled: true, position: 90, title: 'ثبت دستی', manualChannels: ['cash', 'pos', 'transfer'] },
+  ]
+  for (const row of rows) {
+    await upsert(payload, 'payment-methods', { and: [{ tenant: { equals: t } }, { method: { equals: row.method as string } }] }, { tenant: t, ...row })
+  }
+}
+
 async function seedDemoPeople(payload: Payload, t: number) {
   const course = (await payload.find({ collection: 'courses', where: { and: [{ tenant: { equals: t } }, { slug: { equals: 'demo-program' } }] }, limit: 1, overrideAccess: true })).docs[0]
   const role = (await payload.find({ collection: 'roles', where: { and: [{ tenant: { equals: t } }, { key: { equals: 'instructor' } }] }, limit: 1, overrideAccess: true })).docs[0]
