@@ -11,6 +11,8 @@
     "./previewGate": "./src/previewGate.ts",
     "./money": "./src/money.ts",
     "./staff": "./src/staff.ts",
+    "./role-settings": "./src/roleSettings.ts",
+    "./permissions": "./src/permissions.ts",
     "./login": "./src/login.ts",
     "./phone": "./src/phone.ts",
     "./quiz": "./src/quiz.ts",

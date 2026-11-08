@@ -1,13 +1,13 @@
 import { meets } from '@edvora/core/staff'
 import type { StaffSession } from '../../../lib/staff'
-import { PERIOD_DAYS, fa, getOverview, staffAccess, staffCtx } from '../../../lib/consoleData'
+import { PERIOD_DAYS, applyWidgets, fa, getOverview, staffAccess, staffCtx } from '../../../lib/consoleData'
 import type { PayloadRequest } from 'payload'
 import type { User } from '../../../payload-types'
 import { DeskPage, OverviewPanels, PageHeader, consoleBtn } from '../Desk'
 
 export async function OverviewDesk({ s }: { s: StaffSession & { user: User; req: PayloadRequest } }) {
   const access = staffAccess(s)
-  const data = await getOverview(staffCtx(s), access)
+  const data = applyWidgets(await getOverview(staffCtx(s), access), s.experience)
   const setup = meets(s, { any: ['settings.edit', 'roles.manage'] })
   return (
     <DeskPage desk="overview">

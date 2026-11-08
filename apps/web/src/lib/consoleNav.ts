@@ -1,3 +1,4 @@
+import { sectionShown } from '@edvora/core/role-settings'
 import { deskDef, meets, type DeskKey, type Requirement, type StaffPerms } from '@edvora/core/staff'
 import type { ConsoleIconName, ShellNavGroup } from '@edvora/ui/console'
 
@@ -10,6 +11,8 @@ import type { ConsoleIconName, ShellNavGroup } from '@edvora/ui/console'
  *  - /admin: shown when Payload's `permissions.collections[slug].read` is true AND `read` holds for the person's
  *    memberships, so nobody gets a link to a list of nothing but their own purchases.
  * Both filters are cosmetic: access rules in the collections still decide what a request may do.
+ *  - E-039 (ADR 016): a role may also hide whole groups (`experience.menuSections`, keys = group keys below). The
+ *    person's own security / account link always stays.
  */
 type Mod = {
   key: string
@@ -21,6 +24,8 @@ type Mod = {
   desk?: DeskKey
   /** Staff read rule of the collection (see above). Required whenever `slug` is set. */
   read?: Requirement
+  /** A custom staff page (not a desk) that both consoles link to instead of the Payload list, e.g. /staff/import. */
+  page?: string
 }
 type Group = { key: string; label: string; items: Mod[] }
 
@@ -56,6 +61,8 @@ export const CONSOLE_GROUPS: Group[] = [
       { key: 'assignments', label: 'تکالیف', icon: 'assignment', slug: 'assignments', read: any('assignments.manage', 'submissions.grade', 'courses.view') },
       { key: 'submissions', label: 'تحویل تکالیف و نمره‌دهی', icon: 'grading', slug: 'submissions', desk: 'teaching', read: any('submissions.grade') },
       { key: 'quiz-attempts', label: 'نتایج آزمون‌ها', icon: 'chart', slug: 'quiz-attempts', read: any('enrollments.view', 'quizzes.manage') },
+      { key: 'live-sessions', label: 'کلاس‌های زنده', icon: 'live', slug: 'live-sessions', read: any('live.host', 'cohorts.manage', 'enrollments.view') },
+      { key: 'attendance', label: 'حضور و غیاب', icon: 'check', slug: 'attendance', read: any('live.host', 'enrollments.view') },
     ],
   },
   {
@@ -74,6 +81,8 @@ export const CONSOLE_GROUPS: Group[] = [
     items: [
       { key: 'posts', label: 'مجله', icon: 'post', slug: 'posts', desk: 'content', read: any('content.edit', 'content.publish') },
       { key: 'testimonials', label: 'روایت دانش‌آموختگان', icon: 'star', slug: 'testimonials', read: any('content.edit', 'content.publish') },
+      { key: 'pages', label: 'صفحه‌ها', icon: 'site', slug: 'pages', read: any('content.edit') },
+      { key: 'redirects', label: 'تغییر مسیر نشانی‌ها', icon: 'external', slug: 'redirects', read: any('content.edit') },
       { key: 'media', label: 'رسانه', icon: 'media', slug: 'media', read: any('media.upload', 'content.edit') },
     ],
   },
@@ -85,6 +94,7 @@ export const CONSOLE_GROUPS: Group[] = [
       { key: 'roles', label: 'نقش‌ها', icon: 'roles', slug: 'roles', read: any('roles.view', 'roles.assign', 'roles.manage') },
       { key: 'memberships', label: 'عضویت‌ها و دسترسی‌ها', icon: 'membership', slug: 'memberships', read: any('roles.view', 'roles.assign', 'users.view') },
       { key: 'audit-logs', label: 'گزارش ممیزی', icon: 'audit', slug: 'audit-logs', read: any('audit.view') },
+      { key: 'import', label: 'انتقال از وردپرس', icon: 'download', slug: 'import-jobs', read: any('import.view'), page: '/staff/import' },
     ],
   },
 ]
@@ -95,12 +105,14 @@ const adminHref = (m: Mod) => (m.slug ? `/admin/collections/${m.slug}` : '/admin
 export function staffConsoleNav(who: StaffPerms): ShellNavGroup[] {
   const groups: ShellNavGroup[] = []
   for (const g of CONSOLE_GROUPS) {
+    if (!sectionShown(who.experience, g.key)) continue
     const items = g.items
       .filter((m) => (m.desk ? meets(who, deskDef(m.desk).access) : m.read ? meets(who, m.read) : false))
-      .map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.desk ? deskDef(m.desk).href : adminHref(m), external: !m.desk }))
+      .map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.desk ? deskDef(m.desk).href : (m.page ?? adminHref(m)), external: !m.desk && !m.page }))
     if (g.key === 'settings') items.push({ key: 'security', label: 'امنیت حساب', icon: 'shield', href: '/staff/security', external: false })
     if (items.length) groups.push({ key: g.key, label: g.label, items })
   }
+  if (!sectionShown(who.experience, 'settings')) groups.push({ key: 'account', label: 'حساب', items: [{ key: 'security', label: 'امنیت حساب', icon: 'shield', href: '/staff/security', external: false }] })
   return groups
 }
 
@@ -108,9 +120,10 @@ export function staffConsoleNav(who: StaffPerms): ShellNavGroup[] {
 export function adminConsoleNav(canRead: (slug: string) => boolean, who: StaffPerms): ShellNavGroup[] {
   const groups: ShellNavGroup[] = []
   for (const g of CONSOLE_GROUPS) {
+    if (!sectionShown(who.experience, g.key)) continue
     const items = g.items
       .filter((m) => Boolean(m.slug && m.read && canRead(m.slug) && meets(who, m.read)))
-      .map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: adminHref(m), external: false }))
+      .map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.page ?? adminHref(m), external: Boolean(m.page) }))
     if (g.key === 'dashboard') {
       items.unshift({ key: 'overview', label: 'داشبورد', icon: 'dashboard', href: '/admin', external: false })
       items.push({ key: 'desk', label: 'میز کار کارکنان', icon: 'desk', href: '/staff', external: true })
@@ -118,6 +131,7 @@ export function adminConsoleNav(canRead: (slug: string) => boolean, who: StaffPe
     if (g.key === 'settings') items.push({ key: 'account', label: 'حساب من و امنیت', icon: 'shield', href: '/admin/account', external: false })
     if (items.length) groups.push({ key: g.key, label: g.label, items })
   }
+  if (!sectionShown(who.experience, 'settings')) groups.push({ key: 'account', label: 'حساب', items: [{ key: 'account', label: 'حساب من و امنیت', icon: 'shield', href: '/admin/account', external: false }] })
   return groups
 }
 

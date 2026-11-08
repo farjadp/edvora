@@ -23,6 +23,8 @@ import { ParagraphFeatureClient as ParagraphFeatureClient_e70f5e05f09f93e00b997e
 import { WatchTenantCollection as WatchTenantCollection_1d0591e3cf4f332c83a86da13a0de59a } from '@payloadcms/plugin-multi-tenant/client'
 import { TwoFactorResetField as TwoFactorResetField_db7764e7e1b585d804f2cca0f396cf06 } from '../../../components/admin/TwoFactorResetField'
 import { TenantField as TenantField_1d0591e3cf4f332c83a86da13a0de59a } from '@payloadcms/plugin-multi-tenant/client'
+import { PermissionsField as PermissionsField_b4881af166daa9a68b872c3255a65460 } from '../../../components/admin/PermissionsField'
+import { RolesCompareLink as RolesCompareLink_717cb23881381d87be951b95a1f9ab2f } from '../../../components/admin/RolesCompareLink'
 import { AssignTenantFieldTrigger as AssignTenantFieldTrigger_1d0591e3cf4f332c83a86da13a0de59a } from '@payloadcms/plugin-multi-tenant/client'
 import { ListKpis as ListKpis_7c81f9263c65eadb96fd80525db7e6fd } from '../../../components/admin/ListKpis'
 import { Nav as Nav_231477f0faa4368be46fd47ffb9da4d9 } from '../../../components/admin/AdminNav'
@@ -34,6 +36,7 @@ import { DashboardHome as DashboardHome_84cd845a8766cfd3c2cceae49d5dee3d } from 
 import { BeforeLogin as BeforeLogin_f54936618bb42a105f1e4f7049b2245f } from '../../../components/admin/LoginSkin'
 import { TenantSelector as TenantSelector_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 import { TenantSelectionProvider as TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
+import { RolesCompare as RolesCompare_59ca701930e825a6e9ab59882212054f } from '../../../components/admin/RolesCompare'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
@@ -64,6 +67,8 @@ export const importMap = {
   "@payloadcms/plugin-multi-tenant/client#WatchTenantCollection": WatchTenantCollection_1d0591e3cf4f332c83a86da13a0de59a,
   "/components/admin/TwoFactorResetField#TwoFactorResetField": TwoFactorResetField_db7764e7e1b585d804f2cca0f396cf06,
   "@payloadcms/plugin-multi-tenant/client#TenantField": TenantField_1d0591e3cf4f332c83a86da13a0de59a,
+  "/components/admin/PermissionsField#PermissionsField": PermissionsField_b4881af166daa9a68b872c3255a65460,
+  "/components/admin/RolesCompareLink#RolesCompareLink": RolesCompareLink_717cb23881381d87be951b95a1f9ab2f,
   "@payloadcms/plugin-multi-tenant/client#AssignTenantFieldTrigger": AssignTenantFieldTrigger_1d0591e3cf4f332c83a86da13a0de59a,
   "/components/admin/ListKpis#ListKpis": ListKpis_7c81f9263c65eadb96fd80525db7e6fd,
   "/components/admin/AdminNav#Nav": Nav_231477f0faa4368be46fd47ffb9da4d9,
@@ -75,6 +80,7 @@ export const importMap = {
   "/components/admin/LoginSkin#BeforeLogin": BeforeLogin_f54936618bb42a105f1e4f7049b2245f,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelector": TenantSelector_d6d5f193a167989e2ee7d14202901e62,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelectionProvider": TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62,
+  "/components/admin/RolesCompare#RolesCompare": RolesCompare_59ca701930e825a6e9ab59882212054f,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24
 }

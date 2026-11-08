@@ -19,6 +19,9 @@ const LOCKED = 'ورود موقتاً بسته شده است. چند دقیقه 
 const NOTICES = {
   expired: 'نشست شما تمام شده است. دوباره وارد شوید.',
   out: 'از حساب خارج شدید.',
+  // E-039 (ADR 016)
+  session: 'مدت مجاز نشست برای نقش شما تمام شده است. دوباره وارد شوید.',
+  hours: 'نقش شما فقط در ساعت‌های تعیین‌شده کار می‌کند. در آن ساعت‌ها وارد شوید.',
 } as const
 export type StaffLoginNotice = keyof typeof NOTICES
 

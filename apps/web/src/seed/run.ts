@@ -586,7 +586,10 @@ async function seedDemoImportConnection(payload: Payload, t: number) {
   else await payload.create({ collection: 'import-connections', data, overrideAccess: true })
 }
 
-/** Role templates (ADR 006 §4) for one academy. Re-running resets the templates to the code definition. */
+/**
+ * Role templates (ADR 006 §4, E-039 ADR 016) for one academy. Re-running resets the templates' permissions and
+ * landing page to the code definition; security rules are left as the academy set them (none by default).
+ */
 async function seedRoleTemplates(payload: Payload, tenantId: number) {
   for (const t of ROLE_TEMPLATES) {
     await upsert(payload, 'roles', { and: [{ tenant: { equals: tenantId } }, { key: { equals: t.key } }] }, {
@@ -596,6 +599,7 @@ async function seedRoleTemplates(payload: Payload, tenantId: number) {
       name: t.name.fa,
       description: t.description,
       permissions: [...t.permissions],
+      experience: { landing: t.experience?.landing ?? 'auto' },
       archived: false,
     })
   }
