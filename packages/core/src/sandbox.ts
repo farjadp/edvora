@@ -365,3 +365,17 @@ export function sandboxAiSettingsViolations(data: Record<string, unknown>): stri
   if (typeof data.provider === 'string' && data.provider !== 'mock') out.push('provider')
   return out
 }
+
+/**
+ * Settings-hub integrations (E-047: SMS, email, live classes) a demo sandbox may never save: any provider but the mock,
+ * any secret (typed or already sealed), or any provider config (SMTP host, sender line, BBB URL…). Empty = allowed.
+ */
+export function sandboxIntegrationViolations(input: { provider?: unknown; secret?: unknown; secretSealed?: unknown; config?: unknown }): string[] {
+  const out: string[] = []
+  if (input.provider !== undefined && input.provider !== null && input.provider !== 'mock') out.push('provider')
+  if (filled(input.secret)) out.push('secret')
+  if (filled(input.secretSealed)) out.push('secretSealed')
+  const cfg = input.config && typeof input.config === 'object' ? Object.values(input.config as Record<string, unknown>) : []
+  if (cfg.some(filled)) out.push('config')
+  return out
+}

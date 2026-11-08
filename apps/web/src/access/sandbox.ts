@@ -2,7 +2,7 @@
  * Sandbox guards shared by collections (E-029, ADR 013). A sandbox is a tenant with `isSandbox = true`; its
  * accounts carry `users.sandboxTenant`. Flags are read from the DB (never from a token) and cached per request.
  */
-import { PAYMENT_METHODS, clampMembershipExpiry, isPlatformHost, sandboxAiSettingsViolations, sandboxPaymentMethodViolations, parseSandboxConfig, sandboxState, toPersianDigits, verifySandboxSelector, type SandboxConfig } from '@edvora/core'
+import { PAYMENT_METHODS, clampMembershipExpiry, isPlatformHost, sandboxAiSettingsViolations, sandboxIntegrationViolations, sandboxPaymentMethodViolations, parseSandboxConfig, sandboxState, toPersianDigits, verifySandboxSelector, type SandboxConfig } from '@edvora/core'
 import type { Access, CollectionBeforeChangeHook, CollectionBeforeOperationHook, CollectionBeforeValidateHook, PayloadRequest, Where } from 'payload'
 import { APIError, parseCookies } from 'payload'
 import { idOf } from '../lib/ids'
@@ -73,7 +73,8 @@ export async function assertSandboxLogin(req: PayloadRequest, user: unknown): Pr
 // ---------------------------------------------------------------- tenants: platform settings are off limits
 
 /** Fields a sandbox account may never write (S4): routing, plan, modules, gateway, and the sandbox flags. */
-export const SANDBOX_LOCKED_TENANT_FIELDS = ['slug', 'domains', 'plan', 'features', 'zarinpalMerchantId', 'isSandbox', 'expiresAt', 'purgeAt'] as const
+// E-047 moved the gateway merchant id into payment-methods (locked there) and added platform `limits`.
+export const SANDBOX_LOCKED_TENANT_FIELDS = ['slug', 'domains', 'plan', 'features', 'limits', 'zarinpalMerchantId', 'isSandbox', 'expiresAt', 'purgeAt'] as const
 
 /**
  * beforeOperation on tenants: a sandbox account touching a locked field gets a real 403 (field access alone would
@@ -168,5 +169,19 @@ export const lockSandboxAiSecrets: CollectionBeforeValidateHook = async ({ data,
   if (!flags?.isSandbox) return data
   const bad = sandboxAiSettingsViolations(data as Record<string, unknown>)
   if (bad.length) throw new APIError(`در آکادمی آزمایشی دستیار فقط با ارائه‌دهندهٔ آزمایشی کار می‌کند (${bad.join(', ')}).`, 403)
+  return data
+}
+
+/**
+ * integration-settings (E-047): a sandbox only has the mock, with no secret and no provider config. Also guards server
+ * code (the settings hub writes with overrideAccess); the hub checks first and answers 403.
+ */
+export const lockSandboxIntegrations: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
+  if (!data) return data
+  const flags = await tenantFlags(req, idOf(data.tenant ?? originalDoc?.tenant))
+  if (!flags?.isSandbox) return data
+  const d = data as Record<string, unknown>
+  const bad = sandboxIntegrationViolations({ provider: d.provider, secretSealed: d.secretSealed, config: d.config })
+  if (bad.length) throw new APIError(`در آکادمی آزمایشی فقط سرویس آزمایشی فعال است (${bad.join(', ')}).`, 403)
   return data
 }

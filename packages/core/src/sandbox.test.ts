@@ -11,6 +11,7 @@ import {
   leadingZeroBits,
   mockGatewayAllowed,
   sandboxAiSettingsViolations,
+  sandboxIntegrationViolations,
   sandboxPaymentMethodViolations,
   parseSandboxConfig,
   remainingMs,
@@ -337,5 +338,19 @@ describe('sandbox secrets locks (payments, AI)', () => {
     expect(sandboxAiSettingsViolations({ apiKeySealed: 'v1.x', apiKeyHint: 'sk-…abcd' })).toEqual(['apiKeySealed', 'apiKeyHint'])
     expect(sandboxAiSettingsViolations({ baseUrl: 'https://api.example.com/v1' })).toEqual(['baseUrl'])
     expect(sandboxAiSettingsViolations({ apiKeySealed: null, apiKeyHint: null })).toEqual([])
+  })
+})
+
+describe('sandbox integrations lock (E-047 settings hub)', () => {
+  it('mock provider with nothing stored is the only allowed shape', () => {
+    expect(sandboxIntegrationViolations({ provider: 'mock', config: {} })).toEqual([])
+    expect(sandboxIntegrationViolations({ provider: 'mock', config: { sender: '' }, secret: '' })).toEqual([])
+  })
+  it('real providers, secrets and config are refused', () => {
+    expect(sandboxIntegrationViolations({ provider: 'kavenegar' })).toEqual(['provider'])
+    expect(sandboxIntegrationViolations({ provider: 'smtp', config: { host: 'smtp.example.com', port: '587' }, secret: 'pw' })).toEqual(['provider', 'secret', 'config'])
+    expect(sandboxIntegrationViolations({ provider: 'bigbluebutton', config: { url: 'https://bbb.example.com/bigbluebutton/' } })).toEqual(['provider', 'config'])
+    expect(sandboxIntegrationViolations({ provider: 'mock', secretSealed: 'v1.x' })).toEqual(['secretSealed'])
+    expect(sandboxIntegrationViolations({ provider: 'mock', config: { sender: '10004346' } })).toEqual(['config'])
   })
 })
