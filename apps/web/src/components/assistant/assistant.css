@@ -1,0 +1,146 @@
+/*
+ * E-046 · AI assistant panel. Plain CSS on the console tokens (packages/ui/src/console-tokens.css) because the same
+ * component runs in /staff (Tailwind) and /admin (no Tailwind). Logical properties only (RTL).
+ */
+.ai-launch {
+  position: fixed;
+  inset-block-end: 1.25rem;
+  inset-inline-end: 1.25rem;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 0.7rem;
+  padding-inline: 1rem 1.15rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--c-primary);
+  color: var(--c-primary-ink);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: var(--c-shadow);
+  cursor: pointer;
+}
+.ai-launch:hover { filter: brightness(1.08); }
+.ai-launch:focus-visible, .ai-btn:focus-visible, .ai-input:focus-visible, .ai-link:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 2px; }
+.ai-launch svg { inline-size: 1.15rem; block-size: 1.15rem; }
+
+.ai-drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 70;
+  inline-size: min(28rem, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--c-surface);
+  color: var(--c-ink);
+  border-inline-start: 1px solid var(--c-line);
+  box-shadow: var(--c-shadow);
+}
+.ai-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-block-end: 1px solid var(--c-line);
+}
+.ai-head h2 { margin: 0; font-size: 1.05rem; font-weight: 800; flex: 1; min-inline-size: 0; }
+.ai-head .ai-btn { white-space: nowrap; padding-inline: 0.6rem; }
+.ai-head .ai-sub { display: block; font-size: 0.78rem; font-weight: 400; color: var(--c-muted); }
+
+.ai-page {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 32rem;
+  block-size: calc(100dvh - 12rem);
+  background: var(--c-surface);
+  color: var(--c-ink);
+  border: 1px solid var(--c-line);
+  border-radius: 0.9rem;
+  overflow: hidden;
+}
+
+.ai-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.ai-empty { color: var(--c-muted); line-height: 2; font-size: 0.92rem; }
+.ai-empty ul { margin: 0.5rem 0 0; padding-inline-start: 1.1rem; }
+.ai-empty button { all: unset; cursor: pointer; color: var(--c-brand-text); text-decoration: underline; text-underline-offset: 3px; }
+
+.ai-msg { max-inline-size: 92%; line-height: 1.95; font-size: 0.95rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ai-msg--user {
+  align-self: flex-start;
+  background: var(--c-brand-wash);
+  border-radius: 0.9rem 0.9rem 0.9rem 0.25rem;
+  padding: 0.55rem 0.85rem;
+}
+.ai-msg--assistant { align-self: stretch; max-inline-size: 100%; }
+.ai-text { margin: 0; unicode-bidi: plaintext; }
+.ai-msg--user { unicode-bidi: plaintext; }
+.ai-msg--error { color: var(--c-danger); background: var(--c-danger-wash); border-radius: 0.6rem; padding: 0.5rem 0.75rem; }
+.ai-tools { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-block-end: 0.35rem; }
+.ai-chip { font-size: 0.75rem; color: var(--c-muted); background: var(--c-sunken); border-radius: 999px; padding: 0.1rem 0.6rem; }
+.ai-cursor::after { content: '▍'; animation: ai-blink 1s steps(2) infinite; color: var(--c-brand-text); }
+@keyframes ai-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ai-cursor::after { animation: none; } }
+
+.ai-sources { margin-block-start: 0.5rem; padding-block-start: 0.5rem; border-block-start: 1px dashed var(--c-line); font-size: 0.82rem; color: var(--c-muted); }
+.ai-sources ol { margin: 0.25rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.15rem; }
+.ai-sources b { color: var(--c-ink); font-weight: 700; }
+
+.ai-card {
+  border: 1px solid var(--c-line-strong);
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  margin-block-start: 0.6rem;
+  background: var(--c-bg);
+  white-space: pre-wrap;
+}
+.ai-card h3 { margin: 0 0 0.35rem; font-size: 0.85rem; font-weight: 800; color: var(--c-warn); }
+.ai-card--done h3 { color: var(--c-ok); }
+.ai-card--off h3 { color: var(--c-muted); }
+.ai-card p { margin: 0; font-size: 0.9rem; line-height: 1.9; }
+.ai-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-block-start: 0.6rem; }
+.ai-note { font-size: 0.8rem; color: var(--c-muted); }
+
+.ai-btn {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border-radius: 0.55rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--c-line-strong);
+  background: var(--c-surface);
+  color: var(--c-ink);
+  cursor: pointer;
+}
+.ai-btn--primary { background: var(--c-primary); color: var(--c-primary-ink); border-color: var(--c-primary); }
+.ai-btn--quiet { border-color: transparent; background: transparent; }
+.ai-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.ai-link { color: var(--c-brand-text); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+.ai-compose { border-block-start: 1px solid var(--c-line); padding: 0.75rem 1rem 0.85rem; display: grid; gap: 0.45rem; }
+.ai-compose form { display: flex; gap: 0.5rem; align-items: flex-end; }
+.ai-input {
+  flex: 1;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  resize: none;
+  min-block-size: 2.6rem;
+  max-block-size: 9rem;
+  border: 1px solid var(--c-line-strong);
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.7rem;
+  background: var(--c-surface);
+  color: var(--c-ink);
+}
+.ai-honest { font-size: 0.75rem; color: var(--c-muted); line-height: 1.8; margin: 0; }
+.ai-sr { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
