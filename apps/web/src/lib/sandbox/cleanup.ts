@@ -11,6 +11,8 @@ import { idOf } from '../ids'
  * refuses to run if one is missing.
  */
 const PURGE_ORDER: CollectionSlug[] = [
+  // E-047 (develop): the academy's own SMS / email / live provider rows.
+  'integration-settings',
   // E-046 (develop): AI assistant. Its vectors (raw `ai_chunks` table) go with the tenant (FK ON DELETE CASCADE).
   'ai-actions',
   'ai-messages',
