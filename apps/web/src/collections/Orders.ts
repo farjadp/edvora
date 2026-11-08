@@ -1,6 +1,10 @@
-import type { CollectionConfig } from 'payload'
-import { allow, allowCreate, anyOf, guard, nobody, ownRecords } from '../access/permissions'
+import { canChangeOrderStatusManually, lockedOrderChanges, priceOrder, type OrderStatus } from '@edvora/core'
+import type { CollectionBeforeChangeHook, CollectionBeforeValidateHook, CollectionConfig } from 'payload'
+import { APIError } from 'payload'
+import { allow, allowCreate, anyOf, canIn, guard, isSystemWrite, nobody, ownRecords } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
+import { CheckoutError, findCoupon, toCoreCoupon } from '../lib/coupons'
+import { idOf } from '../lib/ids'
 
 const STATUS = [
   { value: 'pending', label: { fa: 'در انتظار پرداخت', en: 'Pending' } },
@@ -13,6 +17,79 @@ const STATUS = [
 
 /** An order with its instalment schedule and every gateway attempt. All amounts in rials. */
 const SCOPE = { course: 'course', cohort: 'cohort' }
+
+const amount = (v: unknown): number => (typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : 0)
+
+/**
+ * ACC-02: an order created by a person (REST, admin) is priced here from the course/cohort and an academy coupon.
+ * Amounts, instalments and payments sent by the caller are replaced; a status other than pending is refused, and
+ * any discount needs `discount.give` and a valid coupon (its own limits apply). Server code (checkout, import,
+ * seed) runs without a user and is not touched. Runs before validation so the computed totals satisfy `required`.
+ */
+const priceOnCreate: CollectionBeforeValidateHook = async ({ data, req, operation }) => {
+  if (operation !== 'create' || !req.user || isSystemWrite(req) || !data) return data
+  if ((data.status ?? 'pending') !== 'pending') throw new APIError('A new order is always pending; only a payment marks it paid', 403)
+  if (Array.isArray(data.payments) && data.payments.length > 0) throw new APIError('Payments are recorded by the payment flow only', 403)
+  if ((data.source ?? 'site') !== 'site') throw new APIError('Only the WordPress import creates imported orders', 403)
+
+  const tenantId = idOf(data.tenant)
+  const courseId = idOf(data.course)
+  if (tenantId === null || courseId === null) return data // required-field validation answers this
+  const course = await req.payload.findByID({ collection: 'courses', id: courseId, depth: 0, overrideAccess: true, req, disableErrors: true })
+  if (!course || idOf(course.tenant) !== tenantId) throw new APIError('This course is not in this academy', 400)
+  let price: number | null | undefined = course.price
+  const cohortId = idOf(data.cohort)
+  if (cohortId !== null) {
+    const cohort = await req.payload.findByID({ collection: 'cohorts', id: cohortId, depth: 0, overrideAccess: true, req, disableErrors: true })
+    if (!cohort || idOf(cohort.course) !== courseId) throw new APIError('This cohort is not part of the course', 400)
+    price = cohort.priceOverride ?? course.price
+  }
+  if (typeof price !== 'number') throw new APIError('This course has no price yet', 400)
+
+  const code = typeof data.couponCode === 'string' ? data.couponCode.trim() : ''
+  if ((code || amount(data.discount) > 0) && !(await canIn(req, tenantId, 'discount.give'))) {
+    throw new APIError('Giving a discount needs discount.give', 403)
+  }
+  if (!code && amount(data.discount) > 0) throw new APIError('A discount comes from one of the academy’s coupon codes', 400)
+  let coupon = null
+  try {
+    coupon = await findCoupon(req.payload, tenantId, code, req)
+  } catch (e) {
+    if (e instanceof CheckoutError) throw new APIError(e.message, 400)
+    throw e
+  }
+
+  const priced = priceOrder({ price, coupon: toCoreCoupon(coupon), maxInstalments: course.maxInstalments, firstDueDate: new Date() })
+  return {
+    ...data,
+    subtotal: priced.subtotal,
+    discount: priced.discount,
+    total: priced.total,
+    couponCode: coupon?.code ?? null,
+    status: 'pending',
+    source: 'site',
+    instalments: priced.instalments.map((p) => ({ index: p.index, amount: p.amount, dueDate: p.dueDate.toISOString(), status: 'pending' })),
+    payments: [],
+  }
+}
+
+/**
+ * ACC-03: after creation, money fields change only through the payment flow (server code). A person may cancel an
+ * unpaid order; marking it paid by hand needs the manual-payment flow (record + approve by a second person,
+ * ADR 006), which is not built yet, so it is refused here.
+ */
+const lockMoney: CollectionBeforeChangeHook = async ({ data, originalDoc, req, operation }) => {
+  if (operation !== 'update' || !req.user || isSystemWrite(req) || !data || !originalDoc) return data
+  const locked = lockedOrderChanges(originalDoc, data)
+  if (locked.length > 0) throw new APIError(`${locked.join(', ')} change only through the payment flow`, 403)
+  if ('status' in data && data.status !== undefined) {
+    const from = (originalDoc.status ?? 'pending') as OrderStatus
+    if (!canChangeOrderStatusManually(from, data.status as OrderStatus)) {
+      throw new APIError('Paid and refunded come only from the payment flow (manual payments need a second person)', 403)
+    }
+  }
+  return data
+}
 
 export const Orders: CollectionConfig = {
   slug: 'orders',
@@ -27,7 +104,8 @@ export const Orders: CollectionConfig = {
     delete: nobody,
   },
   hooks: {
-    beforeChange: [guard({ create: ['orders.create_for_lead'], update: ['orders.edit'], fields: SCOPE })],
+    beforeValidate: [priceOnCreate],
+    beforeChange: [guard({ create: ['orders.create_for_lead'], update: ['orders.edit'], fields: SCOPE }), lockMoney],
     afterChange: [auditChange('orders')],
   },
   fields: [

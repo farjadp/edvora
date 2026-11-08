@@ -105,9 +105,9 @@ test.beforeAll(async ({ playwright }) => {
   ref.outCourse = out.id
   ref.lessonOut = (await findOrCreate('lessons', `where[course][equals]=${out.id}`, { tenant: ref.demo, course: out.id, title: 'جلسهٔ تست دسترسی', order: 1 })).id
   ref.demo2 = (await findOrCreate('tenants', 'where[slug][equals]=demo2', { name: 'آکادمی تست دوم', slug: 'demo2', domains: [{ domain: 'demo2.localhost' }] })).id
-  // The lead needs an owner inside demo2: an empty advisor defaults to the creator (the super admin, not in demo2).
-  const demo2Owner = await findOrCreate('users', 'where[email][equals]=e2e-access-demo2-owner@example.test', { email: 'e2e-access-demo2-owner@example.test', password: pw(), name: 'مالک سرنخ آکادمی دوم', tenants: [{ tenant: ref.demo2 }] })
-  ref.demo2Lead = (await findOrCreate('leads', `where[and][0][tenant][equals]=${ref.demo2}&where[and][1][phone][equals]=09129990299`, { tenant: ref.demo2, name: 'سرنخ آکادمی دوم (تست)', phone: '09129990299', status: 'new', advisor: demo2Owner.id })).id
+  // A lead's advisor must belong to its academy (and defaults to the creator), so demo2 gets its own advisor.
+  const demo2Advisor = await findOrCreate('users', 'where[email][equals]=e2e-access-demo2-advisor@example.test', { email: 'e2e-access-demo2-advisor@example.test', password: pw(), name: 'مشاور آکادمی دوم (تست)', tenants: [{ tenant: ref.demo2 }] })
+  ref.demo2Lead = (await findOrCreate('leads', `where[and][0][tenant][equals]=${ref.demo2}&where[and][1][phone][equals]=09129990299`, { tenant: ref.demo2, name: 'سرنخ آکادمی دوم (تست)', phone: '09129990299', status: 'new', advisor: demo2Advisor.id })).id
 
   // Archived role: assigned while active, archived afterwards (memberships cannot pick an archived role).
   const archivedRole = (await ok<{ doc: Doc }>(await admin.post('/api/roles', { data: { tenant: ref.demo, key: `e2e-archived-${suffix}`, name: 'نقش بایگانی تست', permissions: ['leads.view.all', 'orders.view', 'users.view'] } }), 'archived role')).doc.id
@@ -138,7 +138,8 @@ test.beforeAll(async ({ playwright }) => {
   for (const key of ['student', 'student-other'] as const) {
     const c = await createUser(key, { roles: ['student'], phone: phone(), nationalCode: '0000000000', internalNotes: 'یادداشت داخلی تست' })
     cast[key] = c
-    ref.orders[key] = (await ok<{ doc: Doc }>(await admin.post('/api/orders', { data: { tenant: ref.demo, user: c.id, course: ref.course, cohort: ref.cohort, subtotal: 10_000_000, total: 10_000_000, status: 'paid' } }), 'order')).doc.id
+    // ACC-02: the server prices the order and it starts pending (only the payment flow marks it paid).
+    ref.orders[key] = (await ok<{ doc: Doc }>(await admin.post('/api/orders', { data: { tenant: ref.demo, user: c.id, course: ref.course, cohort: ref.cohort } }), 'order')).doc.id
     ref.enrollments[key] = (await ok<{ doc: Doc }>(await admin.post('/api/enrollments', { data: { tenant: ref.demo, user: c.id, course: ref.course, cohort: ref.cohort, status: 'active' } }), 'enrollment')).doc.id
   }
   const lead = async (advisor: Key, name: string) => (await ok<{ doc: Doc }>(await admin.post('/api/leads', { data: { tenant: ref.demo, name, phone: phone(), course: ref.course, status: 'contacted', nextFollowUpAt: new Date(Date.now() + 86_400_000).toISOString(), advisor: cast[advisor].id } }), 'lead')).doc.id
@@ -282,13 +283,14 @@ test('escalation: nobody promotes themselves or grants more than they hold', asy
     expect(u.roles, `${k} roles`).not.toContain('super-admin')
     expect((u.tenants as { tenant: number }[]).map((t) => t.tenant), `${k} academies`).not.toContain(ref.demo2)
     expect([400, 403], `${k} own membership`).toContain((await api[k].post('/api/memberships', { data: { tenant: ref.demo, user: cast[k].id, roles: [ref.roles['academy-admin']], status: 'active' } })).status())
-    // 403 (own status) or 409 (last role manager of the academy, checked first) — both refuse.
+    // 409 when they are the academy's last role manager (checked first), else 403 for a self change: refused either way.
     expect([403, 409], `${k} own status`).toContain((await api[k].patch(`/api/users/${cast[k].id}`, { data: { status: 'archived' } })).status())
   }
   expect((await api.advisor.post('/api/roles', { data: { tenant: ref.demo, key: `e2e-x-${suffix}`, name: 'x', permissions: ['leads.view.all'] } })).status()).toBe(403)
   expect((await api['academy-admin'].post('/api/roles', { data: { tenant: ref.demo, key: `e2e-p-${suffix}`, name: 'x', permissions: ['tenants.manage'] } })).status()).toBe(400)
   const superId = (await docs(admin, '/api/users?where[roles][contains]=super-admin&limit=1&depth=0'))[0]!.id
-  expect((await api['academy-admin'].patch(`/api/users/${superId}`, { data: { name: 'x' } })).status()).toBe(403)
+  // ACC-05: the platform admin is not even visible inside the academy, so the edit finds nothing.
+  expect([403, 404]).toContain((await api['academy-admin'].patch(`/api/users/${superId}`, { data: { name: 'x' } })).status())
 
   // A role assigner with a narrow set can grant only what they hold.
   const assignerRole = (await ok<{ doc: Doc }>(await admin.post('/api/roles', { data: { tenant: ref.demo, key: `e2e-assigner-${suffix}`, name: 'واگذارکننده', permissions: ['roles.assign', 'roles.view', 'users.create', 'users.view', 'leads.view.own'] } }), 'assigner role')).doc.id
@@ -344,34 +346,72 @@ test('lifecycle: suspend, expiry, membership suspend, role archive and role chan
   await x.ctx.dispose()
 })
 
-// ------------------------------------------------------------------ 6. known bugs (docs/qa/bugs.md) — expected to fail
+// ------------------------------------------------------------------ 6. fixed bugs (docs/qa/bugs.md ACC-01…05)
 test('ACC-01: users cannot write their own staff-only fields (internalNotes, tags)', async () => {
-  test.fail(true, 'ACC-01 open: self-update writes internalNotes/tags')
-  await api.student.patch(`/api/users/${cast.student.id}`, { data: { internalNotes: 'self-edit', tags: ['vip'] } })
-  const u = await ok<Doc>(await admin.get(`/api/users/${cast.student.id}?depth=0`), 'reload')
-  expect(u.internalNotes).toBe('یادداشت داخلی تست')
-  expect(u.tags ?? []).not.toContain('vip')
+  for (const k of ['student', 'advisor', 'academy-admin'] as const) {
+    await api[k].patch(`/api/users/${cast[k].id}`, { data: { internalNotes: 'self-edit', tags: ['vip'], source: 'manual', statusReason: 'self', publicProfile: { showOnSite: true } } })
+    const u = await ok<Doc>(await admin.get(`/api/users/${cast[k].id}?depth=0`), 'reload')
+    expect(u.internalNotes ?? null, k).not.toBe('self-edit')
+    expect(u.tags ?? [], k).not.toContain('vip')
+    expect(u.statusReason ?? null, k).not.toBe('self')
+    expect((u.publicProfile as { showOnSite?: boolean } | undefined)?.showOnSite ?? false, k).toBe(false)
+  }
+  const s = await ok<Doc>(await admin.get(`/api/users/${cast.student.id}?depth=0`), 'reload student')
+  expect(s.internalNotes).toBe('یادداشت داخلی تست')
+  // Staff with users.edit can still write them for someone else.
+  await ok(await api['academy-admin'].patch(`/api/users/${cast['student-other'].id}`, { data: { tags: ['staff-tag'] } }), 'staff tags')
+  expect((await ok<Doc>(await admin.get(`/api/users/${cast['student-other'].id}?depth=0`), 'reload other')).tags).toContain('staff-tag')
 })
 
 test('ACC-02: an advisor cannot create an order that is already paid', async () => {
-  test.fail(true, 'ACC-02 open: orders.create_for_lead accepts status=paid, total=0')
   const res = await api.advisor.post('/api/orders', { data: { tenant: ref.demo, user: cast['student-other'].id, course: ref.outCourse, subtotal: 10_000_000, discount: 10_000_000, total: 0, status: 'paid' } })
   const doc = res.ok() ? ((await res.json()) as { doc: Doc }).doc : null
   if (doc) await admin.patch(`/api/orders/${doc.id}`, { data: { status: 'cancelled' } })
   expect(doc?.status ?? 'refused').not.toBe('paid')
+  // Amounts sent by the caller are ignored: the server prices from the course, and a discount needs a coupon.
+  const priced = await ok<{ doc: Doc }>(await api.advisor.post('/api/orders', { data: { tenant: ref.demo, user: cast['student-other'].id, course: ref.outCourse, subtotal: 1, total: 1 } }), 'advisor pending order')
+  expect(priced.doc).toMatchObject({ status: 'pending', subtotal: 10_000_000, discount: 0, total: 10_000_000 })
+  expect(((await api.advisor.post('/api/orders', { data: { tenant: ref.demo, user: cast['student-other'].id, course: ref.outCourse, discount: 5_000_000 } })).status())).toBe(400)
+  expect((await api.advisor.post('/api/orders', { data: { tenant: ref.demo, user: cast['student-other'].id, course: ref.outCourse, couponCode: 'NO-SUCH-CODE' } })).status()).toBe(400)
+  expect((await api.finance.post('/api/orders', { data: { tenant: ref.demo, user: cast['student-other'].id, course: ref.outCourse, couponCode: 'ANY' } })).status()).toBe(403)
+  await ok(await admin.patch(`/api/orders/${priced.doc.id}`, { data: { status: 'cancelled' } }), 'cancel priced order')
 })
 
 test('ACC-03: order status/total change only through the payment flow (four-eyes)', async () => {
-  test.fail(true, 'ACC-03 open: orders.edit can set status=paid and total directly')
   const o = (await ok<{ doc: Doc }>(await admin.post('/api/orders', { data: { tenant: ref.demo, user: cast['student-other'].id, course: ref.outCourse, subtotal: 10_000_000, total: 10_000_000, status: 'pending' } }), 'pending order')).doc.id
   const res = await api.finance.patch(`/api/orders/${o}`, { data: { status: 'paid', total: 1 } })
-  await admin.patch(`/api/orders/${o}`, { data: { status: 'cancelled', total: 10_000_000 } })
   expect(res.status()).toBe(403)
+  expect((await api.finance.patch(`/api/orders/${o}`, { data: { total: 1 } })).status()).toBe(403)
+  expect((await api['academy-admin'].patch(`/api/orders/${o}`, { data: { status: 'paid' } })).status()).toBe(403)
+  expect((await admin.patch(`/api/orders/${o}`, { data: { instalments: [] } })).status(), 'platform admin too').toBe(403)
+  const after = await ok<Doc>(await admin.get(`/api/orders/${o}?depth=0`), 'reload order')
+  expect(after).toMatchObject({ status: 'pending', total: 10_000_000 })
+  // Cancelling an unpaid order is still a normal edit.
+  await ok(await api.finance.patch(`/api/orders/${o}`, { data: { status: 'cancelled' } }), 'finance cancels')
+  expect((await api.finance.patch(`/api/orders/${o}`, { data: { status: 'pending' } })).status()).toBe(403)
 })
 
 test('ACC-04: anonymous REST cannot read draft courses or other academies’ drafts', async ({ request }) => {
-  test.fail(true, 'ACC-04 open: courses/lessons read = anyone')
   expect([403, 404]).toContain((await request.get(`${DEMO}/api/courses/${ref.outCourse}?depth=0`)).status())
+  const courses = ((await (await request.get(`${DEMO}/api/courses?limit=200&depth=0`)).json()) as { docs: Doc[] }).docs
+  expect(courses.length, 'published courses stay public').toBeGreaterThan(0)
+  expect(courses.filter((c) => c.status !== 'published')).toEqual([])
+  expect([403, 404]).toContain((await request.get(`${DEMO}/api/lessons/${ref.lessonOut}?depth=0`)).status())
+  const outline = ((await (await request.get(`${DEMO}/api/lessons?where[course][equals]=${ref.outCourse}&depth=0`)).json()) as { docs: Doc[] }).docs
+  expect(outline).toEqual([])
+  expect((await request.get(`${DEMO}/api/lessons/${ref.lessonIn}?depth=0`)).status(), 'lesson of a published course').toBe(200)
+  // Staff with courses.view still see the draft and its lessons.
+  expect((await api.finance.get(`/api/courses/${ref.outCourse}?depth=0`)).status()).toBe(200)
+  expect((await api['content-editor'].get(`/api/lessons/${ref.lessonOut}?depth=0`)).status()).toBe(200)
+  // The public course page still renders.
+  expect((await request.get(`${DEMO}/courses/demo-program`)).status()).toBe(200)
+})
+
+test('ACC-05: academy staff do not see the Edvora platform admin', async () => {
+  for (const k of ['advisor', 'finance', 'support', 'academy-admin'] as const) {
+    expect(await docs(api[k], '/api/users?where[roles][contains]=super-admin&limit=10&depth=0'), k).toEqual([])
+  }
+  expect((await docs(admin, '/api/users?where[roles][contains]=super-admin&limit=1&depth=0')).length, 'platform admin sees platform admins').toBeGreaterThan(0)
 })
 
 // ------------------------------------------------------------------ 7. UI
