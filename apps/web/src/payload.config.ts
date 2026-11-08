@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url'
 import { getAccess } from './access/permissions'
 import { isSuperAdmin } from './access/roles'
 import { tenantsWith } from '@edvora/core'
+import { AI_COLLECTIONS } from './collections/Ai'
 import { Assignments } from './collections/Assignments'
 import { AuditLogs } from './collections/AuditLogs'
 import { Certificates } from './collections/Certificates'
@@ -54,7 +55,7 @@ export default buildConfig({
     components: {
       graphics: { Logo: '/components/admin/LoginSkin#LoginLogo', Icon: '/components/admin/Brand#Icon' },
       Nav: '/components/admin/AdminNav#Nav',
-      actions: ['/components/admin/HeaderTools#HeaderTools'],
+      actions: ['/components/admin/HeaderTools#HeaderTools', '/components/admin/AssistantLauncher#AssistantLauncher'],
       beforeLogin: ['/components/admin/LoginSkin#BeforeLogin'],
       afterLogin: ['/components/admin/LoginSkin#AfterLogin'],
       beforeDashboard: ['/components/admin/DashboardHome#DashboardHome'],
@@ -103,6 +104,8 @@ export default buildConfig({
     ImportJobs,
     ImportRefs,
     Redirects,
+    // E-046: AI assistant (ADR 018).
+    ...AI_COLLECTIONS,
   ],
   // E-032: first use of the Payload jobs queue (ADR 011 §Resumability). Each import task works ≤ 20 s, then re-queues
   // itself with its cursor. One app process runs the queue (IMPORT_QUEUE_AUTORUN=false on the others).
@@ -124,6 +127,8 @@ export default buildConfig({
     // After changing a collection: pnpm --filter @edvora/web payload migrate:create <name>
     push: process.env.NODE_ENV !== 'production',
     prodMigrations: migrations,
+    // E-046: `ai_chunks` (pgvector) is created by its migration / ensureChunkStore, not by Payload; keep dev push off it.
+    tablesFilter: ['*', '!ai_chunks'],
   }),
   sharp,
   plugins: [
@@ -181,6 +186,13 @@ export default buildConfig({
         'import-jobs': {},
         'import-refs': {},
         redirects: {},
+        // E-046: AI assistant (ADR 018). Vectors live in the raw `ai_chunks` table (tenant_id on every row).
+        'ai-settings': {},
+        'ai-conversations': {},
+        'ai-messages': {},
+        'ai-documents': {},
+        'ai-memories': {},
+        'ai-actions': {},
       },
       // No hard delete: academies are never removed, so never cascade-delete their records.
       cleanupAfterTenantDelete: false,
