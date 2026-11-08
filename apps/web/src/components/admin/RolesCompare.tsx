@@ -1,4 +1,4 @@
-import { DASHBOARD_WIDGETS, LANDING_OPTIONS, MENU_SECTIONS, PERMISSION_DESCRIPTIONS, PERMISSION_GROUPS, PERMISSION_GROUP_LABELS, satisfies, type PermissionGroup } from '@edvora/core'
+import { DASHBOARD_WIDGETS, LANDING_OPTIONS, MENU_SECTIONS, PERMISSION_DESCRIPTIONS, PERMISSION_GROUPS, PERMISSION_GROUP_LABELS, ROLE_TEMPLATES, satisfies, type PermissionGroup } from '@edvora/core'
 import { toPersianDigits } from '@edvora/core/digits'
 import { DefaultTemplate } from '@payloadcms/next/templates'
 import type { AdminViewServerProps } from 'payload'
@@ -14,6 +14,18 @@ const labelOf = (list: readonly { value: string; fa: string }[], v: string) => l
 function listOf(values: readonly string[] | null | undefined, cat: readonly { value: string; fa: string }[], empty: string): string {
   const v = values ?? []
   return v.length === 0 ? empty : v.map((x) => labelOf(cat, x)).join('، ')
+}
+
+const landingOf = (v: string | null | undefined) => (!v || v === 'auto' ? 'خودکار' : labelOf(LANDING_OPTIONS, v))
+
+/** Built-in templates first (catalogue order), then custom roles by name; archived roles last. */
+function rank(r: Role): [number, number, string] {
+  const t = ROLE_TEMPLATES.findIndex((x) => x.key === r.template)
+  return [r.archived ? 1 : 0, t === -1 ? ROLE_TEMPLATES.length : t, r.name]
+}
+const byRank = (a: Role, b: Role) => {
+  const [x, y] = [rank(a), rank(b)]
+  return x[0] - y[0] || x[1] - y[1] || x[2].localeCompare(y[2], 'fa')
 }
 
 function hoursOf(r: Role): string {
@@ -46,7 +58,7 @@ export async function RolesCompare({ initPageResult, params, searchParams }: Adm
         payload.find({ collection: 'roles', where: { tenant: { equals: tenantId } }, sort: 'name', depth: 0, limit: 100, pagination: false, overrideAccess: false, user: req.user, req }),
         payload.findByID({ collection: 'tenants', id: tenantId, depth: 0, overrideAccess: false, user: req.user, req, disableErrors: true }),
       ])
-      roles = res.docs.sort((a, b) => Number(Boolean(a.archived)) - Number(Boolean(b.archived)))
+      roles = [...res.docs].sort(byRank)
       academy = tenant?.name ?? null
       if (!tenant) roles = []
     } catch (err) {
@@ -136,7 +148,7 @@ export async function RolesCompare({ initPageResult, params, searchParams }: Adm
                 <tr>
                   <th scope="row">صفحهٔ شروع</th>
                   {roles.map((r) => (
-                    <td key={r.id}>{labelOf(LANDING_OPTIONS, r.experience?.landing ?? 'auto')}</td>
+                    <td key={r.id}>{landingOf(r.experience?.landing)}</td>
                   ))}
                 </tr>
                 <tr>

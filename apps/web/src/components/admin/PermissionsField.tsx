@@ -90,9 +90,11 @@ export const PermissionsField: SelectFieldClientComponent = ({ path, readOnly, f
                 </span>
               </legend>
               {!disabled ? (
-                <button type="button" className="ed-perms__all" onClick={() => setGroup(g, !all)}>
-                  {all ? (fa ? 'برداشتن همه' : 'Clear all') : fa ? 'انتخاب همه' : 'Select all'}
-                </button>
+                <div className="ed-perms__bar">
+                  <button type="button" className="ed-perms__all" onClick={() => setGroup(g, !all)} aria-label={`${all ? (fa ? 'برداشتن همه' : 'Clear all') : fa ? 'انتخاب همه' : 'Select all'}: ${label}`}>
+                    {all ? (fa ? 'برداشتن همه' : 'Clear all') : fa ? 'انتخاب همه' : 'Select all'}
+                  </button>
+                </div>
               ) : null}
               <ul className="ed-perms__list">
                 {keys.map((p) => {
