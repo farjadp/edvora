@@ -53,6 +53,8 @@ export interface Config {
     'import-jobs': ImportJob;
     'import-refs': ImportRef;
     redirects: Redirect;
+    'demo-sandboxes': DemoSandbox;
+    'demo-leads': DemoLead;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -94,6 +96,8 @@ export interface Config {
     'import-jobs': ImportJobsSelect<false> | ImportJobsSelect<true>;
     'import-refs': ImportRefsSelect<false> | ImportRefsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
+    'demo-sandboxes': DemoSandboxesSelect<false> | DemoSandboxesSelect<true>;
+    'demo-leads': DemoLeadsSelect<false> | DemoLeadsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -154,6 +158,12 @@ export interface UserAuthOperations {
 export interface Tenant {
   id: number;
   name: string;
+  /**
+   * Self-serve demo. Hard-deleted by the cleanup job after expiry + grace.
+   */
+  isSandbox?: boolean | null;
+  expiresAt?: string | null;
+  purgeAt?: string | null;
   /**
    * Lowercase, no spaces. Used in URLs and for DEFAULT_TENANT_SLUG.
    */
@@ -362,6 +372,7 @@ export interface User {
   };
   status?: ('active' | 'suspended' | 'archived') | null;
   statusReason?: string | null;
+  sandboxTenant?: (number | null) | Tenant;
   /**
    * Only "super-admin" (Edvora staff) still grants access. Academy access is set in Memberships.
    */
@@ -1793,6 +1804,42 @@ export interface Redirect {
   createdAt: string;
 }
 /**
+ * Operate demos at /demo/ops (count vs cap, delete now). Rows are kept after cleanup for the daily limit.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "demo-sandboxes".
+ */
+export interface DemoSandbox {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  tenantSlug?: string | null;
+  status: 'creating' | 'active' | 'failed' | 'purged';
+  expiresAt: string;
+  purgedAt?: string | null;
+  ipHash: string;
+  creatorKeyHash?: string | null;
+  powNonce?: string | null;
+  buildMs?: number | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "demo-leads".
+ */
+export interface DemoLead {
+  id: number;
+  name?: string | null;
+  email: string;
+  consent: boolean;
+  consentText: string;
+  sandbox?: (number | null) | DemoSandbox;
+  source: 'demo-form' | 'full-state' | 'expired-state' | 'talk';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -2048,6 +2095,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'redirects';
         value: number | Redirect;
+      } | null)
+    | ({
+        relationTo: 'demo-sandboxes';
+        value: number | DemoSandbox;
+      } | null)
+    | ({
+        relationTo: 'demo-leads';
+        value: number | DemoLead;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -2097,6 +2152,9 @@ export interface PayloadMigration {
  */
 export interface TenantsSelect<T extends boolean = true> {
   name?: T;
+  isSandbox?: T;
+  expiresAt?: T;
+  purgeAt?: T;
   slug?: T;
   domains?:
     | T
@@ -2212,6 +2270,7 @@ export interface UsersSelect<T extends boolean = true> {
       };
   status?: T;
   statusReason?: T;
+  sandboxTenant?: T;
   roles?: T;
   twoFactorEnabled?: T;
   twoFactor?:
@@ -3086,6 +3145,38 @@ export interface RedirectsSelect<T extends boolean = true> {
   job?: T;
   hits?: T;
   active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "demo-sandboxes_select".
+ */
+export interface DemoSandboxesSelect<T extends boolean = true> {
+  tenant?: T;
+  tenantSlug?: T;
+  status?: T;
+  expiresAt?: T;
+  purgedAt?: T;
+  ipHash?: T;
+  creatorKeyHash?: T;
+  powNonce?: T;
+  buildMs?: T;
+  error?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "demo-leads_select".
+ */
+export interface DemoLeadsSelect<T extends boolean = true> {
+  name?: T;
+  email?: T;
+  consent?: T;
+  consentText?: T;
+  sandbox?: T;
+  source?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -8,6 +8,7 @@ import * as migration_20261107_053815_e033_live_classes_storage from './20261107
 import * as migration_20261107_060240_e028_gamification from './20261107_060240_e028_gamification';
 import * as migration_20261107_141016_e030_iba_import from './20261107_141016_e030_iba_import';
 import * as migration_20261108_150947_e039_role_settings from './20261108_150947_e039_role_settings';
+import * as migration_20261108_163432_e029_demo_sandboxes from './20261108_163432_e029_demo_sandboxes';
 
 export const migrations = [
   {
@@ -58,6 +59,11 @@ export const migrations = [
   {
     up: migration_20261108_150947_e039_role_settings.up,
     down: migration_20261108_150947_e039_role_settings.down,
-    name: '20261108_150947_e039_role_settings'
+    name: '20261108_150947_e039_role_settings',
+  },
+  {
+    up: migration_20261108_163432_e029_demo_sandboxes.up,
+    down: migration_20261108_163432_e029_demo_sandboxes.down,
+    name: '20261108_163432_e029_demo_sandboxes'
   },
 ];
