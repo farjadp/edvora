@@ -72,8 +72,13 @@ export function normalizeForSearch(text: string): string {
     .toLowerCase()
 }
 
-export const LOCAL_EMBEDDING_MODEL = 'local-hash-256'
-const LOCAL_DIM = 256
+export const LOCAL_EMBEDDING_MODEL = 'local-hash-v2-1024'
+const LOCAL_DIM = 1024
+
+/** Very common Persian and English words: they say nothing about the topic and only add noise. */
+const STOP = new Set(
+  'و در به از که این آن را با برای تا یا هم اما اگر چه چی چیست کدام کجا کی می نمی است هست بود شد شود شده باشد کرد کند کنم کنید کرده دارد دارم داری ها های ای یک هر همه من تو ما شما او آنها خود برایم بده بدهی بگو لطفا لطفاً سلام امروز the a an is are was of to in on for and or what which how who me my you your i it this that be with by at as do can please'.split(' '),
+)
 
 function fnv1a(s: string): number {
   let h = 0x811c9dc5
@@ -85,16 +90,18 @@ function fnv1a(s: string): number {
 }
 
 /**
- * Local embedding (no outside call): hashed word unigrams + character trigrams, L2-normalised. Keyword-like, used
+ * Local embedding (no outside call): hashed words (stop words dropped) + in-word character trigrams, L2-normalised. Keyword-like, used
  * by the mock, with providers that have no embeddings API (Anthropic) and as the fallback when embedding fails.
  */
 export function localEmbedding(text: string): number[] {
   const v = new Array<number>(LOCAL_DIM).fill(0)
-  const words = normalizeForSearch(text).split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 1)
+  const words = normalizeForSearch(text)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w.length > 1 && !STOP.has(w))
   for (const w of words) {
-    v[fnv1a(`w:${w}`) % LOCAL_DIM]! += 2
-    const padded = ` ${w} `
-    for (let i = 0; i + 3 <= padded.length; i++) v[fnv1a(`t:${padded.slice(i, i + 3)}`) % LOCAL_DIM]! += 1
+    v[fnv1a(`w:${w}`) % LOCAL_DIM]! += 3
+    // Trigrams inside the word catch inflections (بازپرداخت / بازپرداختِ / refund / refundable).
+    for (let i = 0; i + 3 <= w.length; i++) v[fnv1a(`t:${w.slice(i, i + 3)}`) % LOCAL_DIM]! += 1
   }
   const norm = Math.hypot(...v)
   return norm === 0 ? v : v.map((x) => x / norm)

@@ -175,7 +175,7 @@ describe('retrieval', () => {
   })
 
   it('local embedding finds the related passage, across letter and digit variants', () => {
-    expect(LOCAL_EMBEDDING_MODEL).toBe('local-hash-256')
+    expect(LOCAL_EMBEDDING_MODEL).toBe('local-hash-v2-1024')
     const q = localEmbedding('سیاست بازپرداخت شهریه چیست؟')
     const refund = localEmbedding('سياست بازپرداخت: شهريه تا ۱۴ روز پس از ثبت‌نام بازپرداخت می‌شود.')
     const other = localEmbedding('کلاس‌های زنده روزهای دوشنبه برگزار می‌شوند.')

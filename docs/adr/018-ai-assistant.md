@@ -80,10 +80,10 @@ The UI says this in plain Persian.
 `embedding vector` when the `vector` extension is available, else `double precision[]` with cosine similarity in
 application code (so a host without pgvector still works, slower). The table is excluded from Payload's dev schema
 push (`tablesFilter: ['*', '!ai_chunks']`). The column is dimension-less because providers differ (OpenAI 1536,
-Gemini 768, local 256); every row stores `embedding_model` and search only compares rows of the active model. Exact
+Gemini 768, local 1024); every row stores `embedding_model` and search only compares rows of the active model. Exact
 scan is fine for an academy's few thousand chunks; an HNSW index per dimension can come later.
 Anthropic has no embeddings API: with Claude, or when embedding fails, a local hashed n-gram embedding
-(`local-hash-256`) is used — keyword-like, no outside call.
+(`local-hash-v2-1024`: hashed words and in-word trigrams, stop words dropped) is used — keyword-like, no outside call. Search keeps passages above a similarity of 0.12 for the local embedding and 0.3 for provider embeddings.
 
 ### Permissions
 Two new academy keys: `ai.use` (use the assistant) and `ai.manage` (settings, key, knowledge base, memory approval).
@@ -114,3 +114,6 @@ above matter most in that case, and the academy should know who the gateway is.
 - Each new write action needs: a core definition with its permission, a server executor that uses the local API as the
   user, and a test. Money approvals stay out.
 - Costs are the provider's; the budget limit is the guard.
+- Prompt injection: an uploaded document or a record could contain text that tries to steer the model. The damage is
+  bounded by design: read tools only return what the person may already read, and every write is a proposal the
+  person reads and confirms. Managers should still upload only trusted documents.

@@ -156,7 +156,7 @@ describe('mock', () => {
 
   it('fails on request and embeds locally', async () => {
     await expect(collect(p.chat({ model: 'm', system: '', messages: [{ role: 'user', content: '__fail__' }] }))).rejects.toBeInstanceOf(AiError)
-    const [v] = await p.embed!({ model: 'local-hash-256', texts: ['سلام'] })
-    expect(v).toHaveLength(256)
+    const [v] = await p.embed!({ model: 'local-hash-v2-1024', texts: ['سلام'] })
+    expect(v).toHaveLength(1024)
   })
 })

@@ -99,5 +99,5 @@ export const MODEL_SUGGESTIONS: Record<AiProviderName, { chat: string[]; embeddi
   anthropic: { chat: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'], embedding: null },
   gemini: { chat: ['gemini-2.5-flash', 'gemini-2.5-pro'], embedding: 'gemini-embedding-001' },
   custom: { chat: ['gpt-5-mini', 'gpt-4.1-mini'], embedding: 'text-embedding-3-small' },
-  mock: { chat: ['mock-1'], embedding: 'local-hash-256' },
+  mock: { chat: ['mock-1'], embedding: 'local-hash-v2-1024' },
 }
