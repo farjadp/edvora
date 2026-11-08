@@ -56,6 +56,12 @@ export interface Config {
     'import-jobs': ImportJob;
     'import-refs': ImportRef;
     redirects: Redirect;
+    'ai-settings': AiSetting;
+    'ai-conversations': AiConversation;
+    'ai-messages': AiMessage;
+    'ai-documents': AiDocument;
+    'ai-memories': AiMemory;
+    'ai-actions': AiAction;
     'integration-settings': IntegrationSetting;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
@@ -101,6 +107,12 @@ export interface Config {
     'import-jobs': ImportJobsSelect<false> | ImportJobsSelect<true>;
     'import-refs': ImportRefsSelect<false> | ImportRefsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
+    'ai-settings': AiSettingsSelect<false> | AiSettingsSelect<true>;
+    'ai-conversations': AiConversationsSelect<false> | AiConversationsSelect<true>;
+    'ai-messages': AiMessagesSelect<false> | AiMessagesSelect<true>;
+    'ai-documents': AiDocumentsSelect<false> | AiDocumentsSelect<true>;
+    'ai-memories': AiMemoriesSelect<false> | AiMemoriesSelect<true>;
+    'ai-actions': AiActionsSelect<false> | AiActionsSelect<true>;
     'integration-settings': IntegrationSettingsSelect<false> | IntegrationSettingsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
@@ -625,6 +637,8 @@ export interface Role {
         | 'payments.settings'
         | 'import.view'
         | 'import.run'
+        | 'ai.use'
+        | 'ai.manage'
       )[]
     | null;
   security?: {
@@ -2027,6 +2041,174 @@ export interface Redirect {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-settings".
+ */
+export interface AiSetting {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  enabled?: boolean | null;
+  assistantName?: string | null;
+  provider: 'openai' | 'anthropic' | 'gemini' | 'custom' | 'mock';
+  model: string;
+  /**
+   * Custom OpenAI-compatible endpoint only, e.g. https://api.avalai.ir/v1
+   */
+  baseUrl?: string | null;
+  apiKeySealed?: string | null;
+  apiKeyHint?: string | null;
+  /**
+   * Empty = the provider default (local embedding for Claude and the mock).
+   */
+  embeddingModel?: string | null;
+  privacy?: {
+    names?: boolean | null;
+    nationalCodes?: boolean | null;
+    phones?: boolean | null;
+    emails?: boolean | null;
+  };
+  limits?: {
+    perMinute?: number | null;
+    perDay?: number | null;
+    monthlyTokenLimit?: number | null;
+    monthlyCostLimitRial?: number | null;
+    inputPricePerMillionRial?: number | null;
+    outputPricePerMillionRial?: number | null;
+  };
+  lastTest?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-conversations".
+ */
+export interface AiConversation {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  user: number | User;
+  title: string;
+  pagePath?: string | null;
+  lastMessageAt?: string | null;
+  messageCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-messages".
+ */
+export interface AiMessage {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  conversation: number | AiConversation;
+  user: number | User;
+  role: 'user' | 'assistant';
+  content?: string | null;
+  citations?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Tools the assistant ran for this answer (names, no data).
+   */
+  tools?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  proposals?: (number | AiAction)[] | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  provider?: string | null;
+  model?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-actions".
+ */
+export interface AiAction {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  kind: string;
+  input:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  summary: string;
+  status: 'pending' | 'executed' | 'rejected' | 'failed' | 'expired';
+  proposedBy: number | User;
+  conversation?: (number | null) | AiConversation;
+  expiresAt: string;
+  decidedAt?: string | null;
+  targetCollection?: string | null;
+  targetId?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-documents".
+ */
+export interface AiDocument {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  filename: string;
+  mimeType?: string | null;
+  size?: number | null;
+  status: 'processing' | 'ready' | 'failed';
+  error?: string | null;
+  chunkCount?: number | null;
+  characters?: number | null;
+  embeddingModel?: string | null;
+  uploadedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-memories".
+ */
+export interface AiMemory {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  text: string;
+  status: 'proposed' | 'approved' | 'rejected';
+  proposedBy?: (number | null) | User;
+  decidedBy?: (number | null) | User;
+  decidedAt?: string | null;
+  conversation?: (number | null) | AiConversation;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "integration-settings".
  */
 export interface IntegrationSetting {
@@ -2322,6 +2504,30 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'redirects';
         value: number | Redirect;
+      } | null)
+    | ({
+        relationTo: 'ai-settings';
+        value: number | AiSetting;
+      } | null)
+    | ({
+        relationTo: 'ai-conversations';
+        value: number | AiConversation;
+      } | null)
+    | ({
+        relationTo: 'ai-messages';
+        value: number | AiMessage;
+      } | null)
+    | ({
+        relationTo: 'ai-documents';
+        value: number | AiDocument;
+      } | null)
+    | ({
+        relationTo: 'ai-memories';
+        value: number | AiMemory;
+      } | null)
+    | ({
+        relationTo: 'ai-actions';
+        value: number | AiAction;
       } | null)
     | ({
         relationTo: 'integration-settings';
@@ -3555,6 +3761,131 @@ export interface RedirectsSelect<T extends boolean = true> {
   job?: T;
   hits?: T;
   active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-settings_select".
+ */
+export interface AiSettingsSelect<T extends boolean = true> {
+  tenant?: T;
+  enabled?: T;
+  assistantName?: T;
+  provider?: T;
+  model?: T;
+  baseUrl?: T;
+  apiKeySealed?: T;
+  apiKeyHint?: T;
+  embeddingModel?: T;
+  privacy?:
+    | T
+    | {
+        names?: T;
+        nationalCodes?: T;
+        phones?: T;
+        emails?: T;
+      };
+  limits?:
+    | T
+    | {
+        perMinute?: T;
+        perDay?: T;
+        monthlyTokenLimit?: T;
+        monthlyCostLimitRial?: T;
+        inputPricePerMillionRial?: T;
+        outputPricePerMillionRial?: T;
+      };
+  lastTest?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-conversations_select".
+ */
+export interface AiConversationsSelect<T extends boolean = true> {
+  tenant?: T;
+  user?: T;
+  title?: T;
+  pagePath?: T;
+  lastMessageAt?: T;
+  messageCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-messages_select".
+ */
+export interface AiMessagesSelect<T extends boolean = true> {
+  tenant?: T;
+  conversation?: T;
+  user?: T;
+  role?: T;
+  content?: T;
+  citations?: T;
+  tools?: T;
+  proposals?: T;
+  inputTokens?: T;
+  outputTokens?: T;
+  provider?: T;
+  model?: T;
+  error?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-documents_select".
+ */
+export interface AiDocumentsSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  filename?: T;
+  mimeType?: T;
+  size?: T;
+  status?: T;
+  error?: T;
+  chunkCount?: T;
+  characters?: T;
+  embeddingModel?: T;
+  uploadedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-memories_select".
+ */
+export interface AiMemoriesSelect<T extends boolean = true> {
+  tenant?: T;
+  text?: T;
+  status?: T;
+  proposedBy?: T;
+  decidedBy?: T;
+  decidedAt?: T;
+  conversation?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-actions_select".
+ */
+export interface AiActionsSelect<T extends boolean = true> {
+  tenant?: T;
+  kind?: T;
+  input?: T;
+  summary?: T;
+  status?: T;
+  proposedBy?: T;
+  conversation?: T;
+  expiresAt?: T;
+  decidedAt?: T;
+  targetCollection?: T;
+  targetId?: T;
+  error?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -75,7 +75,7 @@ registerSettingsSection({
   scope: 'academy',
   permission: 'ai.manage',
   icon: 'star',
-  href: '/admin/collections/ai-settings',
+  href: '/staff/assistant/settings',
   requiresCollection: 'ai-settings',
 })
 registerSettingsSection({ key: 'roles', label: 'نقش‌ها', help: 'نقش‌ها، دسترسی‌ها و تنظیمات هر نقش', group: 'people', scope: 'academy', permission: 'roles.view', icon: 'roles', href: '/admin/collections/roles' })

@@ -664,6 +664,14 @@ async function seedAdmin(payload: Payload, tenantIds: number[]) {
   console.info(`Super admin: ${email} (password from SEED_ADMIN_PASSWORD)`)
 }
 
+/**
+ * E-046 test data, demo academy only (never iba): the AI assistant switched on with the mock provider (no key, no
+ * network). IBA stays off until Farjad picks a provider and enters a key in «دستیار هوشمند › تنظیمات».
+ */
+async function seedDemoAssistant(payload: Payload, t: number) {
+  await upsert(payload, 'ai-settings', { tenant: { equals: t } }, { tenant: t, enabled: true, provider: 'mock', model: 'mock-1', privacy: { names: true, nationalCodes: false, phones: false, emails: false } })
+}
+
 /** SEED_TENANTS=demo seeds only the test academy (public demo environments must not show unconfirmed client content). */
 function tenantsToSeed(): Set<string> {
   const raw = process.env.SEED_TENANTS?.trim()
@@ -685,6 +693,7 @@ async function main() {
     await seedDemoImportConnection(payload, demo)
     await seedDemoMedia(payload, demo)
     await seedDemoGamification(payload, demo)
+    await seedDemoAssistant(payload, demo)
   }
   await seedAdmin(payload, ids)
   await flushGamification()
