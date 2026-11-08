@@ -142,9 +142,10 @@ Tests that pin these bugs are marked `QA-E032-NN` (`test.fail` / `it.fails`); re
 # E-041 · Access matrix (2026-11-08)
 
 Found by the access-tester run on `b69983b` (develop), `demo` academy, local stack. Matrix: [`access-matrix.md`](access-matrix.md).
-Pinned in `e2e/tests/access-matrix.spec.ts` as `test.fail` (ACC-01…04); remove the marker when fixed.
+Pinned in `e2e/tests/access-matrix.spec.ts` (ACC-01…05); the `test.fail` markers were removed with the fixes.
 
 ## ACC-01 · Any user can write their own staff-only fields (`internalNotes`, `tags`)
+- **Status:** fixed (fix/access-acc-01-05) — `internalNotes`, `tags`, `source`, `statusReason`, `publicProfile.showOnSite` have field `create`/`update` access: `users.create`/`users.edit` in one of the person's academies, never self (a denied write is dropped). Spec `ACC-01` un-marked. Other self-writable fields (email, phone, national code without verification) are E-040.
 - **Severity:** blocker (a user changes what they shouldn't: staff notes about them; students included)
 - **Tenant:** demo (all tenants — collection rule)
 - **Steps:** as a student (or any staff), `PATCH /api/users/<own id>` with `{ "internalNotes": "self-edit", "tags": ["vip"] }`.
@@ -154,6 +155,7 @@ Pinned in `e2e/tests/access-matrix.spec.ts` as `test.fail` (ACC-01…04); remove
 - **Suspected area:** `apps/web/src/collections/Users.ts` — `internalNotes`, `tags` (and likely `source`, `statusReason`) have `read` access only; add `update`/`create` access (`users.edit` in the academy, never self). `update: selfOr('users.edit')` lets self through to every field without its own `update` rule.
 
 ## ACC-02 · Advisor can create an order that is already `paid` with total 0
+- **Status:** fixed (fix/access-acc-01-05) — a person's order is priced on the server (`priceOrder` in `packages/core/src/orders.ts`, from course/cohort price + academy coupon); caller amounts/instalments/payments are replaced, status ≠ pending is 403, any discount needs `discount.give` **and** a valid coupon (400 otherwise). Checkout uses the same `priceOrder`. Spec `ACC-02` un-marked. Open: no per-role discount cap exists (TODO(client): is a free-form discount up to N% wanted?).
 - **Severity:** blocker (money: an advisor marks a sale paid without payment; `discount.give` is not checked)
 - **Tenant:** demo
 - **Steps:** as an advisor, `POST /api/orders` `{ tenant, user: <student>, course, subtotal: 10000000, discount: 10000000, total: 0, status: "paid" }`.
@@ -163,6 +165,7 @@ Pinned in `e2e/tests/access-matrix.spec.ts` as `test.fail` (ACC-01…04); remove
 - **Suspected area:** `apps/web/src/collections/Orders.ts` — `create: allowCreate('orders.create_for_lead')` + `guard` check academy/scope only; no field-level rule for `status`, `total`, `discount`, `instalments`, `payments`. Order totals should be computed server-side (`packages/core` money rules).
 
 ## ACC-03 · `orders.edit` sets an order `paid` and changes its total directly (no four-eyes)
+- **Status:** fixed (fix/access-acc-01-05) — after creation `subtotal`, `discount`, `total`, `couponCode`, `instalments`, `payments`, `course`, `cohort`, `source` change only through server code (payment flow); a person may only move pending/failed → cancelled (`canChangeOrderStatusManually`). Applies to platform admins too. The manual-payment flow (`payments.manual.record` + `approve` by another person) is **not built**; until then a manual/offline payment cannot be marked paid at all. Spec `ACC-03` un-marked.
 - **Severity:** major (security: bypasses ADR 006 four-eyes for money)
 - **Tenant:** demo
 - **Steps:** as finance (or academy-admin), `PATCH /api/orders/<pending order>` `{ "status": "paid", "total": 1 }`.
@@ -172,6 +175,7 @@ Pinned in `e2e/tests/access-matrix.spec.ts` as `test.fail` (ACC-01…04); remove
 - **Suspected area:** `apps/web/src/collections/Orders.ts` (no `requireForFields` on `status`/`total`/`instalments`); the manual-payment action is not built yet.
 
 ## ACC-04 · Anonymous REST lists every academy's courses and lessons, drafts included
+- **Status:** fixed (fix/access-acc-01-05) — courses: published, or `courses.view`/`courses.edit` within scope; lessons: of published courses, or `courses.view`/`lessons.edit` within scope. Public pages unchanged (server queries in `lib/queries.ts`). Spec `ACC-04` un-marked. Still open: published courses of every academy are listed by `/api/courses` from any host (public data); `cohorts` read is still `anyone` (cohorts of draft courses readable) — follow-up.
 - **Severity:** major (unpublished content and other academies' catalog readable by anyone)
 - **Tenant:** all (seen from the demo host)
 - **Steps:** logged out, `GET http://demo.localhost:3000/api/courses?limit=100` and `GET /api/courses/<id of a draft course in demo2>`.
@@ -181,6 +185,7 @@ Pinned in `e2e/tests/access-matrix.spec.ts` as `test.fail` (ACC-01…04); remove
 - **Suspected area:** `apps/web/src/collections/Courses.ts` and `Lessons.ts` — `read: anyone`. Use `anyOf(() => ({ status: { equals: 'published' } }), allow('courses.view', …))` like `Pages`/`Posts`; lessons: only of published courses. `pendingClaims` is already hidden.
 
 ## ACC-05 · Academy staff with `users.view` can see the Edvora super admin account
+- **Status:** fixed (fix/access-acc-01-05) — `users` read/update for non-platform actors excludes platform admins (by id, cached per request). New spec test `ACC-05`.
 - **Severity:** minor (information: platform staff email and role visible to academy staff)
 - **Tenant:** demo
 - **Steps:** as advisor/finance/support, `GET /api/users?where[roles][contains]=super-admin`.
