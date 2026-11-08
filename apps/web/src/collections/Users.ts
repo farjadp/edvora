@@ -4,7 +4,7 @@ import { APIError } from 'payload'
 import { assertManagersRemain } from '../access/managers'
 import { allowCreate, getAccess, isStaffRequest, isSystemWrite, nobody } from '../access/permissions'
 import { ROLES, ROLE_LABELS, isSuperAdmin } from '../access/roles'
-import { assertSandboxUserActive, sandboxOfUser } from '../access/sandbox'
+import { assertSandboxLogin, sandboxOfUser } from '../access/sandbox'
 import { twoFactorEndpoints } from '../endpoints/twoFactor'
 import { auditChange } from '../hooks/audit'
 import { idOf } from '../lib/ids'
@@ -144,8 +144,8 @@ export const Users: CollectionConfig = {
     beforeLogin: [
       async ({ user, req }) => {
         if ((user.status ?? 'active') !== 'active') throw new APIError('This account is not active', 403)
-        // E-029 (E1): an ended sandbox refuses every login, whatever the password.
-        await assertSandboxUserActive(req, user)
+        // E-029 (E1, BUG-2): sandbox accounts only inside their own live sandbox; real accounts never under a sandbox.
+        await assertSandboxLogin(req, user)
         return user
       },
     ],

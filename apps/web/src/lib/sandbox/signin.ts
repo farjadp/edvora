@@ -3,6 +3,7 @@ import { hashCreatorKey, sandboxState } from '@edvora/core'
 import type { NextResponse } from 'next/server'
 import { generatePayloadCookie, type Payload } from 'payload'
 import type { Tenant, User } from '../../payload-types'
+import { SANDBOX_LOGIN_CONTEXT } from '../../access/sandbox'
 import { startSession } from '../session'
 import { CREATOR_COOKIE, SELECTOR_COOKIE, cookieOptions, openCreator, signSelector, type CreatorCookie } from './cookies'
 
@@ -32,7 +33,7 @@ export async function signInSandboxAccount(payload: Payload, tenant: Tenant, ema
   if (!user) return { ok: false, error: 'invalid' }
   let token: string | undefined
   try {
-    const res = await payload.login({ collection: 'users', data: { email: user.email, password } })
+    const res = await payload.login({ collection: 'users', data: { email: user.email, password }, context: { [SANDBOX_LOGIN_CONTEXT]: tenant.id } })
     token = res.token
   } catch (err) {
     const name = (err as { name?: string })?.name
