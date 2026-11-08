@@ -9,6 +9,8 @@ import * as migration_20261107_060240_e028_gamification from './20261107_060240_
 import * as migration_20261107_141016_e030_iba_import from './20261107_141016_e030_iba_import';
 import * as migration_20261108_150947_e039_role_settings from './20261108_150947_e039_role_settings';
 import * as migration_20261108_165628_e045_payment_methods from './20261108_165628_e045_payment_methods';
+import * as migration_20261108_174447_e046_ai_assistant from './20261108_174447_e046_ai_assistant';
+import * as migration_20261108_174500_e046_ai_admin_grant from './20261108_174500_e046_ai_admin_grant';
 
 export const migrations = [
   {
@@ -64,6 +66,16 @@ export const migrations = [
   {
     up: migration_20261108_165628_e045_payment_methods.up,
     down: migration_20261108_165628_e045_payment_methods.down,
-    name: '20261108_165628_e045_payment_methods'
+    name: '20261108_165628_e045_payment_methods',
+  },
+  {
+    up: migration_20261108_174447_e046_ai_assistant.up,
+    down: migration_20261108_174447_e046_ai_assistant.down,
+    name: '20261108_174447_e046_ai_assistant',
+  },
+  {
+    up: migration_20261108_174500_e046_ai_admin_grant.up,
+    down: migration_20261108_174500_e046_ai_admin_grant.down,
+    name: '20261108_174500_e046_ai_admin_grant',
   },
 ];
