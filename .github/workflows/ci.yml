@@ -12,7 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        # pgvector for the AI assistant's knowledge base (E-046, ADR 018); same Postgres 16 otherwise.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: edvora
           POSTGRES_PASSWORD: edvora
@@ -27,6 +28,7 @@ jobs:
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       PAYMENT_PROVIDER: mock
       SMS_PROVIDER: mock
+      AI_PROVIDER_OVERRIDE: mock
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -52,7 +54,8 @@ jobs:
         shard: [1, 2, 3, 4]
     services:
       postgres:
-        image: postgres:16-alpine
+        # pgvector for the AI assistant's knowledge base (E-046, ADR 018); same Postgres 16 otherwise.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: edvora
           POSTGRES_PASSWORD: edvora
@@ -68,6 +71,7 @@ jobs:
       DEFAULT_TENANT_SLUG: iba
       PAYMENT_PROVIDER: mock
       SMS_PROVIDER: mock
+      AI_PROVIDER_OVERRIDE: mock
       E2E_PORT: 3000
     steps:
       - uses: actions/checkout@v4

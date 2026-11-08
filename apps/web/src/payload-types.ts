@@ -42,6 +42,9 @@ export interface Config {
     'learning-events': LearningEvent;
     leads: Lead;
     orders: Order;
+    'payment-methods': PaymentMethod;
+    payments: Payment;
+    'payment-receipts': PaymentReceipt;
     coupons: Coupon;
     testimonials: Testimonial;
     posts: Post;
@@ -53,8 +56,12 @@ export interface Config {
     'import-jobs': ImportJob;
     'import-refs': ImportRef;
     redirects: Redirect;
-    'demo-sandboxes': DemoSandbox;
-    'demo-leads': DemoLead;
+    'ai-settings': AiSetting;
+    'ai-conversations': AiConversation;
+    'ai-messages': AiMessage;
+    'ai-documents': AiDocument;
+    'ai-memories': AiMemory;
+    'ai-actions': AiAction;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -85,6 +92,9 @@ export interface Config {
     'learning-events': LearningEventsSelect<false> | LearningEventsSelect<true>;
     leads: LeadsSelect<false> | LeadsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
+    'payment-methods': PaymentMethodsSelect<false> | PaymentMethodsSelect<true>;
+    payments: PaymentsSelect<false> | PaymentsSelect<true>;
+    'payment-receipts': PaymentReceiptsSelect<false> | PaymentReceiptsSelect<true>;
     coupons: CouponsSelect<false> | CouponsSelect<true>;
     testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
@@ -96,8 +106,12 @@ export interface Config {
     'import-jobs': ImportJobsSelect<false> | ImportJobsSelect<true>;
     'import-refs': ImportRefsSelect<false> | ImportRefsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
-    'demo-sandboxes': DemoSandboxesSelect<false> | DemoSandboxesSelect<true>;
-    'demo-leads': DemoLeadsSelect<false> | DemoLeadsSelect<true>;
+    'ai-settings': AiSettingsSelect<false> | AiSettingsSelect<true>;
+    'ai-conversations': AiConversationsSelect<false> | AiConversationsSelect<true>;
+    'ai-messages': AiMessagesSelect<false> | AiMessagesSelect<true>;
+    'ai-documents': AiDocumentsSelect<false> | AiDocumentsSelect<true>;
+    'ai-memories': AiMemoriesSelect<false> | AiMemoriesSelect<true>;
+    'ai-actions': AiActionsSelect<false> | AiActionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -158,12 +172,6 @@ export interface UserAuthOperations {
 export interface Tenant {
   id: number;
   name: string;
-  /**
-   * Self-serve demo. Hard-deleted by the cleanup job after expiry + grace.
-   */
-  isSandbox?: boolean | null;
-  expiresAt?: string | null;
-  purgeAt?: string | null;
   /**
    * Lowercase, no spaces. Used in URLs and for DEFAULT_TENANT_SLUG.
    */
@@ -372,7 +380,6 @@ export interface User {
   };
   status?: ('active' | 'suspended' | 'archived') | null;
   statusReason?: string | null;
-  sandboxTenant?: (number | null) | Tenant;
   /**
    * Only "super-admin" (Edvora staff) still grants access. Academy access is set in Memberships.
    */
@@ -498,8 +505,11 @@ export interface Role {
         | 'reports.learning'
         | 'settings.edit'
         | 'audit.view'
+        | 'payments.settings'
         | 'import.view'
         | 'import.run'
+        | 'ai.use'
+        | 'ai.manage'
       )[]
     | null;
   security?: {
@@ -1431,6 +1441,160 @@ export interface Lead {
   createdAt: string;
 }
 /**
+ * Methods students see at checkout. Gateway credentials are encrypted and never shown. With no rows, the instance default gateway is used.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-methods".
+ */
+export interface PaymentMethod {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  method: 'mellat' | 'saman' | 'zarinpal' | 'zibal' | 'idpay' | 'payir' | 'nextpay' | 'usdt' | 'card' | 'manual';
+  enabled?: boolean | null;
+  /**
+   * Lower first
+   */
+  position?: number | null;
+  title: string;
+  mode?: ('sandbox' | 'live') | null;
+  instructions?: string | null;
+  /**
+   * Which values are stored. The values are never shown.
+   */
+  credentialsSet?: ('merchantId' | 'terminalId' | 'username' | 'password' | 'apiKey')[] | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_merchantId?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_terminalId?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_username?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_password?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_apiKey?: string | null;
+  credentialsSealed?: string | null;
+  cards?:
+    | {
+        number: string;
+        holder: string;
+        bank?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  usdtLegalAck?: boolean | null;
+  /**
+   * Set by hand; no rate feed.
+   */
+  usdtRateToman?: number | null;
+  /**
+   * Same rate in rials (computed)
+   */
+  usdtRateRial?: number | null;
+  usdtRateUpdatedAt?: string | null;
+  wallets?:
+    | {
+        network: 'trc20' | 'bep20';
+        address: string;
+        id?: string | null;
+      }[]
+    | null;
+  manualChannels?: ('cash' | 'pos' | 'transfer' | 'other')[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Read only. Payments are made at checkout and handled on the finance desk.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments".
+ */
+export interface Payment {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  order: number | Order;
+  user: number | User;
+  course?: (number | null) | Course;
+  cohort?: (number | null) | Cohort;
+  method: 'mellat' | 'saman' | 'zarinpal' | 'zibal' | 'idpay' | 'payir' | 'nextpay' | 'usdt' | 'card' | 'manual';
+  methodRow?: (number | null) | PaymentMethod;
+  provider?: string | null;
+  methodTitle?: string | null;
+  instalmentIndexes: number[];
+  amount: number;
+  status: 'started' | 'submitted' | 'recorded' | 'confirmed' | 'rejected' | 'failed';
+  verifiedBy?: ('gateway' | 'chain' | 'people') | null;
+  reuseKey?: string | null;
+  authority?: string | null;
+  refId?: string | null;
+  cardPan?: string | null;
+  card?: {
+    last4?: string | null;
+    tracking?: string | null;
+    paidAt?: string | null;
+    toCard?: string | null;
+    receipt?: (number | null) | PaymentReceipt;
+  };
+  usdt?: {
+    network?: ('trc20' | 'bep20') | null;
+    wallet?: string | null;
+    tokenContract?: string | null;
+    rateRial?: number | null;
+    units?: string | null;
+    display?: string | null;
+    quotedAt?: string | null;
+    txHash?: string | null;
+    confirmations?: number | null;
+    check?: string | null;
+    checkedAt?: string | null;
+  };
+  manual?: {
+    channel?: ('cash' | 'pos' | 'transfer' | 'other') | null;
+    reference?: string | null;
+    paidAt?: string | null;
+    note?: string | null;
+  };
+  recordedBy?: (number | null) | User;
+  recordedAt?: string | null;
+  confirmedBy?: (number | null) | User;
+  confirmedAt?: string | null;
+  rejectedBy?: (number | null) | User;
+  rejectedAt?: string | null;
+  rejectionReason?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-receipts".
+ */
+export interface PaymentReceipt {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  owner: number | User;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "coupons".
  */
@@ -1804,38 +1968,170 @@ export interface Redirect {
   createdAt: string;
 }
 /**
- * Operate demos at /demo/ops (count vs cap, delete now). Rows are kept after cleanup for the daily limit.
- *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "demo-sandboxes".
+ * via the `definition` "ai-settings".
  */
-export interface DemoSandbox {
+export interface AiSetting {
   id: number;
   tenant?: (number | null) | Tenant;
-  tenantSlug?: string | null;
-  status: 'creating' | 'active' | 'failed' | 'purged';
-  expiresAt: string;
-  purgedAt?: string | null;
-  ipHash: string;
-  creatorKeyHash?: string | null;
-  powNonce?: string | null;
-  buildMs?: number | null;
+  enabled?: boolean | null;
+  assistantName?: string | null;
+  provider: 'openai' | 'anthropic' | 'gemini' | 'custom' | 'mock';
+  model: string;
+  /**
+   * Custom OpenAI-compatible endpoint only, e.g. https://api.avalai.ir/v1
+   */
+  baseUrl?: string | null;
+  apiKeySealed?: string | null;
+  apiKeyHint?: string | null;
+  /**
+   * Empty = the provider default (local embedding for Claude and the mock).
+   */
+  embeddingModel?: string | null;
+  privacy?: {
+    names?: boolean | null;
+    nationalCodes?: boolean | null;
+    phones?: boolean | null;
+    emails?: boolean | null;
+  };
+  limits?: {
+    perMinute?: number | null;
+    perDay?: number | null;
+    monthlyTokenLimit?: number | null;
+    monthlyCostLimitRial?: number | null;
+    inputPricePerMillionRial?: number | null;
+    outputPricePerMillionRial?: number | null;
+  };
+  lastTest?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-conversations".
+ */
+export interface AiConversation {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  user: number | User;
+  title: string;
+  pagePath?: string | null;
+  lastMessageAt?: string | null;
+  messageCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-messages".
+ */
+export interface AiMessage {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  conversation: number | AiConversation;
+  user: number | User;
+  role: 'user' | 'assistant';
+  content?: string | null;
+  citations?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Tools the assistant ran for this answer (names, no data).
+   */
+  tools?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  proposals?: (number | AiAction)[] | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  provider?: string | null;
+  model?: string | null;
   error?: string | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "demo-leads".
+ * via the `definition` "ai-actions".
  */
-export interface DemoLead {
+export interface AiAction {
   id: number;
-  name?: string | null;
-  email: string;
-  consent: boolean;
-  consentText: string;
-  sandbox?: (number | null) | DemoSandbox;
-  source: 'demo-form' | 'full-state' | 'expired-state' | 'talk';
+  tenant?: (number | null) | Tenant;
+  kind: string;
+  input:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  summary: string;
+  status: 'pending' | 'executed' | 'rejected' | 'failed' | 'expired';
+  proposedBy: number | User;
+  conversation?: (number | null) | AiConversation;
+  expiresAt: string;
+  decidedAt?: string | null;
+  targetCollection?: string | null;
+  targetId?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-documents".
+ */
+export interface AiDocument {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  filename: string;
+  mimeType?: string | null;
+  size?: number | null;
+  status: 'processing' | 'ready' | 'failed';
+  error?: string | null;
+  chunkCount?: number | null;
+  characters?: number | null;
+  embeddingModel?: string | null;
+  uploadedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-memories".
+ */
+export interface AiMemory {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  text: string;
+  status: 'proposed' | 'approved' | 'rejected';
+  proposedBy?: (number | null) | User;
+  decidedBy?: (number | null) | User;
+  decidedAt?: string | null;
+  conversation?: (number | null) | AiConversation;
   updatedAt: string;
   createdAt: string;
 }
@@ -2053,6 +2349,18 @@ export interface PayloadLockedDocument {
         value: number | Order;
       } | null)
     | ({
+        relationTo: 'payment-methods';
+        value: number | PaymentMethod;
+      } | null)
+    | ({
+        relationTo: 'payments';
+        value: number | Payment;
+      } | null)
+    | ({
+        relationTo: 'payment-receipts';
+        value: number | PaymentReceipt;
+      } | null)
+    | ({
         relationTo: 'coupons';
         value: number | Coupon;
       } | null)
@@ -2097,12 +2405,28 @@ export interface PayloadLockedDocument {
         value: number | Redirect;
       } | null)
     | ({
-        relationTo: 'demo-sandboxes';
-        value: number | DemoSandbox;
+        relationTo: 'ai-settings';
+        value: number | AiSetting;
       } | null)
     | ({
-        relationTo: 'demo-leads';
-        value: number | DemoLead;
+        relationTo: 'ai-conversations';
+        value: number | AiConversation;
+      } | null)
+    | ({
+        relationTo: 'ai-messages';
+        value: number | AiMessage;
+      } | null)
+    | ({
+        relationTo: 'ai-documents';
+        value: number | AiDocument;
+      } | null)
+    | ({
+        relationTo: 'ai-memories';
+        value: number | AiMemory;
+      } | null)
+    | ({
+        relationTo: 'ai-actions';
+        value: number | AiAction;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -2152,9 +2476,6 @@ export interface PayloadMigration {
  */
 export interface TenantsSelect<T extends boolean = true> {
   name?: T;
-  isSandbox?: T;
-  expiresAt?: T;
-  purgeAt?: T;
   slug?: T;
   domains?:
     | T
@@ -2270,7 +2591,6 @@ export interface UsersSelect<T extends boolean = true> {
       };
   status?: T;
   statusReason?: T;
-  sandboxTenant?: T;
   roles?: T;
   twoFactorEnabled?: T;
   twoFactor?:
@@ -2911,6 +3231,132 @@ export interface OrdersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-methods_select".
+ */
+export interface PaymentMethodsSelect<T extends boolean = true> {
+  tenant?: T;
+  method?: T;
+  enabled?: T;
+  position?: T;
+  title?: T;
+  mode?: T;
+  instructions?: T;
+  credentialsSet?: T;
+  cred_merchantId?: T;
+  cred_terminalId?: T;
+  cred_username?: T;
+  cred_password?: T;
+  cred_apiKey?: T;
+  credentialsSealed?: T;
+  cards?:
+    | T
+    | {
+        number?: T;
+        holder?: T;
+        bank?: T;
+        id?: T;
+      };
+  usdtLegalAck?: T;
+  usdtRateToman?: T;
+  usdtRateRial?: T;
+  usdtRateUpdatedAt?: T;
+  wallets?:
+    | T
+    | {
+        network?: T;
+        address?: T;
+        id?: T;
+      };
+  manualChannels?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments_select".
+ */
+export interface PaymentsSelect<T extends boolean = true> {
+  tenant?: T;
+  order?: T;
+  user?: T;
+  course?: T;
+  cohort?: T;
+  method?: T;
+  methodRow?: T;
+  provider?: T;
+  methodTitle?: T;
+  instalmentIndexes?: T;
+  amount?: T;
+  status?: T;
+  verifiedBy?: T;
+  reuseKey?: T;
+  authority?: T;
+  refId?: T;
+  cardPan?: T;
+  card?:
+    | T
+    | {
+        last4?: T;
+        tracking?: T;
+        paidAt?: T;
+        toCard?: T;
+        receipt?: T;
+      };
+  usdt?:
+    | T
+    | {
+        network?: T;
+        wallet?: T;
+        tokenContract?: T;
+        rateRial?: T;
+        units?: T;
+        display?: T;
+        quotedAt?: T;
+        txHash?: T;
+        confirmations?: T;
+        check?: T;
+        checkedAt?: T;
+      };
+  manual?:
+    | T
+    | {
+        channel?: T;
+        reference?: T;
+        paidAt?: T;
+        note?: T;
+      };
+  recordedBy?: T;
+  recordedAt?: T;
+  confirmedBy?: T;
+  confirmedAt?: T;
+  rejectedBy?: T;
+  rejectedAt?: T;
+  rejectionReason?: T;
+  error?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-receipts_select".
+ */
+export interface PaymentReceiptsSelect<T extends boolean = true> {
+  tenant?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "coupons_select".
  */
 export interface CouponsSelect<T extends boolean = true> {
@@ -3150,33 +3596,126 @@ export interface RedirectsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "demo-sandboxes_select".
+ * via the `definition` "ai-settings_select".
  */
-export interface DemoSandboxesSelect<T extends boolean = true> {
+export interface AiSettingsSelect<T extends boolean = true> {
   tenant?: T;
-  tenantSlug?: T;
-  status?: T;
-  expiresAt?: T;
-  purgedAt?: T;
-  ipHash?: T;
-  creatorKeyHash?: T;
-  powNonce?: T;
-  buildMs?: T;
+  enabled?: T;
+  assistantName?: T;
+  provider?: T;
+  model?: T;
+  baseUrl?: T;
+  apiKeySealed?: T;
+  apiKeyHint?: T;
+  embeddingModel?: T;
+  privacy?:
+    | T
+    | {
+        names?: T;
+        nationalCodes?: T;
+        phones?: T;
+        emails?: T;
+      };
+  limits?:
+    | T
+    | {
+        perMinute?: T;
+        perDay?: T;
+        monthlyTokenLimit?: T;
+        monthlyCostLimitRial?: T;
+        inputPricePerMillionRial?: T;
+        outputPricePerMillionRial?: T;
+      };
+  lastTest?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-conversations_select".
+ */
+export interface AiConversationsSelect<T extends boolean = true> {
+  tenant?: T;
+  user?: T;
+  title?: T;
+  pagePath?: T;
+  lastMessageAt?: T;
+  messageCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-messages_select".
+ */
+export interface AiMessagesSelect<T extends boolean = true> {
+  tenant?: T;
+  conversation?: T;
+  user?: T;
+  role?: T;
+  content?: T;
+  citations?: T;
+  tools?: T;
+  proposals?: T;
+  inputTokens?: T;
+  outputTokens?: T;
+  provider?: T;
+  model?: T;
   error?: T;
   updatedAt?: T;
   createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "demo-leads_select".
+ * via the `definition` "ai-documents_select".
  */
-export interface DemoLeadsSelect<T extends boolean = true> {
-  name?: T;
-  email?: T;
-  consent?: T;
-  consentText?: T;
-  sandbox?: T;
-  source?: T;
+export interface AiDocumentsSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  filename?: T;
+  mimeType?: T;
+  size?: T;
+  status?: T;
+  error?: T;
+  chunkCount?: T;
+  characters?: T;
+  embeddingModel?: T;
+  uploadedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-memories_select".
+ */
+export interface AiMemoriesSelect<T extends boolean = true> {
+  tenant?: T;
+  text?: T;
+  status?: T;
+  proposedBy?: T;
+  decidedBy?: T;
+  decidedAt?: T;
+  conversation?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-actions_select".
+ */
+export interface AiActionsSelect<T extends boolean = true> {
+  tenant?: T;
+  kind?: T;
+  input?: T;
+  summary?: T;
+  status?: T;
+  proposedBy?: T;
+  conversation?: T;
+  expiresAt?: T;
+  decidedAt?: T;
+  targetCollection?: T;
+  targetId?: T;
+  error?: T;
   updatedAt?: T;
   createdAt?: T;
 }

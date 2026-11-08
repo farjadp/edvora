@@ -32,7 +32,15 @@ type Group = { key: string; label: string; items: Mod[] }
 const any = (...k: string[]): Requirement => ({ any: k })
 
 export const CONSOLE_GROUPS: Group[] = [
-  { key: 'dashboard', label: 'داشبورد', items: [{ key: 'overview', label: 'نمای کلی', icon: 'dashboard', desk: 'overview' }] },
+  {
+    key: 'dashboard',
+    label: 'داشبورد',
+    items: [
+      { key: 'overview', label: 'نمای کلی', icon: 'dashboard', desk: 'overview' },
+      // E-046 (ADR 018): the assistant's own section (chats, documents, memory, settings) lives in /staff.
+      { key: 'assistant', label: 'دستیار هوشمند', icon: 'spark', slug: 'ai-conversations', read: any('ai.use'), page: '/staff/assistant' },
+    ],
+  },
   {
     key: 'crm',
     label: 'مشتریان',
@@ -47,6 +55,9 @@ export const CONSOLE_GROUPS: Group[] = [
     items: [
       { key: 'orders', label: 'سفارش‌ها و اقساط', icon: 'orders', slug: 'orders', desk: 'finance', read: any('orders.view') },
       { key: 'coupons', label: 'کدهای تخفیف', icon: 'coupon', slug: 'coupons', read: any('coupons.manage') },
+      // E-045 (ADR 017). Payments: desk for the daily queue; the Payload list is read-only history.
+      { key: 'payments', label: 'پرداخت‌ها', icon: 'card', slug: 'payments', read: any('orders.view') },
+      { key: 'payment-methods', label: 'روش‌های پرداخت', icon: 'settings', slug: 'payment-methods', read: any('payments.settings') },
     ],
   },
   {

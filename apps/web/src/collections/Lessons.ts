@@ -1,6 +1,6 @@
 import { formatJalali, lessonUnlockAt, validateDripRule, type DripMode } from '@edvora/core'
 import type { CollectionBeforeValidateHook, CollectionConfig, FieldAccess } from 'payload'
-import { allow, allowCreate, anyone, fieldAllow, guard, nobody } from '../access/permissions'
+import { allow, allowCreate, anyOf, fieldAllow, guard, nobody } from '../access/permissions'
 import { auditChange } from '../hooks/audit'
 import { idOf } from '../lib/ids'
 import { throwFieldErrors } from '../lib/validation'
@@ -64,8 +64,13 @@ export const Lessons: CollectionConfig = {
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'course', 'module', 'order', 'drip.mode'], group: { fa: 'آموزش', en: 'Learning' } },
   access: {
     // Outline fields (title, order, module, duration, free preview, drip rule) are public for course pages.
-    // Paid content fields are restricted below (contentRead).
-    read: anyone,
+    // Paid content fields are restricted below (contentRead). ACC-04: only lessons of published courses are public;
+    // staff of the academy (within their course scope) also see lessons of drafts.
+    read: anyOf(
+      () => ({ 'course.status': { equals: 'published' } }),
+      allow('courses.view', { course: 'course' }),
+      allow('lessons.edit', { course: 'course' }),
+    ),
     create: allowCreate('lessons.edit'),
     update: allow('lessons.edit', { course: 'course' }),
     delete: nobody,
