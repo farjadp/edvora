@@ -18,6 +18,7 @@ Notion page 06 and are created only when their work starts.
 | `content-producer` | Transcribes/structures academy content into Edvora fields; flags unverified claims and consent | sonnet | 2026-11-06 | E-030 import of iranbrandacademy.com (#08) |
 | `farjad-inbox` | Collects every question/approval/to-do waiting on Farjad into one Persian list (`/inbox`), takes his answers and delivers them back; ledger `docs/agents/inbox.md` | sonnet | 2026-11-07 | Farjad can't keep up with asks from many parallel agents |
 | `ux-writer` | Persian microcopy, FAQ and user guides in `docs/guide/`, checked against the running app | sonnet | 2026-11-07 | E-036 user guides (#07) |
+| `github-manager` | Keeps PRs moving: fixes red CI, resolves conflicts and migration clashes, labels `hold`, prepares release PRs (never merges); works with `automerge.yml` (green PRs into develop merge themselves) | sonnet | 2026-11-08 | Farjad didn't want to watch GitHub and merge by hand |
 
 ## Planned (create when needed — Notion page 06)
 | # | Agent | Create when |

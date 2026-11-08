@@ -1,0 +1,61 @@
+name: Auto-merge into develop
+
+# Farjad asked (2026-11-08) for PRs to merge themselves once CI is green, so nobody has to watch and poll.
+# Scope: PRs into `develop` only. Releases into `main` stay a manual merge by Farjad (AGENTS.md).
+# Opt out per PR with the `hold` label, or open it as a draft.
+# Note: `workflow_run` workflows run from the default branch, so this takes effect once it is on `main`.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+concurrency:
+  group: automerge
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  merge:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+    steps:
+      - name: Merge the PR if it qualifies
+        run: |
+          set -euo pipefail
+          pr=$(gh pr list -R "$REPO" --state open --head "$BRANCH" --json number,baseRefName,isDraft,headRefOid,isCrossRepository,labels \
+            --jq "[.[] | select(.headRefOid == \"$SHA\")][0] // empty")
+          if [ -z "$pr" ]; then echo "No open PR whose head is $SHA (newer commit pushed, or already merged)."; exit 0; fi
+          num=$(jq -r .number <<<"$pr")
+          base=$(jq -r .baseRefName <<<"$pr")
+          draft=$(jq -r .isDraft <<<"$pr")
+          fork=$(jq -r .isCrossRepository <<<"$pr")
+          hold=$(jq -r '[.labels[].name] | index("hold") != null' <<<"$pr")
+          echo "PR #$num base=$base draft=$draft fork=$fork hold=$hold"
+          if [ "$base" != "develop" ] || [ "$draft" = "true" ] || [ "$fork" = "true" ] || [ "$hold" = "true" ]; then
+            echo "Not eligible for auto-merge."; exit 0
+          fi
+          # Every check on this commit must have passed (CI is one workflow today; this also covers any added later).
+          bad=$(gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+            --jq '[.check_runs[] | select(.name != "merge") | select(.status != "completed" or (.conclusion != "success" and .conclusion != "skipped" and .conclusion != "neutral"))] | length')
+          if [ "$bad" != "0" ]; then echo "$bad check(s) not green on $SHA; not merging."; exit 0; fi
+          for i in 1 2 3 4 5; do
+            state=$(gh pr view "$num" -R "$REPO" --json mergeable --jq .mergeable)
+            [ "$state" != "UNKNOWN" ] && break; sleep 5
+          done
+          if [ "$state" != "MERGEABLE" ]; then
+            gh pr comment "$num" -R "$REPO" --body "Auto-merge skipped: CI is green but the PR conflicts with \`develop\` ($state). Merge \`develop\` into the branch; CI will run again and it will merge itself."
+            exit 0
+          fi
+          gh pr merge "$num" -R "$REPO" --merge --match-head-commit "$SHA"
+          gh pr comment "$num" -R "$REPO" --body "Merged automatically into \`develop\`: every CI check on \`${SHA:0:7}\` was green. CI now runs again on \`develop\`."
+          gh workflow run ci.yml -R "$REPO" --ref develop

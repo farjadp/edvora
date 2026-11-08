@@ -4,6 +4,8 @@ on:
   push:
     branches: [main, develop]
   pull_request:
+  # automerge.yml re-runs CI on develop after it merges (merges made with GITHUB_TOKEN don't fire `push`).
+  workflow_dispatch:
 
 jobs:
   check:
