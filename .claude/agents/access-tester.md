@@ -52,8 +52,11 @@ never in reports.
 1. `docs/qa/access-matrix.md` — rows = users, columns = surface/action, cells = expected (from the permission
    catalog `packages/core/src/permissions.ts` and ADR 006) vs actual: ✅ match, ❌ mismatch (link to bug), ⚠️ unclear
    spec. Date + commit at the top.
-2. Each ❌ → a bug in `docs/qa/bugs.md` (QA format: ID · title · severity · tenant · steps · expected · actual ·
-   evidence · suspected area). A user seeing or changing what they shouldn't = **blocker**.
+2. Each ❌ → a bug (QA format: ID · title · severity · tenant · steps · expected · actual · evidence · suspected area).
+   A user seeing or changing what they shouldn't = **blocker**. **The repo is public:** access/security bugs go to the
+   private Notion page «Security findings», not to `docs/qa/bugs.md`; in the matrix and the spec, link only the ID
+   (`ACC-NN`) and mark the cell ❌ without exploit steps until the fix is merged. Hand exploitable ones to
+   `security-auditor`.
 3. `e2e/tests/access-matrix.spec.ts` — the matrix as a data-driven Playwright spec (demo tenant, mock providers), so
    CI keeps checking it. Keep it fast: API-level checks first, a few UI checks per role.
 4. **Gaps report** (section at the end of the matrix): role settings that are missing or awkward (permissions that
