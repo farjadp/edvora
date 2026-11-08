@@ -128,3 +128,20 @@ describe('E-039 role experience: menu sections', () => {
     expect(keys(staffConsoleNav(advisorFinance))).not.toContain('orders')
   })
 })
+
+describe('modules built alongside the console (E-032, E-033, E-030)', () => {
+  it('platform admin sees WordPress import, live classes, attendance, pages and redirects in /admin', () => {
+    const k = keys(adminConsoleNav(everyRead, PLATFORM))
+    for (const key of ['import', 'live-sessions', 'attendance', 'pages', 'redirects']) expect(k, key).toContain(key)
+  })
+
+  it('WordPress import opens the /staff/import page from both consoles, only with import.view', () => {
+    const withImport: StaffPerms = { isPlatformAdmin: false, permissions: ['import.view'] }
+    const admin = adminConsoleNav(everyRead, withImport).flatMap((g) => g.items).find((i) => i.key === 'import')
+    expect(admin).toMatchObject({ href: '/staff/import', external: true })
+    const staff = staffConsoleNav(withImport).flatMap((g) => g.items).find((i) => i.key === 'import')
+    expect(staff).toMatchObject({ href: '/staff/import', external: false })
+    expect(keys(adminConsoleNav(everyRead, NOBODY))).not.toContain('import')
+  })
+})
+
