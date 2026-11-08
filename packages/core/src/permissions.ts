@@ -40,6 +40,8 @@ export const PERMISSION_GROUPS = {
   academy: ['settings.edit', 'audit.view', 'payments.settings'],
   /** E-032 (ADR 011): WordPress import. Academy-grantable; `import.run` writes data, `import.view` reads reports. */
   migration: ['import.view', 'import.run'],
+  /** E-046 (ADR 018): the staff AI assistant. `ai.use` = chat with it; `ai.manage` = settings, key, knowledge base, memory. */
+  ai: ['ai.use', 'ai.manage'],
   /** Edvora staff only. Never grantable inside an academy. */
   platform: ['tenants.manage', 'tenants.credentials', 'impersonate'],
 } as const
@@ -104,6 +106,7 @@ export const PERMISSION_GROUP_LABELS: Record<PermissionGroup, { fa: string; en: 
   reports: { fa: 'گزارش‌ها', en: 'Reports' },
   academy: { fa: 'آکادمی', en: 'Academy' },
   migration: { fa: 'انتقال از وردپرس', en: 'WordPress import' },
+  ai: { fa: 'دستیار هوشمند', en: 'AI assistant' },
   platform: { fa: 'پلتفرم ادورا', en: 'Platform' },
 }
 
@@ -181,6 +184,8 @@ export const PERMISSION_DESCRIPTIONS: Record<AcademyPermission, { fa: string; en
   'audit.view': { fa: 'دیدن گزارش ممیزی (چه کسی چه کرد)', en: 'View the audit log' },
   'import.view': { fa: 'دیدن گزارش‌های انتقال از وردپرس', en: 'View WordPress import reports' },
   'import.run': { fa: 'اجرای انتقال از وردپرس', en: 'Run WordPress imports' },
+  'ai.use': { fa: 'گفت‌وگو با دستیار هوشمند (در حد دسترسی‌های خود شخص)', en: 'Use the AI assistant (within the person\'s own permissions)' },
+  'ai.manage': { fa: 'تنظیم دستیار هوشمند: کلید، مدل، اسناد و یادداشت‌های حافظه', en: 'Manage the AI assistant: key, model, documents, memory' },
 }
 
 /**

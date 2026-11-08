@@ -32,6 +32,7 @@ import { Nav as Nav_231477f0faa4368be46fd47ffb9da4d9 } from '../../../components
 import { Icon as Icon_81fda60f3e3709e861f40982a767707d } from '../../../components/admin/Brand'
 import { LoginLogo as LoginLogo_f54936618bb42a105f1e4f7049b2245f } from '../../../components/admin/LoginSkin'
 import { HeaderTools as HeaderTools_9414d29c2c9756e59a8d46abe37d7bbd } from '../../../components/admin/HeaderTools'
+import { AssistantLauncher as AssistantLauncher_b42c630d984d8ce342f6bfbdfd7dc262 } from '../../../components/admin/AssistantLauncher'
 import { AfterLogin as AfterLogin_f54936618bb42a105f1e4f7049b2245f } from '../../../components/admin/LoginSkin'
 import { DashboardHome as DashboardHome_84cd845a8766cfd3c2cceae49d5dee3d } from '../../../components/admin/DashboardHome'
 import { BeforeLogin as BeforeLogin_f54936618bb42a105f1e4f7049b2245f } from '../../../components/admin/LoginSkin'
@@ -77,6 +78,7 @@ export const importMap = {
   "/components/admin/Brand#Icon": Icon_81fda60f3e3709e861f40982a767707d,
   "/components/admin/LoginSkin#LoginLogo": LoginLogo_f54936618bb42a105f1e4f7049b2245f,
   "/components/admin/HeaderTools#HeaderTools": HeaderTools_9414d29c2c9756e59a8d46abe37d7bbd,
+  "/components/admin/AssistantLauncher#AssistantLauncher": AssistantLauncher_b42c630d984d8ce342f6bfbdfd7dc262,
   "/components/admin/LoginSkin#AfterLogin": AfterLogin_f54936618bb42a105f1e4f7049b2245f,
   "/components/admin/DashboardHome#DashboardHome": DashboardHome_84cd845a8766cfd3c2cceae49d5dee3d,
   "/components/admin/LoginSkin#BeforeLogin": BeforeLogin_f54936618bb42a105f1e4f7049b2245f,

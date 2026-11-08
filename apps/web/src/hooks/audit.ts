@@ -6,7 +6,7 @@ import { idOf } from '../lib/ids'
 /** Never written to the audit log. */
 const SKIP = new Set(['updatedAt', 'createdAt', 'hash', 'salt', 'sessions', 'loginAttempts', 'lockUntil', 'resetPasswordToken', 'resetPasswordExpiration', 'twoFactor', '_verified', '_verificationToken'])
 /** Logged as "changed" without the value. */
-const REDACT = new Set(['password', 'zarinpalMerchantId', 'nationalCode', 'credentialsSealed'])
+const REDACT = new Set(['password', 'zarinpalMerchantId', 'nationalCode', 'credentialsSealed', 'apiKeySealed'])
 const MAX_VALUE = 2000
 
 function normalise(v: unknown): unknown {
