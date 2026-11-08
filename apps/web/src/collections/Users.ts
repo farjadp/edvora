@@ -20,7 +20,22 @@ const tenantIds = (v: unknown): number[] =>
 
 const TENANTS_FIELD = 'tenants.tenant'
 
-/** Users visible to the actor: themselves, plus people in academies where they hold `permission`. */
+const PLATFORM_IDS_KEY = 'edvoraPlatformAdminIds'
+
+/** Ids of Edvora platform admins (any status), cached per request. */
+async function platformAdminIds(req: PayloadRequest): Promise<number[]> {
+  const cached = req.context[PLATFORM_IDS_KEY] as number[] | undefined
+  if (cached) return cached
+  const res = await req.payload.find({ collection: 'users', where: { roles: { contains: 'super-admin' } }, depth: 0, limit: 0, pagination: false, select: {}, overrideAccess: true, req })
+  const ids = res.docs.map((d) => d.id)
+  req.context[PLATFORM_IDS_KEY] = ids
+  return ids
+}
+
+/**
+ * Users visible to the actor: themselves, plus people in academies where they hold `permission`.
+ * ACC-05: platform admins (Edvora staff) are never listed inside an academy, only to other platform admins.
+ */
 const selfOr =
   (permission: string): Access =>
   async ({ req }) => {
@@ -29,7 +44,10 @@ const selfOr =
     const where = ctx ? accessWhere(ctx, permission, { tenant: TENANTS_FIELD }) : false
     if (where === true) return true
     const self: Where = { id: { equals: req.user.id } }
-    return where ? { or: [self, where as Where] } : self
+    if (!where) return self
+    const hidden = (await platformAdminIds(req)).filter((id) => id !== req.user?.id)
+    const academy: Where = hidden.length ? { and: [where as Where, { id: { not_in: hidden } }] } : (where as Where)
+    return { or: [self, academy] }
   }
 
 /** Sensitive profile fields (national code, internal notes): the person themselves or `users.view_sensitive`. */
@@ -45,6 +63,24 @@ const sensitive =
   }
 
 const staffOnly: FieldAccess = ({ req }) => isStaffRequest(req)
+
+/**
+ * ACC-01: staff-managed fields (notes, tags, source, status reason, "show on site"). Written only by someone with
+ * `users.create` (new user) / `users.edit` (existing user) in one of the person's academies, never by the person.
+ * Payload drops a write the actor may not make and keeps the stored value.
+ */
+const staffWrite: FieldAccess = async ({ req, id, doc, data }) => {
+  if (!req.user) return false
+  const targetId = doc?.id ?? id
+  if (targetId !== undefined && targetId !== null && String(targetId) === String(req.user.id)) return false
+  const ctx = await getAccess(req)
+  if (!ctx) return false
+  if (isPlatformAdmin(ctx)) return true
+  const creating = targetId === undefined || targetId === null
+  const tenants = tenantIds(creating ? data?.tenants : doc?.tenants)
+  return tenants.some((t) => can(ctx, t, creating ? 'users.create' : 'users.edit'))
+}
+const STAFF_WRITE = { create: staffWrite, update: staffWrite } as const
 const platformOnly: FieldAccess = ({ req }) => isSuperAdmin(req.user)
 
 function denyUnless(ok: boolean, message: string): void {
@@ -225,7 +261,7 @@ export const Users: CollectionConfig = {
               type: 'group',
               label: { fa: 'پروفایل عمومی (مدرسان)', en: 'Public profile (instructors)' },
               fields: [
-                { name: 'showOnSite', type: 'checkbox', defaultValue: false, label: { fa: 'نمایش در سایت', en: 'Show on site' } },
+                { name: 'showOnSite', type: 'checkbox', defaultValue: false, label: { fa: 'نمایش در سایت', en: 'Show on site' }, access: STAFF_WRITE },
                 { name: 'title', type: 'text', label: { fa: 'عنوان در صفحه دوره', en: 'Title on course pages' } },
                 richTextField({ name: 'bio', label: { fa: 'معرفی', en: 'Bio' }, tenantsOf: userTenants }),
               ],
@@ -239,7 +275,7 @@ export const Users: CollectionConfig = {
               type: 'row',
               fields: [
                 { name: 'status', type: 'select', defaultValue: 'active', index: true, label: { fa: 'وضعیت حساب', en: 'Account status' }, options: [...USER_STATUSES] },
-                { name: 'statusReason', type: 'text', label: { fa: 'دلیل تغییر وضعیت', en: 'Status reason' } },
+                { name: 'statusReason', type: 'text', label: { fa: 'دلیل تغییر وضعیت', en: 'Status reason' }, access: STAFF_WRITE },
               ],
             },
             {
@@ -285,12 +321,12 @@ export const Users: CollectionConfig = {
         {
           label: { fa: 'داخلی', en: 'Internal' },
           fields: [
-            { name: 'tags', type: 'text', hasMany: true, label: { fa: 'برچسب‌ها', en: 'Tags' }, access: { read: staffOnly } },
+            { name: 'tags', type: 'text', hasMany: true, label: { fa: 'برچسب‌ها', en: 'Tags' }, access: { read: staffOnly, ...STAFF_WRITE } },
             {
               name: 'source',
               type: 'select',
               label: { fa: 'منبع', en: 'Source' },
-              access: { read: staffOnly },
+              access: { read: staffOnly, ...STAFF_WRITE },
               options: [
                 { value: 'self-signup', label: { fa: 'ثبت‌نام در سایت', en: 'Self sign-up' } },
                 { value: 'lead', label: { fa: 'از سرنخ', en: 'From a lead' } },
@@ -298,7 +334,7 @@ export const Users: CollectionConfig = {
                 { value: 'manual', label: { fa: 'ایجاد دستی', en: 'Manual' } },
               ],
             },
-            { name: 'internalNotes', type: 'textarea', label: { fa: 'یادداشت داخلی', en: 'Internal notes' }, access: { read: sensitive(false) } },
+            { name: 'internalNotes', type: 'textarea', label: { fa: 'یادداشت داخلی', en: 'Internal notes' }, access: { read: sensitive(false), ...STAFF_WRITE } },
           ],
         },
       ],
