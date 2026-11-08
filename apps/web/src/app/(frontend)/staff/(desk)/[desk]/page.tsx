@@ -1,4 +1,4 @@
-import { STAFF_DESKS, deskDef, landingDesk, type DeskKey } from '@edvora/core/staff'
+import { STAFF_DESKS, deskDef, landingTarget, type DeskKey } from '@edvora/core/staff'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { staff2faRequired } from '../../../../../access/permissions'
@@ -42,7 +42,7 @@ export default async function DeskPage({ params, searchParams }: Props) {
   if (!isDesk(desk)) notFound()
   await requireStaff(`/staff/${desk}`, desk)
   const { description, adminLink } = deskCopy(desk, s)
-  const promo = landingDesk(s) === desk && !s.user.twoFactorEnabled && !staff2faRequired()
+  const promo = landingTarget(s) === deskDef(desk).href && !s.user.twoFactorEnabled && !staff2faRequired()
 
   let body
   switch (desk) {

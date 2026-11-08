@@ -7,7 +7,8 @@ import * as migration_20261107_042828_e032_wordpress_import from './20261107_042
 import * as migration_20261107_053815_e033_live_classes_storage from './20261107_053815_e033_live_classes_storage';
 import * as migration_20261107_060240_e028_gamification from './20261107_060240_e028_gamification';
 import * as migration_20261107_141016_e030_iba_import from './20261107_141016_e030_iba_import';
-import * as migration_20261108_162717_e045_payment_methods from './20261108_162717_e045_payment_methods';
+import * as migration_20261108_150947_e039_role_settings from './20261108_150947_e039_role_settings';
+import * as migration_20261108_165628_e045_payment_methods from './20261108_165628_e045_payment_methods';
 
 export const migrations = [
   {
@@ -56,8 +57,13 @@ export const migrations = [
     name: '20261107_141016_e030_iba_import',
   },
   {
-    up: migration_20261108_162717_e045_payment_methods.up,
-    down: migration_20261108_162717_e045_payment_methods.down,
-    name: '20261108_162717_e045_payment_methods'
+    up: migration_20261108_150947_e039_role_settings.up,
+    down: migration_20261108_150947_e039_role_settings.down,
+    name: '20261108_150947_e039_role_settings',
+  },
+  {
+    up: migration_20261108_165628_e045_payment_methods.up,
+    down: migration_20261108_165628_e045_payment_methods.down,
+    name: '20261108_165628_e045_payment_methods'
   },
 ];

@@ -56,6 +56,9 @@ they shouldn't — and prove it, not guess it.
 - Findings table: ID (`SEC-NNN`) · title · severity (critical / high / medium / low / info, with one-line reason) ·
   where (file:line or URL) · proof · fix suggestion · status.
 - **Security GO / NO-GO** for the release. Any critical or high = NO-GO.
-Add new findings to `docs/security/findings.md` (running list). Never publish details of an open critical/high
-outside the repo and Notion. End with the handoff block (Task · Output · Decisions made · Open issues · Next owner =
+**The repo is public (since 2026-11-08).** Open findings — with steps, proof or exploit details — go only to the private
+Notion page «Security findings» (via `knowledge-keeper` / Notion tools), never to git, PR text, commit messages or
+public issues. In the repo, `docs/security/findings.md` lists only **fixed** findings (ID, title, severity, fix PR) once
+the fix is merged and deployed. Regression tests may describe the attack only after the fix has landed; write them in
+the same PR as the fix. End with the handoff block (Task · Output · Decisions made · Open issues · Next owner =
 `tech-lead` for fixes, `head-of-product` for the GO/NO-GO).

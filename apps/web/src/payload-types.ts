@@ -498,6 +498,39 @@ export interface Role {
         | 'import.run'
       )[]
     | null;
+  security?: {
+    /**
+     * The role works only after this session passed the authenticator code.
+     */
+    require2fa?: boolean | null;
+    /**
+     * Empty = no limit. After this many hours from sign-in the person must sign in again.
+     */
+    maxSessionHours?: number | null;
+    loginHours?: {
+      enabled?: boolean | null;
+      from?: number | null;
+      /**
+       * E.g. 8 to 18. If "from" is larger, the window wraps midnight (22 to 6).
+       */
+      to?: number | null;
+    };
+  };
+  experience?: {
+    /**
+     * If the person cannot open it, the automatic landing is used.
+     */
+    landing?:
+      ('auto' | 'overview' | 'leads' | 'finance' | 'students' | 'teaching' | 'support' | 'content' | 'admin') | null;
+    /**
+     * Empty = every section the person has access to.
+     */
+    menuSections?: ('dashboard' | 'crm' | 'sales' | 'learning' | 'students' | 'content' | 'settings')[] | null;
+    /**
+     * Empty = every widget.
+     */
+    dashboardWidgets?: ('kpis' | 'alerts' | 'activity' | 'donut' | 'bars' | 'quick' | 'summary')[] | null;
+  };
   /**
    * Set by the seed for the built-in templates.
    */
@@ -2407,6 +2440,26 @@ export interface RolesSelect<T extends boolean = true> {
   key?: T;
   description?: T;
   permissions?: T;
+  security?:
+    | T
+    | {
+        require2fa?: T;
+        maxSessionHours?: T;
+        loginHours?:
+          | T
+          | {
+              enabled?: T;
+              from?: T;
+              to?: T;
+            };
+      };
+  experience?:
+    | T
+    | {
+        landing?: T;
+        menuSections?: T;
+        dashboardWidgets?: T;
+      };
   template?: T;
   archived?: T;
   updatedAt?: T;

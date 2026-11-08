@@ -60,6 +60,8 @@ export default buildConfig({
       beforeLogin: ['/components/admin/LoginSkin#BeforeLogin'],
       afterLogin: ['/components/admin/LoginSkin#AfterLogin'],
       beforeDashboard: ['/components/admin/DashboardHome#DashboardHome'],
+      // E-039 (ADR 016): who-can-do-what table across the selected academy's roles.
+      views: { rolesCompare: { Component: '/components/admin/RolesCompare#RolesCompare', path: '/roles-compare' } },
     },
     // Dates with `timezone: true` (drip release, assignment deadline) are entered in Tehran time and stored UTC.
     timezones: { supportedTimezones: [{ label: 'تهران (Asia/Tehran)', value: 'Asia/Tehran' }], defaultTimezone: 'Asia/Tehran' },

@@ -1862,6 +1862,172 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.roles_experience_menu_sections": {
+      "name": "roles_experience_menu_sections",
+      "schema": "",
+      "columns": {
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "enum_roles_experience_menu_sections",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "roles_experience_menu_sections_order_idx": {
+          "name": "roles_experience_menu_sections_order_idx",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "roles_experience_menu_sections_parent_idx": {
+          "name": "roles_experience_menu_sections_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "roles_experience_menu_sections_parent_fk": {
+          "name": "roles_experience_menu_sections_parent_fk",
+          "tableFrom": "roles_experience_menu_sections",
+          "tableTo": "roles",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.roles_experience_dashboard_widgets": {
+      "name": "roles_experience_dashboard_widgets",
+      "schema": "",
+      "columns": {
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "enum_roles_experience_dashboard_widgets",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "roles_experience_dashboard_widgets_order_idx": {
+          "name": "roles_experience_dashboard_widgets_order_idx",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "roles_experience_dashboard_widgets_parent_idx": {
+          "name": "roles_experience_dashboard_widgets_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "roles_experience_dashboard_widgets_parent_fk": {
+          "name": "roles_experience_dashboard_widgets_parent_fk",
+          "tableFrom": "roles_experience_dashboard_widgets",
+          "tableTo": "roles",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.roles": {
       "name": "roles",
       "schema": "",
@@ -1895,6 +2061,46 @@
           "type": "varchar",
           "primaryKey": false,
           "notNull": false
+        },
+        "security_require2fa": {
+          "name": "security_require2fa",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "security_max_session_hours": {
+          "name": "security_max_session_hours",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "security_login_hours_enabled": {
+          "name": "security_login_hours_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "security_login_hours_from": {
+          "name": "security_login_hours_from",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "security_login_hours_to": {
+          "name": "security_login_hours_to",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "experience_landing": {
+          "name": "experience_landing",
+          "type": "enum_roles_experience_landing",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'auto'"
         },
         "template": {
           "name": "template",
@@ -16107,6 +16313,47 @@
         "import.run"
       ]
     },
+    "public.enum_roles_experience_menu_sections": {
+      "name": "enum_roles_experience_menu_sections",
+      "schema": "public",
+      "values": [
+        "dashboard",
+        "crm",
+        "sales",
+        "learning",
+        "students",
+        "content",
+        "settings"
+      ]
+    },
+    "public.enum_roles_experience_dashboard_widgets": {
+      "name": "enum_roles_experience_dashboard_widgets",
+      "schema": "public",
+      "values": [
+        "kpis",
+        "alerts",
+        "activity",
+        "donut",
+        "bars",
+        "quick",
+        "summary"
+      ]
+    },
+    "public.enum_roles_experience_landing": {
+      "name": "enum_roles_experience_landing",
+      "schema": "public",
+      "values": [
+        "auto",
+        "overview",
+        "leads",
+        "finance",
+        "students",
+        "teaching",
+        "support",
+        "content",
+        "admin"
+      ]
+    },
     "public.enum_memberships_status": {
       "name": "enum_memberships_status",
       "schema": "public",
@@ -16649,6 +16896,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "dea68f16-da12-42b8-a521-f3ac0ac81109",
+  "id": "3809d463-81e0-477c-85c5-698a96fd0b35",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }
