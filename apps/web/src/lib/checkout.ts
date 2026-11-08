@@ -1,31 +1,13 @@
 import 'server-only'
-import { applyCoupon, buildInstalmentPlan, formatToman, rial, type Coupon as CoreCoupon } from '@edvora/core'
+import { formatToman, priceOrder, rial } from '@edvora/core'
 import type { Payload } from 'payload'
-import type { Coupon, Order, Tenant } from '../payload-types'
+import type { Order, Tenant } from '../payload-types'
+import { CheckoutError, findCoupon, toCoreCoupon } from './coupons'
 import { idOf } from './ids'
 import { getRequestOrigin } from './origin'
 import { getPayment, notify } from './providers'
 
-export class CheckoutError extends Error {}
-
-/** Finds a usable coupon for this academy, or throws a user-facing error. */
-export async function findCoupon(payload: Payload, tenantId: number, code: string | undefined): Promise<Coupon | null> {
-  if (!code?.trim()) return null
-  const res = await payload.find({
-    collection: 'coupons',
-    where: { and: [{ tenant: { equals: tenantId } }, { code: { equals: code.trim().toUpperCase() } }, { active: { equals: true } }] },
-    limit: 1,
-    overrideAccess: true,
-  })
-  const coupon = res.docs[0]
-  if (!coupon) throw new CheckoutError('کد تخفیف معتبر نیست.')
-  if (coupon.validUntil && new Date(coupon.validUntil) < new Date()) throw new CheckoutError('مهلت این کد تخفیف تمام شده است.')
-  if (coupon.usageLimit && (coupon.usedCount ?? 0) >= coupon.usageLimit) throw new CheckoutError('ظرفیت این کد تخفیف تکمیل شده است.')
-  return coupon
-}
-
-const toCoreCoupon = (c: Coupon | null): CoreCoupon | null =>
-  !c ? null : c.kind === 'percent' ? { kind: 'percent', value: c.value, maxDiscount: c.maxDiscount ? rial(c.maxDiscount) : undefined } : { kind: 'fixed', value: rial(c.value) }
+export { CheckoutError, findCoupon }
 
 export async function createOrder(args: {
   payload: Payload
@@ -42,12 +24,14 @@ export async function createOrder(args: {
   if (cohort.seats && (cohort.seatsTaken ?? 0) >= cohort.seats) throw new CheckoutError('ظرفیت این دوره تکمیل شده است.')
 
   const course = typeof cohort.course === 'object' ? cohort.course : await payload.findByID({ collection: 'courses', id: cohort.course, overrideAccess: true })
-  const subtotal = rial(cohort.priceOverride ?? course.price)
   const coupon = await findCoupon(payload, tenant.id, args.couponCode)
-  const { price: total, discount } = applyCoupon(subtotal, toCoreCoupon(coupon))
-
-  const count = Math.max(1, Math.min(args.instalmentCount, course.maxInstalments ?? 1))
-  const plan = buildInstalmentPlan({ total, count, downPaymentPercent: count > 1 ? 40 : 0, firstDueDate: new Date() })
+  const { subtotal, discount, total, instalments } = priceOrder({
+    price: cohort.priceOverride ?? course.price,
+    coupon: toCoreCoupon(coupon),
+    instalmentCount: args.instalmentCount,
+    maxInstalments: course.maxInstalments,
+    firstDueDate: new Date(),
+  })
 
   return payload.create({
     collection: 'orders',
@@ -62,7 +46,7 @@ export async function createOrder(args: {
       total,
       couponCode: coupon?.code ?? null,
       status: 'pending',
-      instalments: plan.map((p) => ({ index: p.index, amount: p.amount, dueDate: p.dueDate.toISOString(), status: 'pending' as const })),
+      instalments: instalments.map((p) => ({ index: p.index, amount: p.amount, dueDate: p.dueDate.toISOString(), status: 'pending' as const })),
       payments: [],
     },
   })
