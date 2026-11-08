@@ -10,6 +10,7 @@
     "./persian": "./src/persian.ts",
     "./previewGate": "./src/previewGate.ts",
     "./money": "./src/money.ts",
+    "./payments": "./src/payments.ts",
     "./staff": "./src/staff.ts",
     "./login": "./src/login.ts",
     "./phone": "./src/phone.ts",

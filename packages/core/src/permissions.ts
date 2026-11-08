@@ -36,7 +36,7 @@ export const PERMISSION_GROUPS = {
   support: ['tickets.view.own', 'tickets.view.all', 'tickets.reply', 'tickets.assign'],
   messaging: ['sms.send_single', 'sms.broadcast', 'templates.edit'],
   reports: ['reports.sales', 'reports.finance', 'reports.learning'],
-  academy: ['settings.edit', 'audit.view'],
+  academy: ['settings.edit', 'audit.view', 'payments.settings'],
   /** E-032 (ADR 011): WordPress import. Academy-grantable; `import.run` writes data, `import.view` reads reports. */
   migration: ['import.view', 'import.run'],
   /** Edvora staff only. Never grantable inside an academy. */
@@ -111,6 +111,9 @@ export const PERMISSION_LABELS: Partial<Record<Permission, { fa: string; en: str
   'users.2fa.reset': { fa: 'بازنشانی تأیید دومرحله‌ای', en: 'Reset two-factor authentication' },
   'import.view': { fa: 'دیدن گزارش‌های انتقال از وردپرس', en: 'View WordPress import reports' },
   'import.run': { fa: 'اجرای انتقال از وردپرس', en: 'Run WordPress imports' },
+  'payments.manual.record': { fa: 'ثبت و بررسی اول پرداخت‌های دستی و کارت‌به‌کارت', en: 'Record / first-check offline payments' },
+  'payments.manual.approve': { fa: 'تأیید نهایی یا رد پرداخت‌های دستی (نفر دوم)', en: 'Confirm or reject offline payments (second person)' },
+  'payments.settings': { fa: 'تنظیم روش‌های پرداخت و اطلاعات درگاه‌ها', en: 'Payment methods and gateway credentials' },
 }
 
 // ---------------------------------------------------------------- Role templates
