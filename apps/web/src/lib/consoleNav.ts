@@ -51,6 +51,9 @@ export const CONSOLE_GROUPS: Group[] = [
     items: [
       { key: 'orders', label: 'سفارش‌ها و اقساط', icon: 'orders', slug: 'orders', desk: 'finance', read: any('orders.view') },
       { key: 'coupons', label: 'کدهای تخفیف', icon: 'coupon', slug: 'coupons', read: any('coupons.manage') },
+      // E-045 (ADR 017). Payments: desk for the daily queue; the Payload list is read-only history.
+      { key: 'payments', label: 'پرداخت‌ها', icon: 'card', slug: 'payments', read: any('orders.view') },
+      { key: 'payment-methods', label: 'روش‌های پرداخت', icon: 'settings', slug: 'payment-methods', read: any('payments.settings') },
     ],
   },
   {

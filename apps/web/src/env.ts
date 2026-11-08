@@ -17,6 +17,20 @@ const schema = z.object({
     .string()
     .optional()
     .transform((v) => v !== 'false'),
+  // E-045 (ADR 017). Sealing key for gateway credentials; falls back to PAYLOAD_SECRET. Set a dedicated one in production.
+  PAYMENT_SECRETS_KEY: optionalText,
+  PAYMENT_RECEIPTS_DIR: optionalText,
+  // USDT on-chain verification. mock = deterministic (tests, demo). Default: mock when PAYMENT_PROVIDER=mock.
+  CHAIN_VERIFIER: z.preprocess(blank, z.enum(['mock', 'live']).optional()),
+  TRONGRID_API_URL: z.preprocess(blank, z.string().url().default('https://api.trongrid.io')),
+  TRONGRID_TESTNET_API_URL: z.preprocess(blank, z.string().url().default('https://nile.trongrid.io')),
+  TRONGRID_API_KEY: optionalText,
+  BSC_API_URL: z.preprocess(blank, z.string().url().default('https://api.etherscan.io/v2/api?chainid=56')),
+  BSC_TESTNET_API_URL: z.preprocess(blank, z.string().url().default('https://api.etherscan.io/v2/api?chainid=97')),
+  BSC_API_KEY: optionalText,
+  /** Testnet USDT contracts for sandbox mode (no default: testnets have many look-alike tokens). */
+  USDT_TRC20_TESTNET_CONTRACT: optionalText,
+  USDT_BEP20_TESTNET_CONTRACT: optionalText,
   SMS_PROVIDER: z.enum(['mock', 'kavenegar']).default('mock'),
   KAVENEGAR_API_KEY: z.string().optional(),
   KAVENEGAR_SENDER: z.string().optional(),

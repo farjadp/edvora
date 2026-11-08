@@ -103,15 +103,17 @@ theme colours are derived and always pass, `tenantPalette`). A failing colour is
 shade offered. The checks live in `@edvora/ui/color` (`colourChecks`) and run in the live preview too.
 
 ### 9. `zarinpalMerchantId`
-E-045 (payment methods) has not landed in `develop` when this was written, so the field stays on `tenants` and the
-hub does not show it. When E-045 lands, its `payment-methods` screen owns gateway credentials and a later migration
-moves the value there.
+E-045 (payment methods) landed while this was built; its checkout reads only `payment-methods` (or env), so the old
+field was already unused. Migration `e047_zarinpal_to_payment_methods` moves each stored merchant id into a
+**disabled** Zarinpal row in `payment-methods` (sealed by that collection's hook) and clears the old value; an
+academy that already has a Zarinpal row is left as it is. The field is hidden and read-only; dropping the column is
+deleting data and waits for Farjad's approval. The dead `getPayment(tenant)` helper is removed.
 
 ## Consequences
 - New: `integration-settings` collection (tenant-scoped, in `multiTenantPlugin.collections`), `platform-settings`
   global, Tenant fields (identity, SEO, social, certificate signer, login texts, toggles, legal pages, message
   templates, limits), permission `settings.integrations`, env `SETTINGS_SECRETS_KEY` (optional), migration
-  `e047_settings_hub`.
+  `e047_settings_hub`, `e047_admin_integrations_key`, `e047_zarinpal_to_payment_methods`.
 - The old Tenants tabs keep working for super admins; academy staff are sent to the hub from the nav.
 - Rotating `SETTINGS_SECRETS_KEY` makes stored keys unreadable (they show "could not be opened, enter again"); the
   env fallback keeps sending in the meantime.

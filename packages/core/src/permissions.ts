@@ -37,7 +37,7 @@ export const PERMISSION_GROUPS = {
   support: ['tickets.view.own', 'tickets.view.all', 'tickets.reply', 'tickets.assign'],
   messaging: ['sms.send_single', 'sms.broadcast', 'templates.edit'],
   reports: ['reports.sales', 'reports.finance', 'reports.learning'],
-  academy: ['settings.edit', 'audit.view', 'settings.integrations'],
+  academy: ['settings.edit', 'audit.view', 'settings.integrations', 'payments.settings'],
   /** E-032 (ADR 011): WordPress import. Academy-grantable; `import.run` writes data, `import.view` reads reports. */
   migration: ['import.view', 'import.run'],
   /** Edvora staff only. Never grantable inside an academy. */
@@ -178,6 +178,7 @@ export const PERMISSION_DESCRIPTIONS: Record<AcademyPermission, { fa: string; en
   'reports.finance': { fa: 'دیدن گزارش‌های مالی', en: 'View finance reports' },
   'reports.learning': { fa: 'دیدن گزارش‌های آموزشی', en: 'View learning reports' },
   'settings.edit': { fa: 'تغییر تنظیمات آکادمی (نام، رنگ، دامنه)', en: 'Edit academy settings' },
+  'payments.settings': { fa: 'تنظیم روش‌های پرداخت، اطلاعات درگاه، کارت‌ها، کیف پول و نرخ تتر', en: 'Payment methods, gateway credentials, cards, wallets and the USDT rate' },
   'audit.view': { fa: 'دیدن گزارش ممیزی (چه کسی چه کرد)', en: 'View the audit log' },
   'settings.integrations': { fa: 'تنظیم سرویس‌های بیرونی و کلیدهای API (پیامک، ایمیل، کلاس زنده)', en: 'Configure integrations and API keys' },
   'import.view': { fa: 'دیدن گزارش‌های انتقال از وردپرس', en: 'View WordPress import reports' },

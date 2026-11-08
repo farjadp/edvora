@@ -42,6 +42,9 @@ export interface Config {
     'learning-events': LearningEvent;
     leads: Lead;
     orders: Order;
+    'payment-methods': PaymentMethod;
+    payments: Payment;
+    'payment-receipts': PaymentReceipt;
     coupons: Coupon;
     testimonials: Testimonial;
     posts: Post;
@@ -84,6 +87,9 @@ export interface Config {
     'learning-events': LearningEventsSelect<false> | LearningEventsSelect<true>;
     leads: LeadsSelect<false> | LeadsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
+    'payment-methods': PaymentMethodsSelect<false> | PaymentMethodsSelect<true>;
+    payments: PaymentsSelect<false> | PaymentsSelect<true>;
+    'payment-receipts': PaymentReceiptsSelect<false> | PaymentReceiptsSelect<true>;
     coupons: CouponsSelect<false> | CouponsSelect<true>;
     testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
@@ -341,9 +347,6 @@ export interface Tenant {
         id?: string | null;
       }[]
     | null;
-  /**
-   * The academy's own gateway. Money goes straight to the academy.
-   */
   zarinpalMerchantId?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -620,6 +623,7 @@ export interface Role {
         | 'settings.edit'
         | 'audit.view'
         | 'settings.integrations'
+        | 'payments.settings'
         | 'import.view'
         | 'import.run'
       )[]
@@ -1553,6 +1557,160 @@ export interface Lead {
   createdAt: string;
 }
 /**
+ * Methods students see at checkout. Gateway credentials are encrypted and never shown. With no rows, the instance default gateway is used.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-methods".
+ */
+export interface PaymentMethod {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  method: 'mellat' | 'saman' | 'zarinpal' | 'zibal' | 'idpay' | 'payir' | 'nextpay' | 'usdt' | 'card' | 'manual';
+  enabled?: boolean | null;
+  /**
+   * Lower first
+   */
+  position?: number | null;
+  title: string;
+  mode?: ('sandbox' | 'live') | null;
+  instructions?: string | null;
+  /**
+   * Which values are stored. The values are never shown.
+   */
+  credentialsSet?: ('merchantId' | 'terminalId' | 'username' | 'password' | 'apiKey')[] | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_merchantId?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_terminalId?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_username?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_password?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_apiKey?: string | null;
+  credentialsSealed?: string | null;
+  cards?:
+    | {
+        number: string;
+        holder: string;
+        bank?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  usdtLegalAck?: boolean | null;
+  /**
+   * Set by hand; no rate feed.
+   */
+  usdtRateToman?: number | null;
+  /**
+   * Same rate in rials (computed)
+   */
+  usdtRateRial?: number | null;
+  usdtRateUpdatedAt?: string | null;
+  wallets?:
+    | {
+        network: 'trc20' | 'bep20';
+        address: string;
+        id?: string | null;
+      }[]
+    | null;
+  manualChannels?: ('cash' | 'pos' | 'transfer' | 'other')[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Read only. Payments are made at checkout and handled on the finance desk.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments".
+ */
+export interface Payment {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  order: number | Order;
+  user: number | User;
+  course?: (number | null) | Course;
+  cohort?: (number | null) | Cohort;
+  method: 'mellat' | 'saman' | 'zarinpal' | 'zibal' | 'idpay' | 'payir' | 'nextpay' | 'usdt' | 'card' | 'manual';
+  methodRow?: (number | null) | PaymentMethod;
+  provider?: string | null;
+  methodTitle?: string | null;
+  instalmentIndexes: number[];
+  amount: number;
+  status: 'started' | 'submitted' | 'recorded' | 'confirmed' | 'rejected' | 'failed';
+  verifiedBy?: ('gateway' | 'chain' | 'people') | null;
+  reuseKey?: string | null;
+  authority?: string | null;
+  refId?: string | null;
+  cardPan?: string | null;
+  card?: {
+    last4?: string | null;
+    tracking?: string | null;
+    paidAt?: string | null;
+    toCard?: string | null;
+    receipt?: (number | null) | PaymentReceipt;
+  };
+  usdt?: {
+    network?: ('trc20' | 'bep20') | null;
+    wallet?: string | null;
+    tokenContract?: string | null;
+    rateRial?: number | null;
+    units?: string | null;
+    display?: string | null;
+    quotedAt?: string | null;
+    txHash?: string | null;
+    confirmations?: number | null;
+    check?: string | null;
+    checkedAt?: string | null;
+  };
+  manual?: {
+    channel?: ('cash' | 'pos' | 'transfer' | 'other') | null;
+    reference?: string | null;
+    paidAt?: string | null;
+    note?: string | null;
+  };
+  recordedBy?: (number | null) | User;
+  recordedAt?: string | null;
+  confirmedBy?: (number | null) | User;
+  confirmedAt?: string | null;
+  rejectedBy?: (number | null) | User;
+  rejectedAt?: string | null;
+  rejectionReason?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-receipts".
+ */
+export interface PaymentReceipt {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  owner: number | User;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "coupons".
  */
@@ -2109,6 +2267,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'orders';
         value: number | Order;
+      } | null)
+    | ({
+        relationTo: 'payment-methods';
+        value: number | PaymentMethod;
+      } | null)
+    | ({
+        relationTo: 'payments';
+        value: number | Payment;
+      } | null)
+    | ({
+        relationTo: 'payment-receipts';
+        value: number | PaymentReceipt;
       } | null)
     | ({
         relationTo: 'coupons';
@@ -3024,6 +3194,132 @@ export interface OrdersSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-methods_select".
+ */
+export interface PaymentMethodsSelect<T extends boolean = true> {
+  tenant?: T;
+  method?: T;
+  enabled?: T;
+  position?: T;
+  title?: T;
+  mode?: T;
+  instructions?: T;
+  credentialsSet?: T;
+  cred_merchantId?: T;
+  cred_terminalId?: T;
+  cred_username?: T;
+  cred_password?: T;
+  cred_apiKey?: T;
+  credentialsSealed?: T;
+  cards?:
+    | T
+    | {
+        number?: T;
+        holder?: T;
+        bank?: T;
+        id?: T;
+      };
+  usdtLegalAck?: T;
+  usdtRateToman?: T;
+  usdtRateRial?: T;
+  usdtRateUpdatedAt?: T;
+  wallets?:
+    | T
+    | {
+        network?: T;
+        address?: T;
+        id?: T;
+      };
+  manualChannels?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments_select".
+ */
+export interface PaymentsSelect<T extends boolean = true> {
+  tenant?: T;
+  order?: T;
+  user?: T;
+  course?: T;
+  cohort?: T;
+  method?: T;
+  methodRow?: T;
+  provider?: T;
+  methodTitle?: T;
+  instalmentIndexes?: T;
+  amount?: T;
+  status?: T;
+  verifiedBy?: T;
+  reuseKey?: T;
+  authority?: T;
+  refId?: T;
+  cardPan?: T;
+  card?:
+    | T
+    | {
+        last4?: T;
+        tracking?: T;
+        paidAt?: T;
+        toCard?: T;
+        receipt?: T;
+      };
+  usdt?:
+    | T
+    | {
+        network?: T;
+        wallet?: T;
+        tokenContract?: T;
+        rateRial?: T;
+        units?: T;
+        display?: T;
+        quotedAt?: T;
+        txHash?: T;
+        confirmations?: T;
+        check?: T;
+        checkedAt?: T;
+      };
+  manual?:
+    | T
+    | {
+        channel?: T;
+        reference?: T;
+        paidAt?: T;
+        note?: T;
+      };
+  recordedBy?: T;
+  recordedAt?: T;
+  confirmedBy?: T;
+  confirmedAt?: T;
+  rejectedBy?: T;
+  rejectedAt?: T;
+  rejectionReason?: T;
+  error?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-receipts_select".
+ */
+export interface PaymentReceiptsSelect<T extends boolean = true> {
+  tenant?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -99,7 +99,7 @@ export const STAFF_DESKS: readonly DeskDef[] = [
 
 /** Nav link to Payload `/admin` (setup layer). Cosmetic filter: `/admin` itself still admits any staff (E-022 decision). */
 export const SETUP_ACCESS: Requirement = {
-  any: ['settings.edit', 'roles.manage', 'roles.assign', 'users.create', 'users.edit', 'courses.edit', 'courses.publish', 'pricing.edit', 'cohorts.manage', 'lessons.edit', 'content.edit', 'templates.edit'],
+  any: ['settings.edit', 'payments.settings', 'roles.manage', 'roles.assign', 'users.create', 'users.edit', 'courses.edit', 'courses.publish', 'pricing.edit', 'cohorts.manage', 'lessons.edit', 'content.edit', 'templates.edit'],
 }
 
 export type StaffPerms = {

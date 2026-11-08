@@ -2284,6 +2284,21 @@ h2.LexicalEditorTheme__h {
   margin-block: 0 20px;
 }
 
+/* E-045: legal warning on the Tether payment method (components/admin/UsdtWarning.tsx). */
+.ed-warning {
+  margin-block: 0 1.25rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--c-warn);
+  border-inline-start-width: 4px;
+  border-radius: 10px;
+  background: var(--c-warn-wash);
+  color: var(--c-ink);
+  line-height: 1.9;
+  p { margin: 0; }
+  p + p { margin-block-start: 0.5rem; }
+  strong { color: var(--c-warn); }
+}
+
 /* ---------------------------------------------------------------- E-047 settings hub (ADR 019) */
 .ed-set {
   padding-block: 24px 48px;

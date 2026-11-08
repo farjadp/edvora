@@ -286,11 +286,12 @@ export const Tenants: CollectionConfig = {
               ],
             },
             {
-              // TODO(E-045): moves to payment-methods once E-045 lands (ADR 019 §9).
+              // Legacy (ADR 019 §9): moved to a sealed Zarinpal row in payment-methods (E-045) by migration
+              // e047_zarinpal_to_payment_methods; nothing reads it any more. Dropping the column needs Farjad's OK.
               name: 'zarinpalMerchantId',
               type: 'text',
-              access: { read: settingsField, update: settingsField },
-              admin: { description: "The academy's own gateway. Money goes straight to the academy." },
+              access: { read: settingsField, update: () => false },
+              admin: { hidden: true },
             },
           ],
         },

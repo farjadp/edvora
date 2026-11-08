@@ -39,17 +39,6 @@ export function messageFor(tenant: Pick<Tenant, 'name' | 'messageTemplates'>, ev
   return t?.body ? renderTemplate(t.body, { academy: tenant.name, ...vars }).trim() || fallback : fallback
 }
 
-/** Each academy can use its own gateway account; falls back to the platform default. */
-export function getPayment(tenant: Tenant, origin?: string): PaymentProvider {
-  const e = env()
-  return createPaymentProvider({
-    provider: e.PAYMENT_PROVIDER,
-    zarinpalMerchantId: tenant.zarinpalMerchantId || e.ZARINPAL_MERCHANT_ID,
-    zarinpalSandbox: e.ZARINPAL_SANDBOX,
-    mockGatewayUrl: `${origin ?? e.NEXT_PUBLIC_SITE_URL}/pay/mock`,
-  })
-}
-
 /**
  * Live-class provider (ADR 012). One provider per Edvora instance (env), shared by its academies; the mock
  * needs no server and opens `/live/mock` on the request's own origin.
