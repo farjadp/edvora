@@ -5,6 +5,7 @@
  */
 import { activeMemberships, type AccessContext, type Id, type MembershipGrant } from './access'
 import { permissionBase, satisfies } from './permissions'
+import { ALL_EXPERIENCE, firstWithheld, mergeExperience, type MergedExperience, type WithheldReason } from './roleSettings'
 
 export type DeskKey = 'overview' | 'leads' | 'finance' | 'students' | 'teaching' | 'support' | 'content'
 
@@ -105,6 +106,8 @@ export type StaffPerms = {
   /** Union of the permissions of the user's active memberships in THIS academy. */
   permissions: readonly string[]
   isPlatformAdmin: boolean
+  /** E-039: merged experience of the person's active roles here (UX only). Missing = show everything. */
+  experience?: MergedExperience
 }
 
 const holds = (permissions: readonly string[], key: string) => permissions.some((p) => satisfies(p, key))
@@ -139,6 +142,20 @@ export function landingDesk(who: StaffPerms): DeskKey | null {
   return ranked.find((d) => meets(who, d.landing!))?.key ?? null
 }
 
+/**
+ * Where /staff sends a settled session (ADR 016): the first role landing the person can actually open, else the
+ * desk priority (ADR 008), else null (the neutral Start page). `admin` = Payload /admin (open to every staff user).
+ */
+export function landingTarget(who: StaffPerms): string | null {
+  for (const l of who.experience?.landings ?? []) {
+    if (l === 'admin') return '/admin'
+    if (l === 'auto') continue
+    if (STAFF_DESKS.some((d) => d.key === l) && canOpenDesk(who, l as DeskKey)) return deskDef(l as DeskKey).href
+  }
+  const desk = landingDesk(who)
+  return desk ? deskDef(desk).href : null
+}
+
 /** `/staff/leads/123` → `leads`. */
 export function deskForPath(path: string): DeskKey | null {
   const seg = /^\/staff\/([a-z]+)(?:\/|$|\?)/.exec(path)?.[1]
@@ -167,7 +184,17 @@ export function safeStaffNext(value: unknown, fallback = '/staff'): string {
 
 // ---------------------------------------------------------------- Gate
 
-export type StaffGateState = 'anonymous' | 'inactive' | 'needs-verify' | 'needs-enrol' | 'no-membership' | 'student' | 'ok'
+export type StaffGateState =
+  | 'anonymous'
+  | 'inactive'
+  | 'needs-verify'
+  | 'needs-enrol'
+  // E-039: every staff role here is withheld by its own security rule (ADR 016).
+  | 'session-too-old'
+  | 'outside-hours'
+  | 'no-membership'
+  | 'student'
+  | 'ok'
 
 export type StaffGateInput = {
   /** Null = no Payload session. */
@@ -180,7 +207,7 @@ export type StaffGateInput = {
   twoFactorRequired: boolean
 }
 
-export type StaffGate = { state: StaffGateState } & StaffPerms
+export type StaffGate = { state: StaffGateState } & StaffPerms & { experience: MergedExperience }
 
 const same = (a: Id, b: Id) => String(a) === String(b)
 
@@ -189,24 +216,40 @@ const same = (a: Id, b: Id) => String(a) === String(b)
  * code never learns which roles exist.
  */
 export function staffGate(input: StaffGateInput): StaffGate {
-  const deny = (state: StaffGateState): StaffGate => ({ state, permissions: [], isPlatformAdmin: false })
+  const deny = (state: StaffGateState): StaffGate => ({ state, permissions: [], isPlatformAdmin: false, experience: ALL_EXPERIENCE })
   const { ctx } = input
   if (!ctx) return deny('anonymous')
   if ((ctx.userStatus ?? 'active') !== 'active') return deny('inactive')
 
   // Grants as if the second factor were done; used only to decide whether the person is staff at all.
   const open: AccessContext = { ...ctx, secondFactorOk: true }
-  const staffAnywhere = ctx.isPlatformAdmin || activeMemberships(open).some((m) => m.permissions.length > 0)
+  const isStaffGrant = (m: MembershipGrant) => m.permissions.length > 0 || (m.withheld ?? []).some((w) => w.permissions.length > 0)
+  const staffAnywhere = ctx.isPlatformAdmin || activeMemberships(open).some(isStaffGrant)
 
   if (input.twoFactorEnabled && !input.sessionVerified) return deny('needs-verify')
   if (!input.twoFactorEnabled && input.twoFactorRequired && staffAnywhere) return deny('needs-enrol')
 
-  if (ctx.isPlatformAdmin) return { state: 'ok', permissions: [], isPlatformAdmin: true }
+  if (ctx.isPlatformAdmin) return { state: 'ok', permissions: [], isPlatformAdmin: true, experience: ALL_EXPERIENCE }
 
   const here = ctx.memberships.filter((m) => same(m.tenantId, input.tenantId))
   const activeHere: MembershipGrant[] = activeMemberships(open).filter((m) => same(m.tenantId, input.tenantId))
   const permissions = [...new Set(activeHere.flatMap((m) => m.permissions))]
-  if (permissions.length > 0) return { state: 'ok', permissions, isPlatformAdmin: false }
+  if (permissions.length > 0) {
+    const experience = mergeExperience(activeHere.filter((m) => m.permissions.length > 0).flatMap((m) => m.experience ?? []))
+    return { state: 'ok', permissions, isPlatformAdmin: false, experience }
+  }
+  // E-039: staff roles here that their own security rule switched off for this session.
+  const reasons: WithheldReason[] = activeHere.flatMap((m) => (m.withheld ?? []).filter((w) => w.permissions.length > 0).map((w) => w.reason))
+  switch (firstWithheld(reasons)) {
+    case 'needs-2fa':
+      return deny(input.twoFactorEnabled ? 'needs-verify' : 'needs-enrol')
+    case 'session-too-old':
+      return deny('session-too-old')
+    case 'outside-hours':
+      return deny('outside-hours')
+    case null:
+      break
+  }
   // Staff in another academy only, or a membership here that is suspended/expired → "not a member here".
   if (staffAnywhere || (here.length > 0 && activeHere.length === 0)) return deny('no-membership')
   // Signed in without any staff permission: a student (or plain) account.
