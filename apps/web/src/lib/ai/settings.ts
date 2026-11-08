@@ -36,9 +36,12 @@ type Stored = AiSetting & { apiKeySealed?: string | null }
 
 /** The academy's settings (defaults when none were saved). Server only; the sealed key never leaves this module. */
 export async function loadAiConfig(payload: Payload, tenantId: number): Promise<AiConfig & { sealed: string | null }> {
-  const res = await payload.find({ collection: 'ai-settings', where: { tenant: { equals: tenantId } }, limit: 1, depth: 0, overrideAccess: true, showHiddenFields: true })
+  const [res, tenant] = await Promise.all([
+    payload.find({ collection: 'ai-settings', where: { tenant: { equals: tenantId } }, limit: 1, depth: 0, overrideAccess: true, showHiddenFields: true }),
+    payload.findByID({ collection: 'tenants', id: tenantId, depth: 0, overrideAccess: true, disableErrors: true, select: { isSandbox: true } }),
+  ])
   const s = res.docs[0] as Stored | undefined
-  return {
+  const cfg = {
     id: s?.id ?? null,
     enabled: Boolean(s?.enabled),
     name: assistantName(s?.assistantName),
@@ -60,6 +63,15 @@ export async function loadAiConfig(payload: Payload, tenantId: number): Promise<
     lastTest: (s?.lastTest as AiConfig['lastTest']) ?? null,
     sealed: s?.apiKeySealed ?? null,
   }
+  // E-029 (ADR 013): a demo sandbox only ever talks to the mock provider: no key is opened, nothing leaves the server,
+  // and a public visitor cannot spend real API credit.
+  if (tenant?.isSandbox === true) return sandboxAiConfig(cfg)
+  return cfg
+}
+
+/** The config a sandbox academy runs with, whatever it saved: mock provider, no key, no custom base URL. */
+export function sandboxAiConfig<T extends AiConfig & { sealed: string | null }>(cfg: T): T {
+  return { ...cfg, provider: 'mock' as AiProviderName, model: 'mock-1', baseUrl: null, hasKey: false, keyHint: null, embeddingModel: null, sealed: null }
 }
 
 /** Public view of the config (for pages): no sealed key. */

@@ -145,11 +145,17 @@ async function enabledMethod(payload: Payload, tenantId: number, ref: MethodRef,
   return row
 }
 
-function gatewayFor(row: PaymentMethod | null, origin: string): PaymentGateway {
+/** E-029 (C8, ADR 013): is this academy a demo sandbox? Sandboxes use the mock gateway and chain, whatever the env says. */
+async function isSandboxTenant(payload: Payload, tenantId: number): Promise<boolean> {
+  const t = await payload.findByID({ collection: 'tenants', id: tenantId, depth: 0, overrideAccess: true, disableErrors: true, select: { isSandbox: true } })
+  return t?.isSandbox === true
+}
+
+function gatewayFor(row: PaymentMethod | null, origin: string, sandboxTenant: boolean): PaymentGateway {
   const e = env()
   const mockGatewayUrl = `${origin}/pay/mock`
-  // ADR 017 §5: the demo and CI run every gateway against the mock.
-  if (e.PAYMENT_PROVIDER === 'mock') return createGateway({ gateway: 'mock', sandbox: true, credentials: {}, mockGatewayUrl })
+  // ADR 017 §5: the demo and CI run every gateway against the mock. E-029: so does every demo sandbox.
+  if (sandboxTenant || e.PAYMENT_PROVIDER === 'mock') return createGateway({ gateway: 'mock', sandbox: true, credentials: {}, mockGatewayUrl })
   if (!row) return createPaymentProvider({ provider: e.PAYMENT_PROVIDER, zarinpalMerchantId: e.ZARINPAL_MERCHANT_ID, zarinpalSandbox: e.ZARINPAL_SANDBOX, mockGatewayUrl })
   if (PAYMENT_METHODS[row.method].kind !== 'gateway') throw new PaymentError('این روش پرداخت در دسترس نیست.')
   return createGateway({
@@ -249,7 +255,7 @@ async function confirmAndApply(payload: Payload, payment: Payment, from: Payment
   if (applied.firstPayment) await onFirstPayment(payload, updated, tenant)
   else {
     const user = await payload.findByID({ collection: 'users', id: idOf(order.user)!, depth: 0, overrideAccess: true })
-    await notify(user.phone, `${tenant.name}: پرداخت ${formatToman(rial(payment.amount))} برای سفارش ${order.id} تأیید شد.`)
+    await notify(user.phone, `${tenant.name}: پرداخت ${formatToman(rial(payment.amount))} برای سفارش ${order.id} تأیید شد.`, tenant)
   }
   return { order: updated, status: applied.status }
 }
@@ -262,7 +268,7 @@ export async function startGatewayPayment(args: { payload: Payload; tenant: Tena
   const { payload, tenant, order, user, origin } = args
   const row = await enabledMethod(payload, tenant.id, args.method, 'gateway')
   const sel = await pickInstalments(payload, order, args.pick)
-  const gateway = gatewayFor(row, origin)
+  const gateway = gatewayFor(row, origin, tenant.isSandbox === true)
   const payment = await newPayment(payload, order, {
     method: row?.method ?? 'zarinpal',
     methodRow: row?.id ?? null,
@@ -308,7 +314,7 @@ export async function handleGatewayCallback(payload: Payload, paymentId: number,
   if (payment.status !== 'started') return { status: 'failed', paymentId, orderId, message: BANK_RETURNS }
 
   const row = payment.methodRow ? await payload.findByID({ collection: 'payment-methods', id: idOf(payment.methodRow)!, depth: 0, overrideAccess: true, showHiddenFields: true }) : null
-  const gateway = gatewayFor(row, env().NEXT_PUBLIC_SITE_URL)
+  const gateway = gatewayFor(row, env().NEXT_PUBLIC_SITE_URL, await isSandboxTenant(payload, tenantId))
   const cb = gateway.parseCallback(params)
   if (!cb || cb.authority !== payment.authority) return { status: 'failed', paymentId, orderId, message: 'تراکنش پیدا نشد.' }
 
@@ -356,20 +362,21 @@ export async function handleGatewayCallback(payload: Payload, paymentId: number,
 
 // ---------------------------------------------------------------- Tether (USDT)
 
-const chainMode = () => env().CHAIN_VERIFIER ?? (env().PAYMENT_PROVIDER === 'mock' ? 'mock' : 'live')
+/** E-029: a sandbox academy always uses the mock chain (no TronGrid/BscScan calls). */
+const chainMode = (sandboxTenant = false) => (sandboxTenant ? 'mock' : (env().CHAIN_VERIFIER ?? (env().PAYMENT_PROVIDER === 'mock' ? 'mock' : 'live')))
 
-function tokenFor(network: UsdtNetwork, sandbox: boolean): { contract: string | null; decimals: number; minConfirmations: number } {
+function tokenFor(network: UsdtNetwork, sandbox: boolean, sandboxTenant: boolean): { contract: string | null; decimals: number; minConfirmations: number } {
   const t = USDT_TOKENS[network]
   // The mock chain has no testnet: it checks against the mainnet contract in both modes.
-  if (!sandbox || chainMode() === 'mock') return { contract: t.contract, decimals: t.decimals, minConfirmations: t.minConfirmations }
+  if (!sandbox || chainMode(sandboxTenant) === 'mock') return { contract: t.contract, decimals: t.decimals, minConfirmations: t.minConfirmations }
   const e = env()
   const contract = (network === 'trc20' ? e.USDT_TRC20_TESTNET_CONTRACT : e.USDT_BEP20_TESTNET_CONTRACT) ?? null
   return { contract, decimals: t.decimals, minConfirmations: t.minConfirmations }
 }
 
-function verifierFor(network: UsdtNetwork, sandbox: boolean) {
+function verifierFor(network: UsdtNetwork, sandbox: boolean, sandboxTenant: boolean) {
   const e = env()
-  if (chainMode() === 'mock') return createChainVerifier({ verifier: 'mock' })
+  if (chainMode(sandboxTenant) === 'mock') return createChainVerifier({ verifier: 'mock' })
   if (network === 'trc20') return createChainVerifier({ verifier: 'live', network, apiUrl: sandbox ? e.TRONGRID_TESTNET_API_URL : e.TRONGRID_API_URL, apiKey: e.TRONGRID_API_KEY })
   if (!e.BSC_API_KEY) return null // BscScan/Etherscan need a key: without one, verification is "unavailable".
   return createChainVerifier({ verifier: 'live', network, apiUrl: sandbox ? e.BSC_TESTNET_API_URL : e.BSC_API_URL, apiKey: e.BSC_API_KEY })
@@ -382,16 +389,17 @@ export async function startUsdtPayment(args: { payload: Payload; tenant: Tenant;
   if (!row) throw new PaymentError('این روش پرداخت در دسترس نیست.')
   const wallet = row.wallets?.find((w) => w.network === network)
   if (!wallet || !row.usdtRateRial || !row.usdtLegalAck) throw new PaymentError('پرداخت تتر روی این شبکه فعال نیست.')
-  if (network === 'trc20' && chainMode() === 'live' && !isTronAddress(wallet.address)) throw new PaymentError('پرداخت تتر روی این شبکه فعال نیست.')
+  const sbx = tenant.isSandbox === true
+  if (network === 'trc20' && chainMode(sbx) === 'live' && !isTronAddress(wallet.address)) throw new PaymentError('پرداخت تتر روی این شبکه فعال نیست.')
   const sandbox = row.mode !== 'live'
-  const token = tokenFor(network, sandbox)
+  const token = tokenFor(network, sandbox, sbx)
   const sel = await pickInstalments(payload, order, args.pick)
   const q = usdtQuote(sel.amount, row.usdtRateRial, token.decimals)
   const payment = await newPayment(payload, order, {
     method: 'usdt',
     methodRow: row.id,
     methodTitle: row.title,
-    provider: chainMode() === 'mock' ? 'mock-chain' : network,
+    provider: chainMode(sbx) === 'mock' ? 'mock-chain' : network,
     instalmentIndexes: sel.indexes,
     amount: sel.amount,
     status: 'started',
@@ -440,7 +448,8 @@ export async function submitUsdtHash(args: { payload: Payload; tenantId: number;
 
   const row = p.methodRow ? await payload.findByID({ collection: 'payment-methods', id: idOf(p.methodRow)!, depth: 0, overrideAccess: true }) : null
   const sandbox = row?.mode !== 'live'
-  const token = tokenFor(network, sandbox)
+  const sbx = await isSandboxTenant(payload, args.tenantId)
+  const token = tokenFor(network, sandbox, sbx)
   const usdt = { ...p.usdt, txHash: hash, checkedAt: new Date().toISOString() }
   const toReview = async (why: string): Promise<UsdtSubmitResult> => {
     await transition(payload, p.id, 'started', { status: 'submitted', usdt: { ...usdt, check: `unavailable: ${why}`.slice(0, 200) } })
@@ -448,7 +457,7 @@ export async function submitUsdtHash(args: { payload: Payload; tenantId: number;
     return { state: 'review', message: USDT_CHECK_MESSAGES.unavailable }
   }
 
-  const verifier = verifierFor(network, sandbox)
+  const verifier = verifierFor(network, sandbox, sbx)
   if (!verifier || !token.contract) return toReview(!verifier ? 'no API key' : 'no testnet contract configured')
   let seen
   try {
@@ -583,7 +592,7 @@ export async function staffPaymentAction(s: StaffCtx, paymentId: number, action:
     if (!moved) throw new PaymentError(PAYMENT_ACTION_ERRORS.wrong_status)
     await audit(payload, s, { tenant: s.tenant.id, action: 'payments.rejected', docId: p.id, note: text, changes: { status: { from: p.status, to: 'rejected' } } })
     const user = await payload.findByID({ collection: 'users', id: idOf(p.user)!, depth: 0, overrideAccess: true })
-    await notify(user.phone, `${s.tenant.name}: پرداخت ${formatToman(rial(p.amount))} سفارش ${idOf(p.order)} تأیید نشد. دلیل و راه ادامه در پنل شما آمده است.`)
+    await notify(user.phone, `${s.tenant.name}: پرداخت ${formatToman(rial(p.amount))} سفارش ${idOf(p.order)} تأیید نشد. دلیل و راه ادامه در پنل شما آمده است.`, s.tenant)
     return 'rejected'
   }
   await confirmAndApply(payload, p, 'recorded', { confirmedBy: s.user.id, confirmedAt: now, verifiedBy: 'people' })
