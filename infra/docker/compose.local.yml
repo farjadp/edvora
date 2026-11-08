@@ -2,6 +2,8 @@
 name: edvora
 services:
   postgres:
+    # The AI assistant (E-046) uses pgvector when available (CI runs pgvector/pgvector:pg16); without it the app falls
+    # back to cosine in code. Switching an existing volume to that image is optional and needs a dump/restore.
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: edvora

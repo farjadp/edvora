@@ -10,6 +10,7 @@
     "./persian": "./src/persian.ts",
     "./previewGate": "./src/previewGate.ts",
     "./money": "./src/money.ts",
+    "./payments": "./src/payments.ts",
     "./staff": "./src/staff.ts",
     "./role-settings": "./src/roleSettings.ts",
     "./permissions": "./src/permissions.ts",
@@ -27,7 +28,13 @@
     "./console": "./src/console.ts",
     "./live": "./src/live.ts",
     "./wpimport": "./src/wpimport.ts",
-    "./phone": "./src/phone.ts"
+    "./ai": "./src/ai/index.ts",
+    "./ai/identity": "./src/ai/identity.ts",
+    "./phone": "./src/phone.ts",
+    "./sandbox": "./src/sandbox.ts",
+    "./pow": "./src/pow.ts",
+    "./settings": "./src/settings.ts",
+    "./settings-secrets": "./src/settingsSecrets.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

@@ -4,8 +4,7 @@ import type { Payload } from 'payload'
 import type { Order, Tenant } from '../payload-types'
 import { CheckoutError, findCoupon, toCoreCoupon } from './coupons'
 import { idOf } from './ids'
-import { getRequestOrigin } from './origin'
-import { getPayment, notify } from './providers'
+import { messageFor, notify } from './providers'
 
 export { CheckoutError, findCoupon }
 
@@ -52,87 +51,8 @@ export async function createOrder(args: {
   })
 }
 
-/** Starts a gateway payment for one instalment and returns the URL to send the buyer to. */
-export async function startInstalmentPayment(args: { payload: Payload; tenant: Tenant; order: Order; mobile?: string | null }): Promise<string> {
-  const { payload, tenant, order } = args
-  const next = order.instalments?.find((i) => i.status !== 'paid')
-  if (!next) throw new CheckoutError('همه اقساط این سفارش پرداخت شده است.')
-
-  const origin = await getRequestOrigin()
-  const gateway = getPayment(tenant, origin)
-  const { authority, redirectUrl } = await gateway.createPayment({
-    amount: next.amount,
-    description: `سفارش ${order.id} — قسط ${next.index + 1}`,
-    callbackUrl: `${origin}/payments/callback?order=${order.id}`,
-    mobile: args.mobile ?? undefined,
-    orderId: String(order.id),
-  })
-
-  await payload.update({
-    collection: 'orders',
-    id: order.id,
-    overrideAccess: true,
-    data: {
-      payments: [
-        ...(order.payments ?? []),
-        { instalmentIndex: next.index, provider: gateway.name, authority, amount: next.amount, status: 'started' as const },
-      ],
-    },
-  })
-  return redirectUrl
-}
-
-export type CallbackOutcome = { status: 'paid' | 'partial' | 'failed'; orderId: number; message?: string }
-
-/**
- * Handles the gateway callback. Idempotent: a verified attempt is never verified twice,
- * and enrollment is created once.
- */
-export async function handlePaymentCallback(payload: Payload, orderId: number, params: URLSearchParams): Promise<CallbackOutcome> {
-  const order = await payload.findByID({ collection: 'orders', id: orderId, depth: 0, overrideAccess: true })
-  const tenant = await payload.findByID({ collection: 'tenants', id: idOf(order.tenant)!, overrideAccess: true })
-  const gateway = getPayment(tenant)
-  const cb = gateway.parseCallback(params)
-  const attempt = order.payments?.find((p) => p.authority === cb?.authority)
-  if (!cb || !attempt) return { status: 'failed', orderId, message: 'تراکنش پیدا نشد.' }
-
-  const isFullyPaid = (o: Order) => (o.instalments ?? []).every((i) => i.status === 'paid')
-  if (attempt.status === 'verified') return { status: isFullyPaid(order) ? 'paid' : 'partial', orderId }
-
-  const markAttempt = (patch: Partial<NonNullable<Order['payments']>[number]>) =>
-    (order.payments ?? []).map((p) => (p.authority === attempt.authority ? { ...p, ...patch } : p))
-
-  if (!cb.success) {
-    await payload.update({ collection: 'orders', id: orderId, overrideAccess: true, data: { payments: markAttempt({ status: 'failed', error: 'cancelled' }) } })
-    return { status: 'failed', orderId, message: 'پرداخت انجام نشد یا لغو شد.' }
-  }
-
-  const result = await gateway.verify({ authority: attempt.authority, amount: attempt.amount })
-  if (!result.ok) {
-    await payload.update({ collection: 'orders', id: orderId, overrideAccess: true, data: { payments: markAttempt({ status: 'failed', error: `${result.code}: ${result.message}` }) } })
-    return { status: 'failed', orderId, message: 'بانک پرداخت را تأیید نکرد. اگر مبلغی کسر شده، تا ۷۲ ساعت بازمی‌گردد.' }
-  }
-
-  const firstPayment = !(order.instalments ?? []).some((i) => i.status === 'paid')
-  const instalments = (order.instalments ?? []).map((i) =>
-    i.index === attempt.instalmentIndex ? { ...i, status: 'paid' as const, paidAt: new Date().toISOString() } : i,
-  )
-  const updated = await payload.update({
-    collection: 'orders',
-    id: orderId,
-    overrideAccess: true,
-    data: {
-      instalments,
-      payments: markAttempt({ status: 'verified', refId: result.refId, cardPan: result.cardPan ?? null }),
-      status: instalments.every((i) => i.status === 'paid') ? 'paid' : 'partially_paid',
-    },
-  })
-
-  if (firstPayment) await onFirstPayment(payload, updated, tenant)
-  return { status: isFullyPaid(updated) ? 'paid' : 'partial', orderId }
-}
-
-async function onFirstPayment(payload: Payload, order: Order, tenant: Tenant) {
+/** First confirmed payment of an order: enrollment, seat, coupon use, SMS. Called by lib/payments only. */
+export async function onFirstPayment(payload: Payload, order: Order, tenant: Tenant) {
   const userId = idOf(order.user)!
   const courseId = idOf(order.course)!
   const cohortId = idOf(order.cohort)
@@ -169,5 +89,9 @@ async function onFirstPayment(payload: Payload, order: Order, tenant: Tenant) {
 
   const user = await payload.findByID({ collection: 'users', id: userId, depth: 0, overrideAccess: true })
   const course = await payload.findByID({ collection: 'courses', id: courseId, depth: 0, overrideAccess: true })
-  await notify(user.phone, `${tenant.name}: ثبت‌نام شما در «${course.title}» قطعی شد. مبلغ کل: ${formatToman(rial(order.total))}`)
+  await notify(
+    user.phone,
+    messageFor(tenant, 'enrolment.confirmed', { name: user.name ?? '', course: course.title, amount: formatToman(rial(order.total)) }, `${tenant.name}: ثبت‌نام شما در «${course.title}» قطعی شد. مبلغ کل: ${formatToman(rial(order.total))}`),
+    tenant.id,
+  )
 }

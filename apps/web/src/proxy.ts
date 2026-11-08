@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { checkPreviewGate, parsePreviewGate } from '@edvora/core/previewGate'
 import { ADMIN_DEFAULT_LANG, ADMIN_LANG_COOKIE, withDefaultAdminLanguage } from './lib/adminLanguage'
+import { sandboxGate } from './lib/sandbox/proxyGate'
 
 /**
  * Next proxy. Two independent jobs, no tenant logic:
@@ -16,6 +17,9 @@ import { ADMIN_DEFAULT_LANG, ADMIN_LANG_COOKIE, withDefaultAdminLanguage } from 
  *    cookie Payload would follow Accept-Language and render an English/LTR admin for an English browser. The cookie is
  *    added to this request (so the first render is already fa/RTL) and set on the response. English stays available:
  *    choosing it in Account sets the cookie, which this proxy then leaves alone.
+ *
+ * 3. Demo sandboxes (E-029, ADR 013): see lib/sandbox/proxyGate.ts. Only requests with the signed sandbox cookie on
+ *    the platform host are affected (ended sandbox → sessions cleared + ended state; live sandbox → /admin closed).
  */
 const gate = parsePreviewGate(process.env)
 
@@ -31,6 +35,9 @@ export function proxy(req: NextRequest) {
       headers: { 'WWW-Authenticate': 'Basic realm="Edvora preview", charset="UTF-8"', 'X-Robots-Tag': 'noindex, nofollow' },
     })
   }
+
+  const sandbox = sandboxGate(req)
+  if (sandbox) return sandbox
 
   let res = NextResponse.next()
   if (isAdminPath(req.nextUrl.pathname)) {

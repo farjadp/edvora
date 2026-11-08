@@ -1,14 +1,16 @@
+import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { Media } from '../../../payload-types'
 import { getPublishedCourses } from '../../../lib/queries'
-import { getCurrentTenant } from '../../../lib/tenant'
+import { getCurrentTenant, siteSectionOn } from '../../../lib/tenant'
 
 export const metadata: Metadata = { title: 'اساتید' }
 
 /** Faculty = everyone listed on a published course, merged by name (no separate collection yet). */
 export default async function FacultyPage() {
   const tenant = await getCurrentTenant()
+  if (!siteSectionOn(tenant, 'faculty')) notFound()
   const courses = await getPublishedCourses(tenant.id)
   const people = new Map<string, { name: string; role: string | null; photo: Media | null; courses: { slug: string; title: string }[] }>()
   for (const c of courses) {

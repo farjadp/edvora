@@ -11,12 +11,14 @@ import { fileURLToPath } from 'url'
 import { getAccess } from './access/permissions'
 import { isSuperAdmin } from './access/roles'
 import { tenantsWith } from '@edvora/core'
+import { AI_COLLECTIONS } from './collections/Ai'
 import { Assignments } from './collections/Assignments'
 import { AuditLogs } from './collections/AuditLogs'
 import { Certificates } from './collections/Certificates'
 import { Cohorts } from './collections/Cohorts'
 import { OtpCodes, Pages, Posts, Testimonials } from './collections/Content'
 import { Coupons } from './collections/Coupons'
+import { DemoLeads, DemoSandboxes } from './collections/Demo'
 import { Courses } from './collections/Courses'
 import { Enrollments } from './collections/Enrollments'
 import { LearningEvents } from './collections/LearningEvents'
@@ -27,13 +29,17 @@ import { Attendance, LiveEvents, LiveSessions } from './collections/LiveSessions
 import { Media } from './collections/Media'
 import { Memberships } from './collections/Memberships'
 import { Orders } from './collections/Orders'
+import { PaymentMethods } from './collections/PaymentMethods'
+import { PaymentReceipts, Payments } from './collections/Payments'
 import { Questions } from './collections/Questions'
 import { QuizAttempts } from './collections/QuizAttempts'
 import { Quizzes } from './collections/Quizzes'
 import { Roles } from './collections/Roles'
 import { SubmissionFiles } from './collections/SubmissionFiles'
 import { Submissions } from './collections/Submissions'
+import { IntegrationSettings } from './collections/IntegrationSettings'
 import { Tenants } from './collections/Tenants'
+import { PlatformSettings } from './globals/PlatformSettings'
 import { Users } from './collections/Users'
 import { richTextEditor } from './lib/richText'
 import { IMPORT_QUEUE, importTasks } from './lib/wpimport/tasks'
@@ -54,12 +60,17 @@ export default buildConfig({
     components: {
       graphics: { Logo: '/components/admin/LoginSkin#LoginLogo', Icon: '/components/admin/Brand#Icon' },
       Nav: '/components/admin/AdminNav#Nav',
-      actions: ['/components/admin/HeaderTools#HeaderTools'],
+      actions: ['/components/admin/HeaderTools#HeaderTools', '/components/admin/AssistantLauncher#AssistantLauncher'],
       beforeLogin: ['/components/admin/LoginSkin#BeforeLogin'],
       afterLogin: ['/components/admin/LoginSkin#AfterLogin'],
       beforeDashboard: ['/components/admin/DashboardHome#DashboardHome'],
       // E-039 (ADR 016): who-can-do-what table across the selected academy's roles.
-      views: { rolesCompare: { Component: '/components/admin/RolesCompare#RolesCompare', path: '/roles-compare' } },
+      views: {
+        rolesCompare: { Component: '/components/admin/RolesCompare#RolesCompare', path: '/roles-compare' },
+        // E-047 (ADR 019): the settings hub.
+        settings: { Component: '/components/admin/settings/SettingsHub#SettingsHub', path: '/settings', exact: true, meta: { title: 'تنظیمات' } },
+        settingsSection: { Component: '/components/admin/settings/SettingsHub#SettingsHub', path: '/settings/:section', meta: { title: 'تنظیمات' } },
+      },
     },
     // Dates with `timezone: true` (drip release, assignment deadline) are entered in Tehran time and stored UTC.
     timezones: { supportedTimezones: [{ label: 'تهران (Asia/Tehran)', value: 'Asia/Tehran' }], defaultTimezone: 'Asia/Tehran' },
@@ -91,6 +102,9 @@ export default buildConfig({
     LearningEvents,
     Leads,
     Orders,
+    PaymentMethods,
+    Payments,
+    PaymentReceipts,
     Coupons,
     Testimonials,
     Posts,
@@ -103,7 +117,15 @@ export default buildConfig({
     ImportJobs,
     ImportRefs,
     Redirects,
+    // E-029: platform-owned demo records (not tenant-owned, so not in multiTenantPlugin.collections).
+    DemoSandboxes,
+    DemoLeads,
+    // E-046: AI assistant (ADR 018).
+    ...AI_COLLECTIONS,
+    // E-047: settings hub (ADR 019).
+    IntegrationSettings,
   ],
+  globals: [PlatformSettings],
   // E-032: first use of the Payload jobs queue (ADR 011 §Resumability). Each import task works ≤ 20 s, then re-queues
   // itself with its cursor. One app process runs the queue (IMPORT_QUEUE_AUTORUN=false on the others).
   jobs: {
@@ -124,6 +146,8 @@ export default buildConfig({
     // After changing a collection: pnpm --filter @edvora/web payload migrate:create <name>
     push: process.env.NODE_ENV !== 'production',
     prodMigrations: migrations,
+    // E-046: `ai_chunks` (pgvector) is created by its migration / ensureChunkStore, not by Payload; keep dev push off it.
+    tablesFilter: ['*', '!ai_chunks'],
   }),
   sharp,
   plugins: [
@@ -153,6 +177,10 @@ export default buildConfig({
         certificates: {},
         leads: {},
         orders: {},
+        // E-045 (ADR 017): payment methods, payments, private receipts.
+        'payment-methods': {},
+        payments: {},
+        'payment-receipts': {},
         coupons: {},
         testimonials: {},
         posts: {},
@@ -181,8 +209,18 @@ export default buildConfig({
         'import-jobs': {},
         'import-refs': {},
         redirects: {},
+        // E-046: AI assistant (ADR 018). Vectors live in the raw `ai_chunks` table (tenant_id on every row).
+        'ai-settings': {},
+        'ai-conversations': {},
+        'ai-messages': {},
+        'ai-documents': {},
+        'ai-memories': {},
+        'ai-actions': {},
+        // E-047: an academy's own providers (sealed keys).
+        'integration-settings': {},
       },
-      // No hard delete: academies are never removed, so never cascade-delete their records.
+      // No hard delete: academies are never removed, so never cascade-delete their records. The one exception,
+      // demo sandboxes (ADR 013), is purged explicitly by lib/sandbox/cleanup.ts, collection by collection.
       cleanupAfterTenantDelete: false,
       userHasAccessToAllTenants: (user) => isSuperAdmin(user),
       // Academy staff may set academies on users where they hold users.create / users.edit;

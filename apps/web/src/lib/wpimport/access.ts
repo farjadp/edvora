@@ -20,5 +20,7 @@ export async function importActor(permission: ImportPermission): Promise<(StaffS
   const s = await getStaffSession()
   if (s.state !== 'ok' || !s.user) return null
   if (!meets(s, { any: [permission] })) return null
+  // E-029 (ADR 013): demo sandboxes never run imports (REST pulls and media downloads reach outside sites).
+  if (permission === 'import.run' && s.tenant.isSandbox) return null
   return s as StaffSession & { user: User }
 }

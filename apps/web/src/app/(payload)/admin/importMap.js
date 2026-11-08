@@ -27,16 +27,19 @@ import { PermissionsField as PermissionsField_b4881af166daa9a68b872c3255a65460 }
 import { RolesCompareLink as RolesCompareLink_717cb23881381d87be951b95a1f9ab2f } from '../../../components/admin/RolesCompareLink'
 import { AssignTenantFieldTrigger as AssignTenantFieldTrigger_1d0591e3cf4f332c83a86da13a0de59a } from '@payloadcms/plugin-multi-tenant/client'
 import { ListKpis as ListKpis_7c81f9263c65eadb96fd80525db7e6fd } from '../../../components/admin/ListKpis'
+import { UsdtWarning as UsdtWarning_156991864b2dc8b8e9cdbb18a51fd02e } from '../../../components/admin/UsdtWarning'
 import { Nav as Nav_231477f0faa4368be46fd47ffb9da4d9 } from '../../../components/admin/AdminNav'
 import { Icon as Icon_81fda60f3e3709e861f40982a767707d } from '../../../components/admin/Brand'
 import { LoginLogo as LoginLogo_f54936618bb42a105f1e4f7049b2245f } from '../../../components/admin/LoginSkin'
 import { HeaderTools as HeaderTools_9414d29c2c9756e59a8d46abe37d7bbd } from '../../../components/admin/HeaderTools'
+import { AssistantLauncher as AssistantLauncher_b42c630d984d8ce342f6bfbdfd7dc262 } from '../../../components/admin/AssistantLauncher'
 import { AfterLogin as AfterLogin_f54936618bb42a105f1e4f7049b2245f } from '../../../components/admin/LoginSkin'
 import { DashboardHome as DashboardHome_84cd845a8766cfd3c2cceae49d5dee3d } from '../../../components/admin/DashboardHome'
 import { BeforeLogin as BeforeLogin_f54936618bb42a105f1e4f7049b2245f } from '../../../components/admin/LoginSkin'
 import { TenantSelector as TenantSelector_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 import { TenantSelectionProvider as TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 import { RolesCompare as RolesCompare_59ca701930e825a6e9ab59882212054f } from '../../../components/admin/RolesCompare'
+import { SettingsHub as SettingsHub_d02eed6f7577d91a9511331ddb5e25ac } from '../../../components/admin/settings/SettingsHub'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
@@ -71,16 +74,19 @@ export const importMap = {
   "/components/admin/RolesCompareLink#RolesCompareLink": RolesCompareLink_717cb23881381d87be951b95a1f9ab2f,
   "@payloadcms/plugin-multi-tenant/client#AssignTenantFieldTrigger": AssignTenantFieldTrigger_1d0591e3cf4f332c83a86da13a0de59a,
   "/components/admin/ListKpis#ListKpis": ListKpis_7c81f9263c65eadb96fd80525db7e6fd,
+  "/components/admin/UsdtWarning#UsdtWarning": UsdtWarning_156991864b2dc8b8e9cdbb18a51fd02e,
   "/components/admin/AdminNav#Nav": Nav_231477f0faa4368be46fd47ffb9da4d9,
   "/components/admin/Brand#Icon": Icon_81fda60f3e3709e861f40982a767707d,
   "/components/admin/LoginSkin#LoginLogo": LoginLogo_f54936618bb42a105f1e4f7049b2245f,
   "/components/admin/HeaderTools#HeaderTools": HeaderTools_9414d29c2c9756e59a8d46abe37d7bbd,
+  "/components/admin/AssistantLauncher#AssistantLauncher": AssistantLauncher_b42c630d984d8ce342f6bfbdfd7dc262,
   "/components/admin/LoginSkin#AfterLogin": AfterLogin_f54936618bb42a105f1e4f7049b2245f,
   "/components/admin/DashboardHome#DashboardHome": DashboardHome_84cd845a8766cfd3c2cceae49d5dee3d,
   "/components/admin/LoginSkin#BeforeLogin": BeforeLogin_f54936618bb42a105f1e4f7049b2245f,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelector": TenantSelector_d6d5f193a167989e2ee7d14202901e62,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelectionProvider": TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62,
   "/components/admin/RolesCompare#RolesCompare": RolesCompare_59ca701930e825a6e9ab59882212054f,
+  "/components/admin/settings/SettingsHub#SettingsHub": SettingsHub_d02eed6f7577d91a9511331ddb5e25ac,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24
 }

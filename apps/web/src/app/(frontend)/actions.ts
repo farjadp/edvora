@@ -6,7 +6,8 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { z } from 'zod'
 import { env } from '../../env'
-import { CheckoutError, createOrder, startInstalmentPayment } from '../../lib/checkout'
+import { CheckoutError, createOrder } from '../../lib/checkout'
+import { PaymentError, loadStudentOrder, startUsdtPayment, submitCardPayment, submitUsdtHash } from '../../lib/payments'
 import { saveSubmission } from '../../lib/assignmentSubmissions'
 import { idOf } from '../../lib/ids'
 import { FOLLOW_UP_CONTEXT } from '../../collections/Leads'
@@ -14,7 +15,7 @@ import { canIn } from '../../access/permissions'
 import { onLessonMarked, onLessonWatched, safely, type WatchResult } from '../../lib/gamification'
 import { blockersFor, findEnrollment, loadCourseState } from '../../lib/learning'
 import { getPayloadClient } from '../../lib/payload'
-import { getSms, notify } from '../../lib/providers'
+import { getSmsFor, messageFor, notify } from '../../lib/providers'
 import { QuizError, saveAnswers, startAttempt, submitAttempt } from '../../lib/quizAttempts'
 import { getCurrentUser, startSession } from '../../lib/session'
 import { getStaffSession } from '../../lib/staff'
@@ -88,7 +89,12 @@ export async function submitLead(_prev: FormState, form: FormData): Promise<Form
           source: { page: data.page ?? null, utmSource: utm.get('utm_source'), utmCampaign: utm.get('utm_campaign') },
         },
       })
-      await notify(data.phone, `${tenant.name}: درخواست مشاوره شما ثبت شد. مشاوران ما به‌زودی با شما تماس می‌گیرند.`)
+      const courseTitle = data.courseId ? ((await payload.findByID({ collection: 'courses', id: data.courseId, depth: 0, overrideAccess: true, disableErrors: true }))?.title ?? '') : ''
+      await notify(
+        data.phone,
+        messageFor(tenant, 'lead.received', { name: data.name, course: courseTitle }, `${tenant.name}: درخواست مشاوره شما ثبت شد. مشاوران ما به‌زودی با شما تماس می‌گیرند.`),
+        tenant.id,
+      )
     }
     return { ok: true, message: 'درخواست شما ثبت شد. مشاوران ما به‌زودی با شما تماس می‌گیرند.' }
   } catch (err) {
@@ -155,6 +161,11 @@ export async function requestOtp(_prev: FormState, form: FormData): Promise<Form
 
   try {
     const payload = await getPayloadClient()
+    // E-029: demo sandboxes have no phone login (no real numbers, no SMS); the demo page signs people in.
+    const tenant = await getCurrentTenant()
+    if (tenant.isSandbox) {
+      return { ok: false, step: 'phone', message: 'در آکادمی آزمایشی ورود با پیامک غیرفعال است. از دکمهٔ «ورود» در صفحهٔ دمو یا نشانی ورود استفاده کنید.' }
+    }
     const recent = await payload.find({
       collection: 'otp-codes',
       where: { and: [{ phone: { equals: phone } }, { createdAt: { greater_than: new Date(Date.now() - 60 * 1000).toISOString() } }] },
@@ -169,7 +180,8 @@ export async function requestOtp(_prev: FormState, form: FormData): Promise<Form
       overrideAccess: true,
       data: { phone, codeHash: hashOtp(code, phone, env().SESSION_SECRET), expiresAt: new Date(Date.now() + OTP_TTL_MS).toISOString() },
     })
-    const sent = await getSms().sendTemplate({ to: phone, template: env().KAVENEGAR_OTP_TEMPLATE, tokens: [code] })
+    const { sms, otpTemplate } = await getSmsFor((await getCurrentTenant()).id)
+    const sent = await sms.sendTemplate({ to: phone, template: otpTemplate, tokens: [code] })
     if (!sent.ok) return { ok: false, step: 'phone', message: 'ارسال پیامک انجام نشد. دوباره تلاش کنید.' }
 
     return {
@@ -177,8 +189,9 @@ export async function requestOtp(_prev: FormState, form: FormData): Promise<Form
       step: 'code',
       phone,
       message: 'کد ورود پیامک شد.',
-      // Only with the mock SMS provider, so local dev and agents can log in without a phone.
-      devCode: env().SMS_PROVIDER === 'mock' ? code : undefined,
+      // Only with the mock SMS provider, so local dev and agents can log in without a phone. Checks the provider
+      // actually used: an academy's own real SMS account (E-047) never shows the code on screen.
+      devCode: env().SMS_PROVIDER === 'mock' && sms.name === 'mock' ? code : undefined,
     }
   } catch (err) {
     console.error('[requestOtp]', err)
@@ -195,6 +208,8 @@ export async function verifyOtp(_prev: FormState, form: FormData): Promise<FormS
 
   const payload = await getPayloadClient()
   const tenant = await getCurrentTenant()
+  // E-029: never attach a real phone account to a demo sandbox.
+  if (tenant.isSandbox) return { ok: false, step: 'phone', message: 'در آکادمی آزمایشی ورود با پیامک غیرفعال است.' }
   const latinCode = toLatinDigits(code)
 
   const res = await payload.find({
@@ -258,12 +273,101 @@ export async function startCheckout(_prev: FormState, form: FormData): Promise<F
   try {
     const [payload, tenant] = await Promise.all([getPayloadClient(), getCurrentTenant()])
     const order = await createOrder({ payload, tenant, userId: user.id, cohortId, instalmentCount: instalments, couponCode: coupon })
-    const url = await startInstalmentPayment({ payload, tenant, order, mobile: user.phone })
-    return { ok: true, message: 'در حال انتقال به درگاه…', redirectTo: url }
+    // ADR 017: the student picks one of the academy's enabled methods on the order's payment page.
+    return { ok: true, message: 'در حال رفتن به صفحهٔ پرداخت…', redirectTo: `/pay/${order.id}` }
   } catch (err) {
     if (err instanceof CheckoutError) return { ok: false, message: err.message }
     console.error('[startCheckout]', err)
-    return { ok: false, message: 'اتصال به درگاه پرداخت انجام نشد. دوباره تلاش کنید.' }
+    return { ok: false, message: 'ثبت سفارش انجام نشد. دوباره تلاش کنید.' }
+  }
+}
+
+// ---------------------------------------------------------------- Payment methods (ADR 017)
+
+const MethodRef = z.union([z.literal('env'), z.coerce.number().int().positive()])
+
+async function studentPayContext(orderId: number) {
+  const user = await getCurrentUser()
+  if (!user) return null
+  const [payload, tenant] = await Promise.all([getPayloadClient(), getCurrentTenant()])
+  const order = await loadStudentOrder(payload, tenant.id, user.id, orderId)
+  return { user, payload, tenant, order }
+}
+
+const payFail = (err: unknown, where: string): FormState => {
+  if (err instanceof PaymentError) return { ok: false, message: err.message }
+  console.error(`[${where}]`, err)
+  return { ok: false, message: 'ثبت پرداخت انجام نشد. چند دقیقهٔ دیگر دوباره تلاش کنید.' }
+}
+
+const UsdtStart = z.object({ orderId: z.coerce.number().int().positive(), method: MethodRef, network: z.enum(['trc20', 'bep20']), pick: z.enum(['next', 'all']).default('next') })
+
+/** Tether: makes a quote at the academy's rate, then shows wallet, amount and QR on the payment page. */
+export async function startUsdtCheckout(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = UsdtStart.safeParse(Object.fromEntries(form))
+  if (!parsed.success) return { ok: false, message: 'شبکه را انتخاب کنید.' }
+  try {
+    const ctx = await studentPayContext(parsed.data.orderId)
+    if (!ctx) return { ok: true, message: 'برای پرداخت وارد شوید.', redirectTo: `/login?next=${encodeURIComponent(`/pay/${parsed.data.orderId}`)}` }
+    const p = await startUsdtPayment({ payload: ctx.payload, tenant: ctx.tenant, order: ctx.order, method: parsed.data.method, network: parsed.data.network, pick: parsed.data.pick })
+    return { ok: true, message: 'صورت‌حساب تتر آماده شد.', redirectTo: `/payments/${p.id}` }
+  } catch (err) {
+    return payFail(err, 'startUsdtCheckout')
+  }
+}
+
+const UsdtHash = z.object({ paymentId: z.coerce.number().int().positive(), txHash: z.string().trim().max(100).optional() })
+
+/** Tether: the student's tx hash (or "check again" without one). */
+export async function submitUsdtHashAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = UsdtHash.safeParse(Object.fromEntries(form))
+  if (!parsed.success) return { ok: false, message: 'شناسهٔ تراکنش را وارد کنید.' }
+  const user = await getCurrentUser()
+  if (!user) return { ok: true, message: 'برای ادامه وارد شوید.', redirectTo: `/login?next=${encodeURIComponent(`/payments/${parsed.data.paymentId}`)}` }
+  try {
+    const [payload, tenant] = await Promise.all([getPayloadClient(), getCurrentTenant()])
+    const r = await submitUsdtHash({ payload, tenantId: tenant.id, userId: user.id, paymentId: parsed.data.paymentId, txHash: parsed.data.txHash || undefined })
+    revalidatePath(`/payments/${parsed.data.paymentId}`)
+    return { ok: r.state !== 'failed', message: r.message, redirectTo: r.state === 'waiting' ? undefined : `/payments/${parsed.data.paymentId}` }
+  } catch (err) {
+    return payFail(err, 'submitUsdtHash')
+  }
+}
+
+const CardInput = z.object({
+  orderId: z.coerce.number().int().positive(),
+  method: MethodRef,
+  pick: z.enum(['next', 'all']).default('next'),
+  toCard: z.string().max(30).default(''),
+  last4: z.string().max(10),
+  tracking: z.string().max(40),
+  paidAt: z.string().max(40),
+})
+
+/** Card-to-card: the student's transfer details and an optional private receipt image. Two staff members review it. */
+export async function submitCardCheckout(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = CardInput.safeParse(Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === 'string')))
+  if (!parsed.success) return { ok: false, message: 'اطلاعات واریز کامل نیست.' }
+  const file = form.get('receipt')
+  try {
+    const ctx = await studentPayContext(parsed.data.orderId)
+    if (!ctx) return { ok: true, message: 'برای پرداخت وارد شوید.', redirectTo: `/login?next=${encodeURIComponent(`/pay/${parsed.data.orderId}`)}` }
+    const p = await submitCardPayment({
+      payload: ctx.payload,
+      tenant: ctx.tenant,
+      order: ctx.order,
+      method: parsed.data.method,
+      pick: parsed.data.pick,
+      toCard: parsed.data.toCard,
+      last4: parsed.data.last4,
+      tracking: parsed.data.tracking,
+      // datetime-local has no zone: the student typed Tehran time.
+      paidAt: /Z|[+-]\d\d:\d\d$/.test(parsed.data.paidAt) ? parsed.data.paidAt : `${parsed.data.paidAt}+03:30`,
+      receipt: file instanceof File && file.size > 0 ? file : null,
+    })
+    return { ok: true, message: 'اطلاعات واریز ثبت شد.', redirectTo: `/payments/${p.id}` }
+  } catch (err) {
+    return payFail(err, 'submitCardCheckout')
   }
 }
 

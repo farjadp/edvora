@@ -41,6 +41,8 @@ export type StudentLoginFormProps = {
   /** Ask for the name on the code step. The server does not say yet whether the number is new, so it is always asked. */
   askName?: boolean
   staffLoginHref?: string
+  /** E-047: the academy's own login texts (settings hub); empty = the defaults. */
+  texts?: { title?: string | null; subtitle?: string | null; help?: string | null } | null
 }
 
 /**
@@ -48,7 +50,7 @@ export type StudentLoginFormProps = {
  * same field names (phone, code, name, next); only the presentation of their results is new. Navigation after success is
  * a full page load to `redirectTo` (ADR 005).
  */
-export function StudentLoginForm({ next, showSessionNotice = false, supportPhone, askName = true, staffLoginHref = '/staff/login' }: StudentLoginFormProps) {
+export function StudentLoginForm({ next, showSessionNotice = false, supportPhone, askName = true, staffLoginHref = '/staff/login', texts }: StudentLoginFormProps) {
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
@@ -272,7 +274,7 @@ export function StudentLoginForm({ next, showSessionNotice = false, supportPhone
 
   return (
     <>
-      <AuthHeading title="ورود یا ثبت‌نام" sub="شماره موبایل خود را بنویسید تا کد ورود برایتان پیامک شود. رمز عبور لازم نیست." />
+      <AuthHeading title={texts?.title?.trim() || 'ورود یا ثبت‌نام'} sub={texts?.subtitle?.trim() || 'شماره موبایل خود را بنویسید تا کد ورود برایتان پیامک شود. رمز عبور لازم نیست.'} />
       <div className="mt-7">
         {showSessionNotice ? <AuthNotice>برای ادامه، وارد شوید.</AuthNotice> : null}
         <form id="phone-form" onSubmit={onRequest} aria-busy={requesting || undefined} noValidate>
@@ -309,6 +311,11 @@ export function StudentLoginForm({ next, showSessionNotice = false, supportPhone
             </div>
           ) : null}
         </form>
+        {texts?.help?.trim() ? (
+          <p className="mt-6 text-sm leading-7 text-muted" data-testid="login-help">
+            {texts.help.trim()}
+          </p>
+        ) : null}
         <p className="mt-6 text-sm text-muted">
           کارمند آکادمی هستید؟{' '}
           <a href={staffLoginHref} className={cx(authLink, 'text-sm')}>

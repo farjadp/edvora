@@ -42,6 +42,9 @@ export interface Config {
     'learning-events': LearningEvent;
     leads: Lead;
     orders: Order;
+    'payment-methods': PaymentMethod;
+    payments: Payment;
+    'payment-receipts': PaymentReceipt;
     coupons: Coupon;
     testimonials: Testimonial;
     posts: Post;
@@ -53,6 +56,15 @@ export interface Config {
     'import-jobs': ImportJob;
     'import-refs': ImportRef;
     redirects: Redirect;
+    'demo-sandboxes': DemoSandbox;
+    'demo-leads': DemoLead;
+    'ai-settings': AiSetting;
+    'ai-conversations': AiConversation;
+    'ai-messages': AiMessage;
+    'ai-documents': AiDocument;
+    'ai-memories': AiMemory;
+    'ai-actions': AiAction;
+    'integration-settings': IntegrationSetting;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -83,6 +95,9 @@ export interface Config {
     'learning-events': LearningEventsSelect<false> | LearningEventsSelect<true>;
     leads: LeadsSelect<false> | LeadsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
+    'payment-methods': PaymentMethodsSelect<false> | PaymentMethodsSelect<true>;
+    payments: PaymentsSelect<false> | PaymentsSelect<true>;
+    'payment-receipts': PaymentReceiptsSelect<false> | PaymentReceiptsSelect<true>;
     coupons: CouponsSelect<false> | CouponsSelect<true>;
     testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
@@ -94,6 +109,15 @@ export interface Config {
     'import-jobs': ImportJobsSelect<false> | ImportJobsSelect<true>;
     'import-refs': ImportRefsSelect<false> | ImportRefsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
+    'demo-sandboxes': DemoSandboxesSelect<false> | DemoSandboxesSelect<true>;
+    'demo-leads': DemoLeadsSelect<false> | DemoLeadsSelect<true>;
+    'ai-settings': AiSettingsSelect<false> | AiSettingsSelect<true>;
+    'ai-conversations': AiConversationsSelect<false> | AiConversationsSelect<true>;
+    'ai-messages': AiMessagesSelect<false> | AiMessagesSelect<true>;
+    'ai-documents': AiDocumentsSelect<false> | AiDocumentsSelect<true>;
+    'ai-memories': AiMemoriesSelect<false> | AiMemoriesSelect<true>;
+    'ai-actions': AiActionsSelect<false> | AiActionsSelect<true>;
+    'integration-settings': IntegrationSettingsSelect<false> | IntegrationSettingsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -105,9 +129,11 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
+    'platform-settings': PlatformSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
+    'platform-settings': PlatformSettingsSelect<false> | PlatformSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
@@ -155,6 +181,12 @@ export interface Tenant {
   id: number;
   name: string;
   /**
+   * Self-serve demo. Hard-deleted by the cleanup job after expiry + grace.
+   */
+  isSandbox?: boolean | null;
+  expiresAt?: string | null;
+  purgeAt?: string | null;
+  /**
    * Lowercase, no spaces. Used in URLs and for DEFAULT_TENANT_SLUG.
    */
   slug: string;
@@ -166,8 +198,18 @@ export interface Tenant {
     | null;
   plan?: ('starter' | 'growth' | 'pro') | null;
   features?: ('site' | 'lms' | 'payments' | 'crm' | 'certificates' | 'live' | 'consulting' | 'b2b')[] | null;
+  limits?: {
+    maxStudents?: number | null;
+    maxStaff?: number | null;
+    maxCourses?: number | null;
+    storageMb?: number | null;
+  };
   tagline?: string | null;
   logo?: (number | null) | Media;
+  logoDark?: (number | null) | Media;
+  favicon?: (number | null) | Media;
+  ogImage?: (number | null) | Media;
+  fontDisplay?: ('morabba' | 'vazirmatn') | null;
   primaryColor?: string | null;
   accentColor?: string | null;
   defaultTheme?: ('light' | 'dark') | null;
@@ -215,6 +257,45 @@ export interface Tenant {
     phone?: string | null;
     email?: string | null;
     address?: string | null;
+    social?:
+      | {
+          platform:
+            | 'instagram'
+            | 'telegram'
+            | 'linkedin'
+            | 'youtube'
+            | 'aparat'
+            | 'x'
+            | 'whatsapp'
+            | 'eitaa'
+            | 'bale'
+            | 'website';
+          url: string;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  seo?: {
+    titleSuffix?: string | null;
+    description?: string | null;
+    keywords?: string | null;
+    noindex?: boolean | null;
+  };
+  loginTexts?: {
+    title?: string | null;
+    subtitle?: string | null;
+    help?: string | null;
+  };
+  toggles?: {
+    journal?: boolean | null;
+    faculty?: boolean | null;
+    verify?: boolean | null;
+    leadForm?: boolean | null;
+  };
+  legal?: {
+    terms?: (number | null) | Page;
+    privacy?: (number | null) | Page;
+    refund?: (number | null) | Page;
   };
   /**
    * Turning it off hides XP, levels, streaks, badges and celebrations; history is kept, so turning it back on restores everything.
@@ -266,10 +347,28 @@ export interface Tenant {
    * Certificate codes look like PREFIX-PROGRAM-001 (IBA: BA-MBA-181).
    */
   certificatePrefix: string;
-  /**
-   * The academy's own gateway. Money goes straight to the academy.
-   */
-  zarinpalMerchantId?: string | null;
+  certificateSigner?: {
+    name?: string | null;
+    title?: string | null;
+    signature?: (number | null) | Media;
+  };
+  messageTemplates?:
+    | {
+        event:
+          | 'otp'
+          | 'lead.received'
+          | 'payment.received'
+          | 'instalment.due'
+          | 'enrolment.confirmed'
+          | 'live.reminder'
+          | 'certificate.issued';
+        channel: 'sms' | 'email';
+        enabled?: boolean | null;
+        subject?: string | null;
+        body?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -314,6 +413,63 @@ export interface Media {
       filename?: string | null;
     };
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  slug: string;
+  status: 'draft' | 'published';
+  showInNav?: boolean | null;
+  sortOrder?: number | null;
+  intro?: string | null;
+  cover?: (number | null) | Media;
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  faq?:
+    | {
+        question: string;
+        answer: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Where this was imported from
+   */
+  sourceUrl?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -362,6 +518,7 @@ export interface User {
   };
   status?: ('active' | 'suspended' | 'archived') | null;
   statusReason?: string | null;
+  sandboxTenant?: (number | null) | Tenant;
   /**
    * Only "super-admin" (Edvora staff) still grants access. Academy access is set in Memberships.
    */
@@ -487,8 +644,12 @@ export interface Role {
         | 'reports.learning'
         | 'settings.edit'
         | 'audit.view'
+        | 'settings.integrations'
+        | 'payments.settings'
         | 'import.view'
         | 'import.run'
+        | 'ai.use'
+        | 'ai.manage'
       )[]
     | null;
   security?: {
@@ -1420,6 +1581,160 @@ export interface Lead {
   createdAt: string;
 }
 /**
+ * Methods students see at checkout. Gateway credentials are encrypted and never shown. With no rows, the instance default gateway is used.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-methods".
+ */
+export interface PaymentMethod {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  method: 'mellat' | 'saman' | 'zarinpal' | 'zibal' | 'idpay' | 'payir' | 'nextpay' | 'usdt' | 'card' | 'manual';
+  enabled?: boolean | null;
+  /**
+   * Lower first
+   */
+  position?: number | null;
+  title: string;
+  mode?: ('sandbox' | 'live') | null;
+  instructions?: string | null;
+  /**
+   * Which values are stored. The values are never shown.
+   */
+  credentialsSet?: ('merchantId' | 'terminalId' | 'username' | 'password' | 'apiKey')[] | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_merchantId?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_terminalId?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_username?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_password?: string | null;
+  /**
+   * Type a new value to replace it. Leave empty to keep the stored value.
+   */
+  cred_apiKey?: string | null;
+  credentialsSealed?: string | null;
+  cards?:
+    | {
+        number: string;
+        holder: string;
+        bank?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  usdtLegalAck?: boolean | null;
+  /**
+   * Set by hand; no rate feed.
+   */
+  usdtRateToman?: number | null;
+  /**
+   * Same rate in rials (computed)
+   */
+  usdtRateRial?: number | null;
+  usdtRateUpdatedAt?: string | null;
+  wallets?:
+    | {
+        network: 'trc20' | 'bep20';
+        address: string;
+        id?: string | null;
+      }[]
+    | null;
+  manualChannels?: ('cash' | 'pos' | 'transfer' | 'other')[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Read only. Payments are made at checkout and handled on the finance desk.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments".
+ */
+export interface Payment {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  order: number | Order;
+  user: number | User;
+  course?: (number | null) | Course;
+  cohort?: (number | null) | Cohort;
+  method: 'mellat' | 'saman' | 'zarinpal' | 'zibal' | 'idpay' | 'payir' | 'nextpay' | 'usdt' | 'card' | 'manual';
+  methodRow?: (number | null) | PaymentMethod;
+  provider?: string | null;
+  methodTitle?: string | null;
+  instalmentIndexes: number[];
+  amount: number;
+  status: 'started' | 'submitted' | 'recorded' | 'confirmed' | 'rejected' | 'failed';
+  verifiedBy?: ('gateway' | 'chain' | 'people') | null;
+  reuseKey?: string | null;
+  authority?: string | null;
+  refId?: string | null;
+  cardPan?: string | null;
+  card?: {
+    last4?: string | null;
+    tracking?: string | null;
+    paidAt?: string | null;
+    toCard?: string | null;
+    receipt?: (number | null) | PaymentReceipt;
+  };
+  usdt?: {
+    network?: ('trc20' | 'bep20') | null;
+    wallet?: string | null;
+    tokenContract?: string | null;
+    rateRial?: number | null;
+    units?: string | null;
+    display?: string | null;
+    quotedAt?: string | null;
+    txHash?: string | null;
+    confirmations?: number | null;
+    check?: string | null;
+    checkedAt?: string | null;
+  };
+  manual?: {
+    channel?: ('cash' | 'pos' | 'transfer' | 'other') | null;
+    reference?: string | null;
+    paidAt?: string | null;
+    note?: string | null;
+  };
+  recordedBy?: (number | null) | User;
+  recordedAt?: string | null;
+  confirmedBy?: (number | null) | User;
+  confirmedAt?: string | null;
+  rejectedBy?: (number | null) | User;
+  rejectedAt?: string | null;
+  rejectionReason?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-receipts".
+ */
+export interface PaymentReceipt {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  owner: number | User;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "coupons".
  */
@@ -1503,63 +1818,6 @@ export interface Post {
     };
     [k: string]: unknown;
   } | null;
-  /**
-   * Where this was imported from
-   */
-  sourceUrl?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "pages".
- */
-export interface Page {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  title: string;
-  slug: string;
-  status: 'draft' | 'published';
-  showInNav?: boolean | null;
-  sortOrder?: number | null;
-  intro?: string | null;
-  cover?: (number | null) | Media;
-  body?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  faq?:
-    | {
-        question: string;
-        answer: {
-          root: {
-            type: string;
-            children: {
-              type: any;
-              version: number;
-              [k: string]: unknown;
-            }[];
-            direction: ('ltr' | 'rtl') | null;
-            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-            indent: number;
-            version: number;
-          };
-          [k: string]: unknown;
-        };
-        id?: string | null;
-      }[]
-    | null;
   /**
    * Where this was imported from
    */
@@ -1793,6 +2051,239 @@ export interface Redirect {
   createdAt: string;
 }
 /**
+ * Operate demos at /demo/ops (count vs cap, delete now). Rows are kept after cleanup for the daily limit.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "demo-sandboxes".
+ */
+export interface DemoSandbox {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  tenantSlug?: string | null;
+  status: 'creating' | 'active' | 'failed' | 'purged';
+  expiresAt: string;
+  purgedAt?: string | null;
+  ipHash: string;
+  creatorKeyHash?: string | null;
+  powNonce?: string | null;
+  buildMs?: number | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "demo-leads".
+ */
+export interface DemoLead {
+  id: number;
+  name?: string | null;
+  email: string;
+  consent: boolean;
+  consentText: string;
+  sandbox?: (number | null) | DemoSandbox;
+  source: 'demo-form' | 'full-state' | 'expired-state' | 'talk';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-settings".
+ */
+export interface AiSetting {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  enabled?: boolean | null;
+  assistantName?: string | null;
+  provider: 'openai' | 'anthropic' | 'gemini' | 'custom' | 'mock';
+  model: string;
+  /**
+   * Custom OpenAI-compatible endpoint only, e.g. https://api.avalai.ir/v1
+   */
+  baseUrl?: string | null;
+  apiKeySealed?: string | null;
+  apiKeyHint?: string | null;
+  /**
+   * Empty = the provider default (local embedding for Claude and the mock).
+   */
+  embeddingModel?: string | null;
+  privacy?: {
+    names?: boolean | null;
+    nationalCodes?: boolean | null;
+    phones?: boolean | null;
+    emails?: boolean | null;
+  };
+  limits?: {
+    perMinute?: number | null;
+    perDay?: number | null;
+    monthlyTokenLimit?: number | null;
+    monthlyCostLimitRial?: number | null;
+    inputPricePerMillionRial?: number | null;
+    outputPricePerMillionRial?: number | null;
+  };
+  lastTest?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-conversations".
+ */
+export interface AiConversation {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  user: number | User;
+  title: string;
+  pagePath?: string | null;
+  lastMessageAt?: string | null;
+  messageCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-messages".
+ */
+export interface AiMessage {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  conversation: number | AiConversation;
+  user: number | User;
+  role: 'user' | 'assistant';
+  content?: string | null;
+  citations?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Tools the assistant ran for this answer (names, no data).
+   */
+  tools?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  proposals?: (number | AiAction)[] | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  provider?: string | null;
+  model?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-actions".
+ */
+export interface AiAction {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  kind: string;
+  input:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  summary: string;
+  status: 'pending' | 'executed' | 'rejected' | 'failed' | 'expired';
+  proposedBy: number | User;
+  conversation?: (number | null) | AiConversation;
+  expiresAt: string;
+  decidedAt?: string | null;
+  targetCollection?: string | null;
+  targetId?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-documents".
+ */
+export interface AiDocument {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  filename: string;
+  mimeType?: string | null;
+  size?: number | null;
+  status: 'processing' | 'ready' | 'failed';
+  error?: string | null;
+  chunkCount?: number | null;
+  characters?: number | null;
+  embeddingModel?: string | null;
+  uploadedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-memories".
+ */
+export interface AiMemory {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  text: string;
+  status: 'proposed' | 'approved' | 'rejected';
+  proposedBy?: (number | null) | User;
+  decidedBy?: (number | null) | User;
+  decidedAt?: string | null;
+  conversation?: (number | null) | AiConversation;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "integration-settings".
+ */
+export interface IntegrationSetting {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  kind: 'sms' | 'email' | 'live';
+  provider: 'mock' | 'kavenegar' | 'smtp' | 'bigbluebutton';
+  enabled?: boolean | null;
+  config?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  secretSealed?: string | null;
+  secretSetAt?: string | null;
+  lastTest?: {
+    ok?: boolean | null;
+    at?: string | null;
+    message?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -2006,6 +2497,18 @@ export interface PayloadLockedDocument {
         value: number | Order;
       } | null)
     | ({
+        relationTo: 'payment-methods';
+        value: number | PaymentMethod;
+      } | null)
+    | ({
+        relationTo: 'payments';
+        value: number | Payment;
+      } | null)
+    | ({
+        relationTo: 'payment-receipts';
+        value: number | PaymentReceipt;
+      } | null)
+    | ({
         relationTo: 'coupons';
         value: number | Coupon;
       } | null)
@@ -2048,6 +2551,42 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'redirects';
         value: number | Redirect;
+      } | null)
+    | ({
+        relationTo: 'demo-sandboxes';
+        value: number | DemoSandbox;
+      } | null)
+    | ({
+        relationTo: 'demo-leads';
+        value: number | DemoLead;
+      } | null)
+    | ({
+        relationTo: 'ai-settings';
+        value: number | AiSetting;
+      } | null)
+    | ({
+        relationTo: 'ai-conversations';
+        value: number | AiConversation;
+      } | null)
+    | ({
+        relationTo: 'ai-messages';
+        value: number | AiMessage;
+      } | null)
+    | ({
+        relationTo: 'ai-documents';
+        value: number | AiDocument;
+      } | null)
+    | ({
+        relationTo: 'ai-memories';
+        value: number | AiMemory;
+      } | null)
+    | ({
+        relationTo: 'ai-actions';
+        value: number | AiAction;
+      } | null)
+    | ({
+        relationTo: 'integration-settings';
+        value: number | IntegrationSetting;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -2097,6 +2636,9 @@ export interface PayloadMigration {
  */
 export interface TenantsSelect<T extends boolean = true> {
   name?: T;
+  isSandbox?: T;
+  expiresAt?: T;
+  purgeAt?: T;
   slug?: T;
   domains?:
     | T
@@ -2106,8 +2648,20 @@ export interface TenantsSelect<T extends boolean = true> {
       };
   plan?: T;
   features?: T;
+  limits?:
+    | T
+    | {
+        maxStudents?: T;
+        maxStaff?: T;
+        maxCourses?: T;
+        storageMb?: T;
+      };
   tagline?: T;
   logo?: T;
+  logoDark?: T;
+  favicon?: T;
+  ogImage?: T;
+  fontDisplay?: T;
   primaryColor?: T;
   accentColor?: T;
   defaultTheme?: T;
@@ -2145,6 +2699,43 @@ export interface TenantsSelect<T extends boolean = true> {
         phone?: T;
         email?: T;
         address?: T;
+        social?:
+          | T
+          | {
+              platform?: T;
+              url?: T;
+              id?: T;
+            };
+      };
+  seo?:
+    | T
+    | {
+        titleSuffix?: T;
+        description?: T;
+        keywords?: T;
+        noindex?: T;
+      };
+  loginTexts?:
+    | T
+    | {
+        title?: T;
+        subtitle?: T;
+        help?: T;
+      };
+  toggles?:
+    | T
+    | {
+        journal?: T;
+        faculty?: T;
+        verify?: T;
+        leadForm?: T;
+      };
+  legal?:
+    | T
+    | {
+        terms?: T;
+        privacy?: T;
+        refund?: T;
       };
   gamification?:
     | T
@@ -2180,7 +2771,23 @@ export interface TenantsSelect<T extends boolean = true> {
             };
       };
   certificatePrefix?: T;
-  zarinpalMerchantId?: T;
+  certificateSigner?:
+    | T
+    | {
+        name?: T;
+        title?: T;
+        signature?: T;
+      };
+  messageTemplates?:
+    | T
+    | {
+        event?: T;
+        channel?: T;
+        enabled?: T;
+        subject?: T;
+        body?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2212,6 +2819,7 @@ export interface UsersSelect<T extends boolean = true> {
       };
   status?: T;
   statusReason?: T;
+  sandboxTenant?: T;
   roles?: T;
   twoFactorEnabled?: T;
   twoFactor?:
@@ -2852,6 +3460,132 @@ export interface OrdersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-methods_select".
+ */
+export interface PaymentMethodsSelect<T extends boolean = true> {
+  tenant?: T;
+  method?: T;
+  enabled?: T;
+  position?: T;
+  title?: T;
+  mode?: T;
+  instructions?: T;
+  credentialsSet?: T;
+  cred_merchantId?: T;
+  cred_terminalId?: T;
+  cred_username?: T;
+  cred_password?: T;
+  cred_apiKey?: T;
+  credentialsSealed?: T;
+  cards?:
+    | T
+    | {
+        number?: T;
+        holder?: T;
+        bank?: T;
+        id?: T;
+      };
+  usdtLegalAck?: T;
+  usdtRateToman?: T;
+  usdtRateRial?: T;
+  usdtRateUpdatedAt?: T;
+  wallets?:
+    | T
+    | {
+        network?: T;
+        address?: T;
+        id?: T;
+      };
+  manualChannels?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments_select".
+ */
+export interface PaymentsSelect<T extends boolean = true> {
+  tenant?: T;
+  order?: T;
+  user?: T;
+  course?: T;
+  cohort?: T;
+  method?: T;
+  methodRow?: T;
+  provider?: T;
+  methodTitle?: T;
+  instalmentIndexes?: T;
+  amount?: T;
+  status?: T;
+  verifiedBy?: T;
+  reuseKey?: T;
+  authority?: T;
+  refId?: T;
+  cardPan?: T;
+  card?:
+    | T
+    | {
+        last4?: T;
+        tracking?: T;
+        paidAt?: T;
+        toCard?: T;
+        receipt?: T;
+      };
+  usdt?:
+    | T
+    | {
+        network?: T;
+        wallet?: T;
+        tokenContract?: T;
+        rateRial?: T;
+        units?: T;
+        display?: T;
+        quotedAt?: T;
+        txHash?: T;
+        confirmations?: T;
+        check?: T;
+        checkedAt?: T;
+      };
+  manual?:
+    | T
+    | {
+        channel?: T;
+        reference?: T;
+        paidAt?: T;
+        note?: T;
+      };
+  recordedBy?: T;
+  recordedAt?: T;
+  confirmedBy?: T;
+  confirmedAt?: T;
+  rejectedBy?: T;
+  rejectedAt?: T;
+  rejectionReason?: T;
+  error?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-receipts_select".
+ */
+export interface PaymentReceiptsSelect<T extends boolean = true> {
+  tenant?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "coupons_select".
  */
 export interface CouponsSelect<T extends boolean = true> {
@@ -3091,6 +3825,185 @@ export interface RedirectsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "demo-sandboxes_select".
+ */
+export interface DemoSandboxesSelect<T extends boolean = true> {
+  tenant?: T;
+  tenantSlug?: T;
+  status?: T;
+  expiresAt?: T;
+  purgedAt?: T;
+  ipHash?: T;
+  creatorKeyHash?: T;
+  powNonce?: T;
+  buildMs?: T;
+  error?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "demo-leads_select".
+ */
+export interface DemoLeadsSelect<T extends boolean = true> {
+  name?: T;
+  email?: T;
+  consent?: T;
+  consentText?: T;
+  sandbox?: T;
+  source?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-settings_select".
+ */
+export interface AiSettingsSelect<T extends boolean = true> {
+  tenant?: T;
+  enabled?: T;
+  assistantName?: T;
+  provider?: T;
+  model?: T;
+  baseUrl?: T;
+  apiKeySealed?: T;
+  apiKeyHint?: T;
+  embeddingModel?: T;
+  privacy?:
+    | T
+    | {
+        names?: T;
+        nationalCodes?: T;
+        phones?: T;
+        emails?: T;
+      };
+  limits?:
+    | T
+    | {
+        perMinute?: T;
+        perDay?: T;
+        monthlyTokenLimit?: T;
+        monthlyCostLimitRial?: T;
+        inputPricePerMillionRial?: T;
+        outputPricePerMillionRial?: T;
+      };
+  lastTest?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-conversations_select".
+ */
+export interface AiConversationsSelect<T extends boolean = true> {
+  tenant?: T;
+  user?: T;
+  title?: T;
+  pagePath?: T;
+  lastMessageAt?: T;
+  messageCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-messages_select".
+ */
+export interface AiMessagesSelect<T extends boolean = true> {
+  tenant?: T;
+  conversation?: T;
+  user?: T;
+  role?: T;
+  content?: T;
+  citations?: T;
+  tools?: T;
+  proposals?: T;
+  inputTokens?: T;
+  outputTokens?: T;
+  provider?: T;
+  model?: T;
+  error?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-documents_select".
+ */
+export interface AiDocumentsSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  filename?: T;
+  mimeType?: T;
+  size?: T;
+  status?: T;
+  error?: T;
+  chunkCount?: T;
+  characters?: T;
+  embeddingModel?: T;
+  uploadedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-memories_select".
+ */
+export interface AiMemoriesSelect<T extends boolean = true> {
+  tenant?: T;
+  text?: T;
+  status?: T;
+  proposedBy?: T;
+  decidedBy?: T;
+  decidedAt?: T;
+  conversation?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-actions_select".
+ */
+export interface AiActionsSelect<T extends boolean = true> {
+  tenant?: T;
+  kind?: T;
+  input?: T;
+  summary?: T;
+  status?: T;
+  proposedBy?: T;
+  conversation?: T;
+  expiresAt?: T;
+  decidedAt?: T;
+  targetCollection?: T;
+  targetId?: T;
+  error?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "integration-settings_select".
+ */
+export interface IntegrationSettingsSelect<T extends boolean = true> {
+  tenant?: T;
+  kind?: T;
+  provider?: T;
+  enabled?: T;
+  config?: T;
+  secretSealed?: T;
+  secretSetAt?: T;
+  lastTest?:
+    | T
+    | {
+        ok?: T;
+        at?: T;
+        message?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -3163,6 +4076,21 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "platform-settings".
+ */
+export interface PlatformSetting {
+  id: number;
+  staff2fa?: ('env' | 'required' | 'optional') | null;
+  academyProviders?: {
+    sms?: boolean | null;
+    email?: boolean | null;
+    live?: boolean | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -3178,6 +4106,23 @@ export interface PayloadJobsStat {
     | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "platform-settings_select".
+ */
+export interface PlatformSettingsSelect<T extends boolean = true> {
+  staff2fa?: T;
+  academyProviders?:
+    | T
+    | {
+        sms?: T;
+        email?: T;
+        live?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

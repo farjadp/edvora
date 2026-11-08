@@ -1,13 +1,14 @@
-import { formatToman, rial } from '@edvora/core'
+import { formatToman, mockGatewayAllowed, rial } from '@edvora/core'
 import { notFound } from 'next/navigation'
 import { env } from '../../../../env'
 import { getRequestOrigin } from '../../../../lib/origin'
+import { getCurrentTenant } from '../../../../lib/tenant'
 
-/** Simulated bank page for the mock gateway. Only exists when PAYMENT_PROVIDER=mock. */
+/** Simulated bank page for the mock gateway. Exists when PAYMENT_PROVIDER=mock, and for demo sandboxes (E-029 C8). */
 type Props = { searchParams: Promise<{ authority?: string; amount?: string; callback?: string }> }
 
 export default async function MockGatewayPage({ searchParams }: Props) {
-  if (env().PAYMENT_PROVIDER !== 'mock') notFound()
+  if (!mockGatewayAllowed(env().PAYMENT_PROVIDER, await getCurrentTenant())) notFound()
   const { authority = '', amount = '0', callback = '' } = await searchParams
 
   // Only allow callbacks to this same academy site.

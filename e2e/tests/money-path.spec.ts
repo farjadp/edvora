@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { DEMO, fakePhone, login, orderRow, startCheckout } from './helpers'
+import { DEMO, fakePhone, login, orderRow, payWithFirstGateway, startCheckout } from './helpers'
 
 const COURSE = 'دوره نمونه مدیریت'
 
@@ -37,8 +37,9 @@ test.describe('demo tenant money path', () => {
     })
 
     await test.step('pay the next instalment → 2 of 4', async () => {
-      await orderRow(page, COURSE).getByRole('button', { name: /^پرداخت/ }).click()
-      await page.waitForURL(`${DEMO}/pay/mock?**`)
+      await orderRow(page, COURSE).getByRole('link', { name: /^پرداخت/ }).click()
+      await page.waitForURL(/\/pay\/\d+$/)
+      await payWithFirstGateway(page)
       // Remaining 5,760,000 split into 3.
       await expect(page.getByText('۱٬۹۲۰٬۰۰۰ تومان')).toBeVisible()
       await page.getByRole('link', { name: 'پرداخت موفق' }).click()
