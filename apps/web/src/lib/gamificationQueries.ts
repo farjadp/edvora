@@ -186,13 +186,29 @@ export async function getFinanceInbox(s: StaffCtx, now = new Date()): Promise<Fi
     pagination: false,
     overrideAccess: true,
   })
+  // ADR 017: payments waiting for a person count as "to verify"; failed/rejected ones as "needs attention".
+  const rows = await s.req.payload.find({
+    collection: 'payments',
+    where: { and: [{ tenant: { equals: s.tenant.id } }, { status: { in: ['submitted', 'recorded', 'failed', 'rejected'] } }] },
+    depth: 0,
+    limit: 5000,
+    pagination: false,
+    sort: 'createdAt',
+    overrideAccess: true,
+  })
+  const byOrder = new Map<number, { instalmentIndex: number; status: string }[]>()
+  for (const p of rows.docs) {
+    const oid = typeof p.order === 'object' ? p.order.id : p.order
+    const status = p.status === 'submitted' || p.status === 'recorded' ? 'started' : 'failed'
+    for (const i of p.instalmentIndexes ?? []) byOrder.set(oid, [...(byOrder.get(oid) ?? []), { instalmentIndex: i, status }])
+  }
   return financeInbox({
     now,
     orders: res.docs.map((o) => ({
       id: o.id,
       status: o.status,
       instalments: (o.instalments ?? []).map((i) => ({ index: i.index, amount: i.amount, dueDate: i.dueDate, status: i.status })),
-      payments: (o.payments ?? []).map((p) => ({ instalmentIndex: p.instalmentIndex, status: p.status })),
+      payments: [...(o.payments ?? []).map((p) => ({ instalmentIndex: p.instalmentIndex, status: p.status ?? 'started' })), ...(byOrder.get(o.id) ?? [])],
     })),
   })
 }

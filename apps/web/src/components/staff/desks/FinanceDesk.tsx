@@ -1,4 +1,4 @@
-import { formatJalali, formatToman, rial } from '@edvora/core'
+import { MANUAL_CHANNELS, formatJalali, formatToman, rial } from '@edvora/core'
 import { Pill, DataTable, EmptyState, EntityCell, FilterBar, FilterSelect, FilterSearch, KpiCard, KpiGrid, Pagination, Panel, AlertList, DonutWithLegend, type AlertItem, type Column } from '@edvora/ui/console'
 import type { PayloadRequest, Where } from 'payload'
 import { PERIOD_DAYS, PAGE_SIZE, deltaOf, fa, one, pageParam, pagerOf, sortHref, sortOf, settledTrend, sparkLabel, staffCtx, trend, count, has } from '../../../lib/consoleData'
@@ -8,6 +8,9 @@ import { getFinanceInbox } from '../../../lib/gamificationQueries'
 import type { StaffSession } from '../../../lib/staff'
 import type { Course, Order, User } from '../../../payload-types'
 import { DeskPage, MainSide, PageHeader, consoleBtn } from '../Desk'
+import { reviewQueue, staffActor } from '../../../lib/payments'
+import { ManualPaymentForm } from '../payments/PaymentForms'
+import { ReviewQueue } from '../payments/ReviewQueue'
 
 const KIND_LABEL = { to_verify: 'در انتظار بررسی', needs_attention: 'نیازمند توجه', overdue: 'سررسید گذشته' } as const
 const BASE = '/staff/finance'
@@ -30,6 +33,9 @@ export async function FinanceDesk({ s, sp, adminLink }: Props) {
 
   // Orders read access also covers one's OWN purchases; the desk numbers need the staff permission itself.
   const view = has(s, 'orders.view')
+  // ADR 017: the four-eyes queue and manual payments, for whoever can record or approve.
+  const reviewer = has(s, 'payments.manual.record') || has(s, 'payments.manual.approve')
+  const [queue, actor] = reviewer ? await Promise.all([reviewQueue(s), staffActor(s)]) : [null, null]
   const [inbox, sales, orderCount, list, mix] = await Promise.all([
     getFinanceInbox(s),
     view ? settledTrend(c) : null,
@@ -49,7 +55,7 @@ export async function FinanceDesk({ s, sp, adminLink }: Props) {
     {
       key: 'id',
       header: 'سفارش',
-      cell: (o) => <EntityCell icon="orders" title={`سفارش ${fa(o.id)}`} code={`#${o.id}`} href={`/admin/collections/orders/${o.id}`} />,
+      cell: (o) => <EntityCell icon="orders" title={`سفارش ${fa(o.id)}`} code={`#${o.id}`} href={`/staff/payments/orders/${o.id}`} />,
     },
     { key: 'user', header: 'دانشجو', cell: (o) => <span className="block max-w-40 truncate">{docOf<User>(o.user)?.name || docOf<User>(o.user)?.email || '—'}</span> },
     { key: 'course', header: 'دوره', cell: (o) => <span className="block max-w-44 truncate">{docOf<Course>(o.course)?.title ?? '—'}</span> },
@@ -73,7 +79,7 @@ export async function FinanceDesk({ s, sp, adminLink }: Props) {
     title: `سفارش ${fa(it.orderId)} · قسط ${fa(it.instalmentIndex + 1)}`,
     detail: `${KIND_LABEL[it.kind]} · ${formatToman(rial(it.amount))}`,
     pill: { tone: it.kind === 'overdue' ? 'danger' : 'warn', label: KIND_LABEL[it.kind] },
-    action: { label: 'بررسی سفارش', href: `/admin/collections/orders/${it.orderId}` },
+    action: { label: 'بررسی سفارش', href: `/staff/payments/orders/${it.orderId}` },
   }))
 
   return (
@@ -112,6 +118,13 @@ export async function FinanceDesk({ s, sp, adminLink }: Props) {
             {!inbox && orderCount ? <KpiCard label="سفارش‌های تازه" value={fa(orderCount.current)} icon="orders" delta={deltaOf(orderCount.current, orderCount.previous)} spark={{ values: orderCount.spark, label: sparkLabel('سفارش‌ها') }} /> : null}
           </KpiGrid>
         </div>
+
+        {queue && actor ? <ReviewQueue items={queue} actor={actor} /> : null}
+        {actor?.canRecord ? (
+          <Panel title="ثبت پرداخت دستی" subtitle="نقدی، کارت‌خوان یا واریز بانکی. تأیید نهایی با همکار دیگری است." headingId="h-manual">
+            <ManualPaymentForm channels={Object.entries(MANUAL_CHANNELS).map(([value, label]) => ({ value, label }))} />
+          </Panel>
+        ) : null}
 
         <FilterBar action={BASE} resetHref={BASE}>
           <FilterSearch label="جست‌وجوی شمارهٔ سفارش یا دانشجو" placeholder="شمارهٔ سفارش، نام یا ایمیل دانشجو" defaultValue={q} />
