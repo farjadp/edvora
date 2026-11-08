@@ -105,7 +105,9 @@ test.beforeAll(async ({ playwright }) => {
   ref.outCourse = out.id
   ref.lessonOut = (await findOrCreate('lessons', `where[course][equals]=${out.id}`, { tenant: ref.demo, course: out.id, title: 'جلسهٔ تست دسترسی', order: 1 })).id
   ref.demo2 = (await findOrCreate('tenants', 'where[slug][equals]=demo2', { name: 'آکادمی تست دوم', slug: 'demo2', domains: [{ domain: 'demo2.localhost' }] })).id
-  ref.demo2Lead = (await findOrCreate('leads', `where[and][0][tenant][equals]=${ref.demo2}&where[and][1][phone][equals]=09129990299`, { tenant: ref.demo2, name: 'سرنخ آکادمی دوم (تست)', phone: '09129990299', status: 'new' })).id
+  // The lead needs an owner inside demo2: an empty advisor defaults to the creator (the super admin, not in demo2).
+  const demo2Owner = await findOrCreate('users', 'where[email][equals]=e2e-access-demo2-owner@example.test', { email: 'e2e-access-demo2-owner@example.test', password: pw(), name: 'مالک سرنخ آکادمی دوم', tenants: [{ tenant: ref.demo2 }] })
+  ref.demo2Lead = (await findOrCreate('leads', `where[and][0][tenant][equals]=${ref.demo2}&where[and][1][phone][equals]=09129990299`, { tenant: ref.demo2, name: 'سرنخ آکادمی دوم (تست)', phone: '09129990299', status: 'new', advisor: demo2Owner.id })).id
 
   // Archived role: assigned while active, archived afterwards (memberships cannot pick an archived role).
   const archivedRole = (await ok<{ doc: Doc }>(await admin.post('/api/roles', { data: { tenant: ref.demo, key: `e2e-archived-${suffix}`, name: 'نقش بایگانی تست', permissions: ['leads.view.all', 'orders.view', 'users.view'] } }), 'archived role')).doc.id
@@ -280,7 +282,8 @@ test('escalation: nobody promotes themselves or grants more than they hold', asy
     expect(u.roles, `${k} roles`).not.toContain('super-admin')
     expect((u.tenants as { tenant: number }[]).map((t) => t.tenant), `${k} academies`).not.toContain(ref.demo2)
     expect([400, 403], `${k} own membership`).toContain((await api[k].post('/api/memberships', { data: { tenant: ref.demo, user: cast[k].id, roles: [ref.roles['academy-admin']], status: 'active' } })).status())
-    expect((await api[k].patch(`/api/users/${cast[k].id}`, { data: { status: 'archived' } })).status(), `${k} own status`).toBe(403)
+    // 403 (own status) or 409 (last role manager of the academy, checked first) — both refuse.
+    expect([403, 409], `${k} own status`).toContain((await api[k].patch(`/api/users/${cast[k].id}`, { data: { status: 'archived' } })).status())
   }
   expect((await api.advisor.post('/api/roles', { data: { tenant: ref.demo, key: `e2e-x-${suffix}`, name: 'x', permissions: ['leads.view.all'] } })).status()).toBe(403)
   expect((await api['academy-admin'].post('/api/roles', { data: { tenant: ref.demo, key: `e2e-p-${suffix}`, name: 'x', permissions: ['tenants.manage'] } })).status()).toBe(400)
