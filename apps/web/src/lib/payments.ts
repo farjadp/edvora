@@ -356,15 +356,16 @@ export async function handleGatewayCallback(payload: Payload, paymentId: number,
 
 // ---------------------------------------------------------------- Tether (USDT)
 
+const chainMode = () => env().CHAIN_VERIFIER ?? (env().PAYMENT_PROVIDER === 'mock' ? 'mock' : 'live')
+
 function tokenFor(network: UsdtNetwork, sandbox: boolean): { contract: string | null; decimals: number; minConfirmations: number } {
   const t = USDT_TOKENS[network]
-  if (!sandbox) return { contract: t.contract, decimals: t.decimals, minConfirmations: t.minConfirmations }
+  // The mock chain has no testnet: it checks against the mainnet contract in both modes.
+  if (!sandbox || chainMode() === 'mock') return { contract: t.contract, decimals: t.decimals, minConfirmations: t.minConfirmations }
   const e = env()
   const contract = (network === 'trc20' ? e.USDT_TRC20_TESTNET_CONTRACT : e.USDT_BEP20_TESTNET_CONTRACT) ?? null
   return { contract, decimals: t.decimals, minConfirmations: t.minConfirmations }
 }
-
-const chainMode = () => env().CHAIN_VERIFIER ?? (env().PAYMENT_PROVIDER === 'mock' ? 'mock' : 'live')
 
 function verifierFor(network: UsdtNetwork, sandbox: boolean) {
   const e = env()
