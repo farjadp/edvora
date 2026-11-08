@@ -64,4 +64,26 @@ test.describe('sandbox: payment and AI secrets are locked', () => {
       .join('')
     expect(text).toContain('ارائه‌دهندهٔ آزمایشی')
   })
+
+  test('E-047 settings hub: integrations stay on the mock with nothing stored, the test never connects, platform sections and /admin are closed', async () => {
+    const hub = (section: string, form: Record<string, string>) =>
+      v.context.request.post(`${PLATFORM}/api/settings/${section}`, { headers: { Origin: PLATFORM }, form: { academy: String(tenant), ...form }, maxRedirects: 0 })
+    const refused: [string, Record<string, string>][] = [
+      ['real SMS provider', { kind: 'sms', provider: 'kavenegar', enabled: 'on', secret: 'fake-kavenegar-key', 'config.sender': '10004346' }],
+      ['SMTP mailer', { kind: 'email', provider: 'smtp', 'config.host': 'smtp.example.com', 'config.port': '587', 'config.fromEmail': 'a@example.com', secret: 'pw' }],
+      ['BigBlueButton', { kind: 'live', provider: 'bigbluebutton', 'config.baseUrl': 'https://bbb.example.com/bigbluebutton/', secret: 's' }],
+      ['a secret on the mock', { kind: 'sms', provider: 'mock', secret: 'anything' }],
+      ['testing a real provider', { kind: 'sms', provider: 'kavenegar', secret: 'k', intent: 'test' }],
+    ]
+    for (const [what, form] of refused) expect((await hub('integrations', form)).status(), what).toBe(403)
+    // The mock is allowed; «test» answers without any connection.
+    const test = await hub('integrations', { kind: 'sms', provider: 'mock', enabled: 'on', intent: 'test' })
+    expect(test.status()).toBe(303)
+    const notice = new URL(test.headers().location ?? '', PLATFORM).searchParams.get('notice') ?? ''
+    expect(notice).toContain('اتصالی برقرار نمی‌شود')
+    // Platform sections and the /admin settings pages are closed.
+    for (const section of ['platform-providers', 'platform-academies']) expect((await hub(section, {})).status(), section).toBe(403)
+    expect((await v.context.request.get(`${PLATFORM}/admin/settings/integrations`, { maxRedirects: 0 })).status()).toBe(403)
+  })
 })
+
