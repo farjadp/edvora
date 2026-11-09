@@ -428,6 +428,23 @@ test('UI: advisor lands on the leads desk; expired staff gets the 403 page', asy
   expect(res.status()).toBe(403)
 })
 
+test('UI E-015: lead pool — advisor has the «بی‌مشاور» tab, advisor with ownRecordsOnly does not', async ({ page }) => {
+  await staffLogin(page, DEMO, cast.advisor, '/staff/leads')
+  await page.waitForURL(/\/staff\/leads/)
+  await expect(page.getByTestId('crm-tab-pool')).toBeVisible()
+  await expect(page.getByTestId('crm-tab-team')).toHaveCount(0)
+  await page.context().clearCookies()
+  await staffLogin(page, DEMO, cast['advisor-own'], '/staff/leads?v=pool')
+  await page.waitForURL(/\/staff\/leads/)
+  await expect(page.getByTestId('crm-tab-pool')).toHaveCount(0)
+  await expect(page.getByTestId('crm-list')).toContainText('این نما برای شما باز نیست.')
+  await page.context().clearCookies()
+  await staffLogin(page, DEMO, cast['academy-admin'], '/staff/leads?v=team')
+  await page.waitForURL(/\/staff\/leads/)
+  await expect(page.getByTestId('crm-tab-team')).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByTestId('crm-tab-pool')).toBeVisible()
+})
+
 test('UI: a new student signs in by SMS, sees the dashboard, and is sent away from a course they did not buy', async ({ page }) => {
   const p = phone()
   await login(page, DEMO, p)

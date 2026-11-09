@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { APIError } from 'payload'
+import { LEAD_LOST_REASONS, LEAD_LOST_REASON_LABELS_FA } from '@edvora/core/crm'
 import { DATE_MOVED, STATUS_CHANGED, LEAD_OUTCOMES, LEAD_OUTCOME_LABELS_FA, LEAD_STATUSES, LEAD_STATUS_LABELS_FA, canTransitionLead, nextFollowUpAt, type LeadStatus } from '@edvora/core'
 import type { CollectionBeforeChangeHook } from 'payload'
 import { allow, allowCreate, canIn, guard, isSystemWrite, nobody } from '../access/permissions'
@@ -10,6 +11,11 @@ const SCOPE = { owner: 'advisor', course: 'course' }
 
 /** Set by `recordFollowUpOutcome` (server action) — the only writer of the follow-up log. */
 export const FOLLOW_UP_CONTEXT = 'edvoraFollowUpOutcome'
+/**
+ * E-015: set by the advisor desk's claim/assign actions after `canClaimLead` / `canAssignLead` (core) passed for this
+ * academy and user. Lets a pool claim (unassigned → me) through without `leads.assign`; nothing else is skipped.
+ */
+export const LEAD_DESK_CONTEXT = 'edvoraLeadDesk'
 const OUTCOME_FIELDS = ['lastOutcome', 'lastOutcomeAt', 'lastOutcomeBy', 'followUps'] as const
 
 const sameInstant = (a: unknown, b: unknown) => {
@@ -79,7 +85,7 @@ export const Leads: CollectionConfig = {
         const before = idOf(originalDoc?.advisor)
         const after = 'advisor' in data ? idOf(data.advisor) : before
         const reassigned = operation === 'create' ? after !== req.user.id : after !== before
-        if (reassigned && !(await canIn(req, idOf(data.tenant ?? originalDoc?.tenant), 'leads.assign'))) {
+        if (reassigned && req.context[LEAD_DESK_CONTEXT] !== true && !(await canIn(req, idOf(data.tenant ?? originalDoc?.tenant), 'leads.assign'))) {
           throw new APIError('Assigning leads to someone else needs leads.assign', 403)
         }
         return data
@@ -127,6 +133,14 @@ export const Leads: CollectionConfig = {
         { name: 'advisor', type: 'relationship', relationTo: 'users', filterOptions: ({ data }) => ({ 'tenants.tenant': { equals: idOf(data?.tenant) ?? -1 } }) },
         { name: 'nextFollowUpAt', type: 'date', index: true, label: { fa: 'پیگیری بعدی', en: 'Next follow-up' }, admin: { date: { pickerAppearance: 'dayAndTime' } } },
       ],
+    },
+    {
+      // E-015: why a lead was lost (set by «از دست رفت» on the desk; kept if the lead comes back, for reporting).
+      name: 'lostReason',
+      type: 'select',
+      label: { fa: 'دلیل از دست رفتن', en: 'Lost reason' },
+      options: LEAD_LOST_REASONS.map((r) => ({ value: r, label: { fa: LEAD_LOST_REASON_LABELS_FA[r], en: r } })),
+      admin: { condition: (data) => data?.status === 'lost' || Boolean(data?.lostReason) },
     },
     {
       type: 'row',
