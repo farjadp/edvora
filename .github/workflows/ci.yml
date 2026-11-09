@@ -72,6 +72,10 @@ jobs:
       PAYMENT_PROVIDER: mock
       SMS_PROVIDER: mock
       AI_PROVIDER_OVERRIDE: mock
+      # E-016: the reminders e2e calls the worker with a fixed clock. Mock SMS only (SMS_PROVIDER above).
+      SMS_REMINDERS_ENABLED: 'true'
+      REMINDERS_CRON_SECRET: ci-only-reminders-cron-secret-not-used-elsewhere
+      REMINDERS_E2E_HOOKS: 'true'
       E2E_PORT: 3000
     steps:
       - uses: actions/checkout@v4
