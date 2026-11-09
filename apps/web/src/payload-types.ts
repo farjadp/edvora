@@ -67,6 +67,7 @@ export interface Config {
     'ai-memories': AiMemory;
     'ai-actions': AiAction;
     'integration-settings': IntegrationSetting;
+    'sms-log': SmsLog;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -122,6 +123,7 @@ export interface Config {
     'ai-memories': AiMemoriesSelect<false> | AiMemoriesSelect<true>;
     'ai-actions': AiActionsSelect<false> | AiActionsSelect<true>;
     'integration-settings': IntegrationSettingsSelect<false> | IntegrationSettingsSelect<true>;
+    'sms-log': SmsLogSelect<false> | SmsLogSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -356,6 +358,15 @@ export interface Tenant {
     title?: string | null;
     signature?: (number | null) | Media;
   };
+  reminderSettings?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   messageTemplates?:
     | {
         event:
@@ -363,6 +374,8 @@ export interface Tenant {
           | 'lead.received'
           | 'payment.received'
           | 'instalment.due'
+          | 'instalment.overdue'
+          | 'followup.digest'
           | 'enrolment.confirmed'
           | 'live.reminder'
           | 'certificate.issued';
@@ -490,6 +503,10 @@ export interface User {
   firstNameLatin?: string | null;
   lastNameLatin?: string | null;
   phone?: string | null;
+  /**
+   * خاموش = هیچ پیامک یادآوری (قسط، کلاس زنده، پیگیری) برای این شخص فرستاده نمی‌شود. کد ورود همچنان می‌رسد.
+   */
+  smsReminders?: boolean | null;
   /**
    * For receipts and contact only. Not used to sign in.
    */
@@ -644,6 +661,8 @@ export interface Role {
         | 'sms.send_single'
         | 'sms.broadcast'
         | 'templates.edit'
+        | 'notifications.view'
+        | 'notifications.manage'
         | 'reports.sales'
         | 'reports.finance'
         | 'reports.learning'
@@ -2336,6 +2355,35 @@ export interface IntegrationSetting {
   createdAt: string;
 }
 /**
+ * هر یادآور برای هر گیرنده یک بار. ناموفق‌ها خودکار با فاصلهٔ فزاینده دوباره فرستاده می‌شوند.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sms-log".
+ */
+export interface SmsLog {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  key: string;
+  rule: 'instalment.due' | 'instalment.overdue' | 'followup.digest' | 'live.reminder';
+  stage?: string | null;
+  status: 'sending' | 'sent' | 'failed' | 'dead' | 'skipped' | 'unknown';
+  recipient?: (number | null) | User;
+  toMasked?: string | null;
+  to?: string | null;
+  text?: string | null;
+  refCollection?: string | null;
+  refId?: number | null;
+  attempts?: number | null;
+  nextAttemptAt?: string | null;
+  expiresAt?: string | null;
+  sentAt?: string | null;
+  provider?: string | null;
+  providerMessageId?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -2647,6 +2695,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'integration-settings';
         value: number | IntegrationSetting;
+      } | null)
+    | ({
+        relationTo: 'sms-log';
+        value: number | SmsLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -2838,6 +2890,7 @@ export interface TenantsSelect<T extends boolean = true> {
         title?: T;
         signature?: T;
       };
+  reminderSettings?: T;
   messageTemplates?:
     | T
     | {
@@ -2862,6 +2915,7 @@ export interface UsersSelect<T extends boolean = true> {
   firstNameLatin?: T;
   lastNameLatin?: T;
   phone?: T;
+  smsReminders?: T;
   contactEmail?: T;
   nationalCode?: T;
   birthDate?: T;
@@ -4102,6 +4156,32 @@ export interface IntegrationSettingsSelect<T extends boolean = true> {
         at?: T;
         message?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sms-log_select".
+ */
+export interface SmsLogSelect<T extends boolean = true> {
+  tenant?: T;
+  key?: T;
+  rule?: T;
+  stage?: T;
+  status?: T;
+  recipient?: T;
+  toMasked?: T;
+  to?: T;
+  text?: T;
+  refCollection?: T;
+  refId?: T;
+  attempts?: T;
+  nextAttemptAt?: T;
+  expiresAt?: T;
+  sentAt?: T;
+  provider?: T;
+  providerMessageId?: T;
+  error?: T;
   updatedAt?: T;
   createdAt?: T;
 }

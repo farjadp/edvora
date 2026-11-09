@@ -1276,6 +1276,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "reminder_settings": {
+          "name": "reminder_settings",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp(3) with time zone",
@@ -2029,6 +2035,13 @@
           "type": "varchar",
           "primaryKey": false,
           "notNull": false
+        },
+        "sms_reminders": {
+          "name": "sms_reminders",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
         },
         "contact_email": {
           "name": "contact_email",
@@ -17347,6 +17360,313 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.sms_log": {
+      "name": "sms_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "key": {
+          "name": "key",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rule": {
+          "name": "rule",
+          "type": "enum_sms_log_rule",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stage": {
+          "name": "stage",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum_sms_log_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "to_masked": {
+          "name": "to_masked",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "to": {
+          "name": "to",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "text": {
+          "name": "text",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ref_collection": {
+          "name": "ref_collection",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ref_id": {
+          "name": "ref_id",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "next_attempt_at": {
+          "name": "next_attempt_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_message_id": {
+          "name": "provider_message_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error": {
+          "name": "error",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "sms_log_tenant_idx": {
+          "name": "sms_log_tenant_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sms_log_key_idx": {
+          "name": "sms_log_key_idx",
+          "columns": [
+            {
+              "expression": "key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sms_log_rule_idx": {
+          "name": "sms_log_rule_idx",
+          "columns": [
+            {
+              "expression": "rule",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sms_log_status_idx": {
+          "name": "sms_log_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sms_log_recipient_idx": {
+          "name": "sms_log_recipient_idx",
+          "columns": [
+            {
+              "expression": "recipient_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sms_log_ref_id_idx": {
+          "name": "sms_log_ref_id_idx",
+          "columns": [
+            {
+              "expression": "ref_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sms_log_next_attempt_at_idx": {
+          "name": "sms_log_next_attempt_at_idx",
+          "columns": [
+            {
+              "expression": "next_attempt_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sms_log_updated_at_idx": {
+          "name": "sms_log_updated_at_idx",
+          "columns": [
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sms_log_created_at_idx": {
+          "name": "sms_log_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sms_log_tenant_id_tenants_id_fk": {
+          "name": "sms_log_tenant_id_tenants_id_fk",
+          "tableFrom": "sms_log",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "sms_log_recipient_id_users_id_fk": {
+          "name": "sms_log_recipient_id_users_id_fk",
+          "tableFrom": "sms_log",
+          "tableTo": "users",
+          "columnsFrom": [
+            "recipient_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.payload_kv": {
       "name": "payload_kv",
       "schema": "",
@@ -18148,6 +18468,12 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
+        },
+        "sms_log_id": {
+          "name": "sms_log_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -18900,6 +19226,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "payload_locked_documents_rels_sms_log_id_idx": {
+          "name": "payload_locked_documents_rels_sms_log_id_idx",
+          "columns": [
+            {
+              "expression": "sms_log_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -19526,6 +19867,19 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "payload_locked_documents_rels_sms_log_fk": {
+          "name": "payload_locked_documents_rels_sms_log_fk",
+          "tableFrom": "payload_locked_documents_rels",
+          "tableTo": "sms_log",
+          "columnsFrom": [
+            "sms_log_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -19996,6 +20350,8 @@
         "lead.received",
         "payment.received",
         "instalment.due",
+        "instalment.overdue",
+        "followup.digest",
         "enrolment.confirmed",
         "live.reminder",
         "certificate.issued"
@@ -20146,6 +20502,8 @@
         "sms.send_single",
         "sms.broadcast",
         "templates.edit",
+        "notifications.view",
+        "notifications.manage",
         "reports.sales",
         "reports.finance",
         "reports.learning",
@@ -20810,6 +21168,28 @@
         "bigbluebutton"
       ]
     },
+    "public.enum_sms_log_rule": {
+      "name": "enum_sms_log_rule",
+      "schema": "public",
+      "values": [
+        "instalment.due",
+        "instalment.overdue",
+        "followup.digest",
+        "live.reminder"
+      ]
+    },
+    "public.enum_sms_log_status": {
+      "name": "enum_sms_log_status",
+      "schema": "public",
+      "values": [
+        "sending",
+        "sent",
+        "failed",
+        "dead",
+        "skipped",
+        "unknown"
+      ]
+    },
     "public.enum_payload_jobs_log_task_slug": {
       "name": "enum_payload_jobs_log_task_slug",
       "schema": "public",
@@ -20860,6 +21240,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "1abc380c-bba4-432b-9e9b-8daa8da36ed9",
+  "id": "8f5f68b4-9b92-4242-a8ab-093a4c9b05b7",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

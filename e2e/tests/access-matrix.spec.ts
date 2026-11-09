@@ -172,6 +172,9 @@ const READ: Record<string, Partial<Record<Key, Read>>> = {
   enrollments: { 'academy-admin': 'all', advisor: 'all', instructor: 'all', 'instructor-scoped': 'all', finance: 'all', support: 'all', 'content-editor': 'none', expired: 'none', 'archived-role': 'none', student: 'own' },
   'import-connections': { 'academy-admin': 'all', advisor: 'none', finance: 'none', student: 'none' },
   'otp-codes': { 'academy-admin': 'none', advisor: 'none', student: 'none' },
+  // E-016: reminder send log, notifications.view only. The "all" cells (admin, finance, support) are in
+  // sms-reminders.spec.ts, after a run has written rows.
+  'sms-log': { advisor: 'none', instructor: 'none', 'content-editor': 'none', expired: 'none', 'archived-role': 'none', student: 'none' },
 }
 const ownerOf = (collection: string, d: Doc) => (collection === 'users' ? d.id : (d.user as number | undefined) ?? (d.advisor as number | undefined))
 

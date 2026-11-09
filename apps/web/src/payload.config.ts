@@ -39,6 +39,7 @@ import { Roles } from './collections/Roles'
 import { SubmissionFiles } from './collections/SubmissionFiles'
 import { Submissions } from './collections/Submissions'
 import { IntegrationSettings } from './collections/IntegrationSettings'
+import { SmsLog } from './collections/SmsLog'
 import { Tenants } from './collections/Tenants'
 import { PlatformSettings } from './globals/PlatformSettings'
 import { Users } from './collections/Users'
@@ -128,6 +129,8 @@ export default buildConfig({
     ...AI_COLLECTIONS,
     // E-047: settings hub (ADR 019).
     IntegrationSettings,
+    // E-016: reminder SMS send log (ADR 020).
+    SmsLog,
   ],
   globals: [PlatformSettings],
   // E-032: first use of the Payload jobs queue (ADR 011 §Resumability). Each import task works ≤ 20 s, then re-queues
@@ -225,6 +228,8 @@ export default buildConfig({
         'ai-actions': {},
         // E-047: an academy's own providers (sealed keys).
         'integration-settings': {},
+        // E-016: reminder SMS send log (idempotency + delivery record).
+        'sms-log': {},
       },
       // No hard delete: academies are never removed, so never cascade-delete their records. The one exception,
       // demo sandboxes (ADR 013), is purged explicitly by lib/sandbox/cleanup.ts, collection by collection.
