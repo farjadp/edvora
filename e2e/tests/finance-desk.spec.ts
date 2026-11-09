@@ -155,6 +155,10 @@ test.describe('finance desk (E-023)', () => {
     const audit = await admin.get(`/api/audit-logs?where[targetCollection][equals]=refunds&where[docId][equals]=${refundId}&limit=10&depth=0`)
     const actions = ((await audit.json()) as { docs: { action: string }[] }).docs.map((d) => d.action).sort()
     expect(actions).toEqual(['refunds.approved', 'refunds.refunded', 'refunds.requested'])
+
+    // Full refund → certificates revoked / XP reversed (Farjad: «Revoke both»), recorded on the refund's audit trail.
+    const fullAudit = await admin.get(`/api/audit-logs?where[targetCollection][equals]=refunds&where[docId][equals]=${fullId.replace('refund-', '')}&limit=10&depth=0`)
+    expect(((await fullAudit.json()) as { docs: { action: string }[] }).docs.map((d) => d.action)).toContain('refunds.revoked')
   })
 
   test('Excel export downloads an .xlsx for finance; others get 404', async ({ page }) => {

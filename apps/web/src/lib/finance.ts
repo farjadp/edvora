@@ -15,6 +15,7 @@ import {
   lastContacts,
   paidAmount,
   refundEffects,
+  refundRevocation,
   rial,
   rialToToman,
   unpaidInstalments,
@@ -29,7 +30,8 @@ import {
 import type { Payload, PayloadRequest, Where } from 'payload'
 import { canIn } from '../access/permissions'
 import { writeAudit } from '../hooks/audit'
-import type { Cohort, Course, FinanceContact, Order, Refund, Tenant, User } from '../payload-types'
+import type { Certificate, Cohort, Course, Enrollment, FinanceContact, Order, Refund, Tenant, User } from '../payload-types'
+import { ledgerFor, refreshEnrollmentGamification, reverseLearningEvent } from './gamification'
 import { idOf } from './ids'
 import { notify } from './providers'
 import type { Sheet } from './xlsx'
@@ -307,9 +309,10 @@ async function completeRefund(s: FinanceCtx, r: Refund, reference: string, now: 
     await audit(s, { action: 'orders.refunded', collection: 'orders', docId: order.id, changes: { status: { from: order.status, to: effects.orderStatus } } })
   }
   if (effects.cancelEnrollment) {
+    // Active and completed: a graduate who gets all their money back loses the enrolment too (Farjad, «Revoke both»).
     const enr = await payload.find({
       collection: 'enrollments',
-      where: { and: [{ tenant: { equals: s.tenant.id } }, { or: [{ order: { equals: order.id } }, { and: [{ user: { equals: idOf(order.user) } }, { course: { equals: idOf(order.course) } }] }] }, { status: { equals: 'active' } }] },
+      where: { and: [{ tenant: { equals: s.tenant.id } }, { or: [{ order: { equals: order.id } }, { and: [{ user: { equals: idOf(order.user) } }, { course: { equals: idOf(order.course) } }] }] }, { status: { in: ['active', 'completed'] } }] },
       depth: 0,
       limit: 5,
       overrideAccess: true,
@@ -319,12 +322,11 @@ async function completeRefund(s: FinanceCtx, r: Refund, reference: string, now: 
       await audit(s, { action: 'enrollments.cancelled_by_refund', collection: 'enrollments', docId: e.id, note: `refund ${r.id}` })
     }
     const cohortId = idOf(order.cohort)
-    if (cohortId && enr.docs.length > 0) {
+    if (cohortId && enr.docs.some((e) => e.status === 'active')) {
       const cohort = await payload.findByID({ collection: 'cohorts', id: cohortId, depth: 0, overrideAccess: true, disableErrors: true })
       if (cohort) await payload.update({ collection: 'cohorts', id: cohortId, overrideAccess: true, data: { seatsTaken: Math.max(0, (cohort.seatsTaken ?? 0) - 1) } })
     }
-    // TODO(farjad): refund → XP / badges / certificate. No core rule exists yet (open gamification decision, ADR 014);
-    // XP earned on a cancelled enrolment stays on the ledger until that is decided. See docs/agents/handoffs/E-023.md.
+    for (const e of enr.docs) await revokeForRefund(s, r, e, now)
   }
   try {
     const user = await payload.findByID({ collection: 'users', id: idOf(order.user)!, depth: 0, overrideAccess: true })
@@ -333,6 +335,57 @@ async function completeRefund(s: FinanceCtx, r: Refund, reference: string, now: 
     console.error('[finance] refund notification failed', r.id, err)
   }
   return 'refunded'
+}
+
+/**
+ * Full refund → revoke the enrolment's certificates and reverse its XP (`refundRevocation`, Farjad 2026-11-09).
+ * Idempotent (already revoked / reversed rows are skipped) and never throws: a failure is logged and recorded in
+ * the refund's audit trail so a person can finish it by hand; the refund itself stays done.
+ */
+async function revokeForRefund(s: FinanceCtx, r: Refund, enrollment: Enrollment, now: string): Promise<void> {
+  const payload = s.req.payload
+  try {
+    const certs = await payload.find({
+      collection: 'certificates',
+      where: { and: [{ tenant: { equals: s.tenant.id } }, { user: { equals: idOf(enrollment.user) } }, { course: { equals: idOf(enrollment.course) } }] },
+      depth: 0,
+      limit: 20,
+      pagination: false,
+      overrideAccess: true,
+    })
+    const ledger = await ledgerFor({ payload }, s.tenant.id, enrollment.id)
+    const plan = refundRevocation({
+      full: true,
+      enrollmentCohort: idOf(enrollment.cohort),
+      certificates: certs.docs.map((c: Certificate) => ({ id: c.id, status: c.status ?? 'valid', cohort: idOf(c.cohort) })),
+      ledger: ledger.map((e) => ({ type: e.type, xp: e.xp ?? 0, occurredAt: e.occurredAt, idempotencyKey: e.idempotencyKey, reverses: e.reverses ?? null })),
+    })
+    const revoked: string[] = []
+    for (const id of plan.certificateIds) {
+      // Compare-and-set on status: a certificate revoked meanwhile is not touched again.
+      const res = await payload.update({ collection: 'certificates', where: { and: [{ id: { equals: id } }, { tenant: { equals: s.tenant.id } }, { status: { not_equals: 'revoked' } }] }, overrideAccess: true, data: { status: 'revoked' } })
+      for (const c of res.docs) revoked.push(c.code ?? String(c.id))
+    }
+    const byKey = new Map(ledger.map((e) => [e.idempotencyKey, e]))
+    let xp = 0
+    for (const e of plan.reverse) {
+      const row = e.idempotencyKey ? byKey.get(e.idempotencyKey) : undefined
+      if (!row) continue
+      const res = await reverseLearningEvent({ payload }, row, { actorId: s.user.id, note: `Refund ${r.id}` })
+      if (res.created) xp += -res.xp
+    }
+    if (plan.reverse.length > 0) await refreshEnrollmentGamification({ payload }, enrollment.id)
+    await audit(s, {
+      action: 'refunds.revoked',
+      collection: 'refunds',
+      docId: r.id,
+      note: `enrollment ${enrollment.id} at ${now}: certificates revoked [${revoked.join(', ')}], XP reversed ${xp}`,
+      changes: { certificates: { from: null, to: revoked }, xp: { from: plan.xp, to: 0 } },
+    })
+  } catch (err) {
+    console.error('[finance] refund revocation failed', r.id, enrollment.id, err)
+    await audit(s, { action: 'refunds.revoke_failed', collection: 'refunds', docId: r.id, note: `enrollment ${enrollment.id}: ${err instanceof Error ? err.message : String(err)}` })
+  }
 }
 
 export type RefundListRow = Refund & { studentName: string; courseTitle: string; requester: string; approver: string | null }

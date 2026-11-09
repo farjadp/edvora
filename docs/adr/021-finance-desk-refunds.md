@@ -55,8 +55,14 @@ becomes `refunded`, the active enrolment becomes `cancelled`, and the cohort sea
 released (mirror of `onFirstPayment`). Unpaid instalments of a refunded order drop off the overdue list. A
 *partial* refund changes nothing but the money record. The student gets an SMS (errors logged, never thrown).
 
-**XP, badges, certificates: no change.** There is no core rule for what a refund does to gamification or an issued
-certificate; it is an open decision for Farjad (`TODO(farjad)` in `lib/finance.ts`, see the E-023 handoff).
+**XP, badges, certificates: revoke both** (Farjad, 2026-11-09). On a *full* refund, when it is marked refunded,
+`refundRevocation` (core) revokes every still-valid certificate of the enrolment (same course; same cohort when
+both name one) and reverses every standing positive-XP row on the enrolment's ledger (badge XP included) with the
+usual `reversal` rows, then the cached totals are rebuilt. Completed enrolments are cancelled too, not only active
+ones. Idempotent (revoked / reversed rows are skipped; certificate writes are compare-and-set on status). Failure is
+logged and written as `refunds.revoke_failed`, never thrown: the refund stays done. Success writes
+`refunds.revoked` (who = the person who marked it refunded, when, certificate codes, XP removed). A partial refund
+keeps the enrolment and changes neither.
 
 ### 5. Excel export
 `GET /staff/payments/export?from=YYYY-MM-DD&to=YYYY-MM-DD` (both days included, Tehran calendar, ≤ 366 days).

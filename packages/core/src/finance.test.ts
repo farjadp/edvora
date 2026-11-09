@@ -13,6 +13,7 @@ import {
   paidAmount,
   refundActionsFor,
   refundEffects,
+  refundRevocation,
   refundableAmount,
   unpaidInstalments,
   upcomingInstalments,
@@ -264,5 +265,49 @@ describe('export range', () => {
   })
   it('defaults to this Jalali month', () => {
     expect(defaultExportRange(NOW)).toEqual({ from: '2026-10-23', to: '2026-11-09' })
+  })
+})
+
+describe('refund revocation (Farjad: «Revoke both»)', () => {
+  const at = '2026-10-01T08:00:00Z'
+  const ledger = [
+    { type: 'lesson.completed' as const, xp: 10, occurredAt: at, idempotencyKey: 'lesson:1:1' },
+    { type: 'quiz.passed' as const, xp: 25, occurredAt: at, idempotencyKey: 'quiz:1:2' },
+    { type: 'badge.earned' as const, xp: 50, occurredAt: at, idempotencyKey: 'badge:1:first' },
+    { type: 'lesson.marked' as const, xp: 0, occurredAt: at, idempotencyKey: 'lesson-marked:1:3' },
+    // Already reversed by a grade change: not reversed twice.
+    { type: 'assignment.passed' as const, xp: 20, occurredAt: at, idempotencyKey: 'assignment-pass:1:4' },
+    { type: 'reversal' as const, xp: -20, occurredAt: at, idempotencyKey: 'reverse:assignment-pass:1:4', reverses: 'assignment-pass:1:4' },
+  ]
+  const certificates = [
+    { id: 7, status: 'valid' as const, cohort: 3 },
+    { id: 8, status: 'revoked' as const, cohort: 3 },
+    { id: 9, status: 'valid' as const, cohort: 4 },
+    { id: 10, status: null, cohort: null },
+  ]
+
+  it('full refund: revokes the enrolment\'s valid certificates and reverses every standing XP award', () => {
+    const r = refundRevocation({ full: true, enrollmentCohort: 3, certificates, ledger })
+    expect(r.certificateIds).toEqual([7, 10])
+    expect(r.reverse.map((e) => e.idempotencyKey)).toEqual(['lesson:1:1', 'quiz:1:2', 'badge:1:first'])
+    expect(r.xp).toBe(85)
+  })
+
+  it('partial refund changes nothing', () => {
+    expect(refundRevocation({ full: false, enrollmentCohort: 3, certificates, ledger })).toEqual({ certificateIds: [], reverse: [], xp: 0 })
+  })
+
+  it('without a cohort every valid certificate of the course is revoked', () => {
+    expect(refundRevocation({ full: true, enrollmentCohort: null, certificates, ledger }).certificateIds).toEqual([7, 9, 10])
+  })
+
+  it('is idempotent: a second run after the reversals and revocations finds nothing', () => {
+    const first = refundRevocation({ full: true, enrollmentCohort: 3, certificates, ledger })
+    const after = [
+      ...ledger,
+      ...first.reverse.map((e) => ({ type: 'reversal' as const, xp: -e.xp, occurredAt: at, idempotencyKey: `reverse:${e.idempotencyKey}`, reverses: e.idempotencyKey })),
+    ]
+    const revoked = certificates.map((c) => (first.certificateIds.includes(c.id) ? { ...c, status: 'revoked' as const } : c))
+    expect(refundRevocation({ full: true, enrollmentCohort: 3, certificates: revoked, ledger: after })).toEqual({ certificateIds: [], reverse: [], xp: 0 })
   })
 })

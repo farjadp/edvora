@@ -1,6 +1,7 @@
 import { checkFourEyes, type Id } from './access'
 import { toLatinDigits } from './digits'
 import { dayFromKey, dayKey, dayStartsAt, jalaliMonthKey, tehranDayNumber } from './gamification/calendar'
+import { standingEvents, type LedgerEvent } from './gamification/xp'
 import { rial, type Rial } from './money'
 import type { OrderStatus } from './orders'
 
@@ -293,6 +294,42 @@ export function refundActionsFor(r: RefundForCheck, actor: RefundActor): RefundA
 export function refundEffects(input: { paid: number; refundedBefore: number; amount: number }): { orderStatus: 'refunded' | null; cancelEnrollment: boolean; full: boolean } {
   const full = input.refundedBefore + input.amount >= input.paid
   return { orderStatus: full ? 'refunded' : null, cancelEnrollment: full, full }
+}
+
+/** A certificate as the revocation rule sees it. */
+export type RevocableCertificate = { id: Id; status?: 'valid' | 'revoked' | null; cohort?: Id | null }
+
+export type RefundRevocation = {
+  /** Certificates to set to `revoked` (still valid, same course, and same cohort when both name one). */
+  certificateIds: Id[]
+  /** Standing ledger rows with positive XP to cancel with a reversal row each. */
+  reverse: LedgerEvent[]
+  /** XP removed in total (positive number). */
+  xp: number
+}
+
+/**
+ * Farjad's decision (2026-11-09, «Revoke both»): a full refund takes back what the enrolment earned. Every
+ * certificate of that enrolment is revoked and every standing XP award on its ledger is reversed (badge XP
+ * included). A partial refund keeps the enrolment, so it changes nothing here.
+ *
+ * Idempotent: certificates already revoked and ledger rows already reversed are skipped, so running it again
+ * after a crash or a retry returns nothing new. Rows with 0 XP (progress only, e.g. «mark complete») stay.
+ */
+export function refundRevocation(input: {
+  full: boolean
+  enrollmentCohort?: Id | null
+  certificates: readonly RevocableCertificate[]
+  ledger: readonly LedgerEvent[]
+}): RefundRevocation {
+  if (!input.full) return { certificateIds: [], reverse: [], xp: 0 }
+  const cohort = input.enrollmentCohort ?? null
+  const certificateIds = input.certificates
+    .filter((c) => (c.status ?? 'valid') !== 'revoked')
+    .filter((c) => cohort === null || c.cohort === null || c.cohort === undefined || String(c.cohort) === String(cohort))
+    .map((c) => c.id)
+  const reverse = standingEvents(input.ledger).filter((e) => e.xp > 0 && Boolean(e.idempotencyKey))
+  return { certificateIds, reverse, xp: reverse.reduce((n, e) => n + e.xp, 0) }
 }
 
 export const REFUND_REQUEST_ERRORS: Readonly<Record<RefundRequestReason, string>> = {
