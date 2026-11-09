@@ -21,6 +21,7 @@ import {
   type SettingsViewer,
   type UploadSlot,
 } from '@edvora/core/settings'
+import { parseNumberList, reminderSettingsSchema } from '@edvora/core/reminders'
 import { openSettingSecret, sealSettingSecret, settingsServerKey } from '@edvora/core/settings-secrets'
 import { checkConnection, type ConnectionCheck, type ConnectionResult } from '@edvora/integrations/connection'
 import { colourChecks, isHex, suggestAccent, suggestBrand } from '@edvora/ui/color'
@@ -289,7 +290,21 @@ const notifications: Saver = async (a, t, fd) => {
   return updateTenant(a, t, 'notifications', { messageTemplates: out })
 }
 
-const ACADEMY_SAVERS: Record<string, Saver> = { identity, appearance, contact, seo, homepage, certificates, login, features, legal, notifications }
+/** E-016 (ADR 020): reminder offsets and quiet hours, validated by the core schema (bad input = error, not defaults). */
+const reminders: Saver = async (a, t, fd) => {
+  const on = (k: string) => str(fd, k) === 'on'
+  const p = reminderSettingsSchema.safeParse({
+    enabled: on('enabled'),
+    instalment: { enabled: on('instalmentEnabled'), daysBefore: parseNumberList(str(fd, 'daysBefore')), daysAfter: parseNumberList(str(fd, 'daysAfter')) },
+    live: { enabled: on('liveEnabled'), hoursBefore: parseNumberList(str(fd, 'hoursBefore')) },
+    followup: { enabled: on('followupEnabled'), digestHour: str(fd, 'digestHour') || 8 },
+    quietHours: { start: str(fd, 'quietStart') || 21, end: str(fd, 'quietEnd') || 8 },
+  })
+  if (!p.success) return { ok: false, error: `یادآورها: ${firstIssue(p.error)}` }
+  return updateTenant(a, t, 'reminders', { reminderSettings: p.data })
+}
+
+const ACADEMY_SAVERS: Record<string, Saver> = { identity, appearance, contact, seo, homepage, certificates, login, features, legal, notifications, reminders }
 
 // ---------------------------------------------------------------- Integrations
 

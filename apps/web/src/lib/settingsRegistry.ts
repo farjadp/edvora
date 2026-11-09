@@ -38,6 +38,7 @@ const BUILT_IN: Record<BuiltInSection, Omit<SettingsSectionDef, 'key' | 'permiss
   features: { label: 'بخش‌ها و انگیزش', help: 'روشن و خاموش کردن بخش‌های سایت و گیمیفیکیشن', group: 'site', scope: 'academy', icon: 'bolt' },
   certificates: { label: 'گواهی‌ها', help: 'پیشوند کد گواهی، نام و سمت امضاکننده، تصویر امضا', group: 'academy', scope: 'academy', icon: 'certificate' },
   notifications: { label: 'قالب پیامک و ایمیل', help: 'متن پیام هر رویداد با متغیرها', group: 'messages', scope: 'academy', icon: 'bell' },
+  reminders: { label: 'یادآورهای پیامکی', help: 'یادآوری قسط، کلاس زنده و پیگیری مشاور؛ زمان‌ها و ساعت سکوت', group: 'messages', scope: 'academy', icon: 'bell' },
   integrations: { label: 'سرویس‌ها و کلیدهای API', help: 'پیامک، ایمیل و کلاس زنده با آزمون اتصال', group: 'integrations', scope: 'academy', icon: 'bolt' },
   'platform-providers': { label: 'سرویس‌ها و امنیت پلتفرم', help: 'سرویس‌های پیش‌فرض، اجازهٔ سرویس اختصاصی، سیاست تأیید دومرحله‌ای', group: 'platform', scope: 'platform', icon: 'shield' },
   'platform-academies': { label: 'آکادمی‌ها، دامنه‌ها و طرح‌ها', help: 'دامنه‌ها، طرح، سقف‌ها و ماژول‌های هر آکادمی', group: 'platform', scope: 'platform', icon: 'building' },
