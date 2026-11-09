@@ -4,6 +4,8 @@ import {
   checkRefundAction,
   checkRefundRequest,
   daysLate,
+  defaultExportRange,
+  exportRange,
   financeKpis,
   jalaliMonthStart,
   lastContacts,
@@ -242,5 +244,25 @@ describe('refund effects (order and enrolment)', () => {
   })
   it('partial refund leaves the order and enrolment as they are', () => {
     expect(refundEffects({ paid: 100, refundedBefore: 0, amount: 30 })).toEqual({ orderStatus: null, cancelEnrollment: false, full: false })
+  })
+})
+
+describe('export range', () => {
+  it('both days included, Tehran midnight to midnight', () => {
+    const r = exportRange('2026-11-01', '2026-11-09')
+    expect(r).toEqual({ ok: true, from: new Date('2026-10-31T20:30:00Z'), to: new Date('2026-11-09T20:30:00Z'), days: 9 })
+  })
+  it('accepts Persian digits', () => {
+    expect(exportRange('۲۰۲۶-۱۱-۰۱', '۲۰۲۶-۱۱-۰۱')).toMatchObject({ ok: true, days: 1 })
+  })
+  it('refuses bad, reversed and over-long ranges', () => {
+    expect(exportRange('2026-02-30', '2026-03-01').ok).toBe(false)
+    expect(exportRange('', '2026-03-01').ok).toBe(false)
+    expect(exportRange('2026-03-02', '2026-03-01').ok).toBe(false)
+    expect(exportRange('2025-01-01', '2026-01-02').ok).toBe(false)
+    expect(exportRange('2025-01-02', '2026-01-02').ok).toBe(true)
+  })
+  it('defaults to this Jalali month', () => {
+    expect(defaultExportRange(NOW)).toEqual({ from: '2026-10-23', to: '2026-11-09' })
   })
 })

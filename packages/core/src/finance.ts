@@ -1,5 +1,6 @@
 import { checkFourEyes, type Id } from './access'
-import { dayStartsAt, jalaliMonthKey, tehranDayNumber } from './gamification/calendar'
+import { toLatinDigits } from './digits'
+import { dayFromKey, dayKey, dayStartsAt, jalaliMonthKey, tehranDayNumber } from './gamification/calendar'
 import { rial, type Rial } from './money'
 import type { OrderStatus } from './orders'
 
@@ -90,7 +91,7 @@ export function bucketOf(days: number): OverdueBucket | null {
 export type OverdueFilter = { courseId?: number | null; cohortId?: number | null; bucket?: OverdueBucket | null }
 
 /** Overdue instalments, most overdue first, with the desk filters applied. */
-export function overdueInstalments(rows: readonly DueInstalment[], filter: OverdueFilter = {}): DueInstalment[] {
+export function overdueInstalments<T extends DueInstalment>(rows: readonly T[], filter: OverdueFilter = {}): T[] {
   return rows
     .filter((r) => r.daysLate >= 1)
     .filter((r) => filter.courseId == null || r.courseId === filter.courseId)
@@ -104,7 +105,7 @@ export type UpcomingWindow = (typeof UPCOMING_WINDOWS)[number]
 export const isUpcomingWindow = (v: unknown): v is UpcomingWindow => UPCOMING_WINDOWS.includes(Number(v) as UpcomingWindow)
 
 /** Instalments due from today to `days` days ahead (today included, so «۷ روز» = today + the next 6), soonest first. */
-export function upcomingInstalments(rows: readonly DueInstalment[], days: UpcomingWindow): DueInstalment[] {
+export function upcomingInstalments<T extends DueInstalment>(rows: readonly T[], days: UpcomingWindow): T[] {
   return rows.filter((r) => r.daysLate <= 0 && -r.daysLate < days).sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime() || a.orderId - b.orderId)
 }
 
@@ -314,4 +315,31 @@ export const REFUND_ACTION_ERRORS: Readonly<Record<RefundActionReason, string>> 
   missing_requester: 'درخواست‌کنندهٔ این بازپرداخت مشخص نیست.',
   reason_required: `دلیل رد را بنویسید (دست‌کم ${REFUND_REASON_MIN} نویسه).`,
   reference_required: 'شمارهٔ پیگیری یا مرجع واریز بازپرداخت را وارد کنید.',
+}
+
+// ---------------------------------------------------------------- Export range
+
+/** Longest range one Excel export may cover. */
+export const EXPORT_MAX_DAYS = 366
+
+/**
+ * `from` / `to` are Gregorian dates (`2026-11-01`, the value of a date input; Persian digits allowed) naming Tehran
+ * calendar days, both included. Returns the UTC instants [from 00:00 Tehran, the day after `to` 00:00 Tehran).
+ */
+export function exportRange(fromRaw: string, toRaw: string): { ok: true; from: Date; to: Date; days: number } | { ok: false; message: string } {
+  const f = toLatinDigits(fromRaw ?? '').trim()
+  const t = toLatinDigits(toRaw ?? '').trim()
+  const valid = (k: string) => /^\d{4}-\d{2}-\d{2}$/.test(k) && dayKey(dayFromKey(k)) === k
+  if (!valid(f) || !valid(t)) return { ok: false, message: 'تاریخ شروع و پایان را درست وارد کنید.' }
+  const a = dayFromKey(f)
+  const b = dayFromKey(t)
+  if (b < a) return { ok: false, message: 'تاریخ پایان نباید پیش از تاریخ شروع باشد.' }
+  const days = b - a + 1
+  if (days > EXPORT_MAX_DAYS) return { ok: false, message: 'بازهٔ خروجی حداکثر یک سال است.' }
+  return { ok: true, from: dayStartsAt(a), to: dayStartsAt(b + 1), days }
+}
+
+/** Default export range: the current Jalali month up to today (date-input values). */
+export function defaultExportRange(now: Date): { from: string; to: string } {
+  return { from: dayKey(tehranDayNumber(jalaliMonthStart(now))), to: dayKey(tehranDayNumber(now)) }
 }

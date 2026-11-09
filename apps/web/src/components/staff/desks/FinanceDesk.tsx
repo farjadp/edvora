@@ -11,14 +11,70 @@ import { DeskPage, MainSide, PageHeader, consoleBtn } from '../Desk'
 import { reviewQueue, staffActor } from '../../../lib/payments'
 import { ManualPaymentForm } from '../payments/PaymentForms'
 import { ReviewQueue } from '../payments/ReviewQueue'
+import { isOverdueBucket, isUpcomingWindow, type RefundStatus } from '@edvora/core'
+import { financeActor, loadFinanceData, refundList } from '../../../lib/finance'
+import { ExportView, FinanceKpis, FinanceTabs, OverdueView, RefundsView, UpcomingView, financeTabs, type FinanceTab } from '../finance/FinanceViews'
 
 const KIND_LABEL = { to_verify: 'در انتظار بررسی', needs_attention: 'نیازمند توجه', overdue: 'سررسید گذشته' } as const
 const BASE = '/staff/finance'
 
 type Props = { s: StaffSession & { user: User; req: PayloadRequest }; sp: Record<string, string | string[] | undefined>; adminLink?: { label: string; href: string } }
 
-/** Finance desk (E-028 G10 inbox + E-035 orders list): real counters, the unpaid-instalment inbox, orders with filters. */
+const REFUND_STATUSES: readonly RefundStatus[] = ['requested', 'approved', 'refunded', 'rejected', 'cancelled']
+const posInt = (v: string) => (/^\d{1,9}$/.test(v) && Number(v) > 0 ? Number(v) : null)
+
+/**
+ * Finance desk (E-028 G10 inbox + E-035 orders list + E-023 tabs): overview KPIs, overdue and upcoming
+ * instalments, refunds with four-eyes, Excel export. Each tab shows only for the permission that opens it.
+ */
 export async function FinanceDesk({ s, sp, adminLink }: Props) {
+  const fin = await financeActor(s)
+  const tabs = financeTabs(fin)
+  const asked = one(sp.tab) as FinanceTab
+  const tab: FinanceTab = tabs.includes(asked) ? asked : 'overview'
+  const header = (
+    <PageHeader
+      title="مالی"
+      subtitle={tab === 'overview' ? `پرداخت‌ها، اقساط و سفارش‌ها. آمار ${fa(PERIOD_DAYS)} روز گذشته در برابر ${fa(PERIOD_DAYS)} روز قبل از آن.` : 'اقساط، بازپرداخت‌ها و خروجی مالی این آکادمی.'}
+      actions={
+        adminLink ? (
+          <a href={adminLink.href} className={consoleBtn.secondary}>
+            {adminLink.label} <span aria-hidden>↗</span>
+          </a>
+        ) : null
+      }
+    />
+  )
+  if (tab !== 'overview') {
+    let view
+    if (tab === 'overdue' || tab === 'upcoming') {
+      const data = await loadFinanceData(s)
+      if (tab === 'overdue') {
+        const late = one(sp.late)
+        const filter = { courseId: posInt(one(sp.course)), cohortId: posInt(one(sp.cohort)), bucket: isOverdueBucket(late) ? late : null }
+        const qs = new URLSearchParams({ tab: 'overdue', ...(filter.courseId ? { course: String(filter.courseId) } : {}), ...(filter.cohortId ? { cohort: String(filter.cohortId) } : {}), ...(filter.bucket ? { late: String(filter.bucket) } : {}) })
+        view = <OverdueView data={data} filter={filter} back={`${BASE}?${qs.toString()}`} />
+      } else {
+        const d = Number(one(sp.days))
+        view = <UpcomingView data={data} days={isUpcomingWindow(d) ? d : 7} />
+      }
+    } else if (tab === 'refunds') {
+      const status = REFUND_STATUSES.includes(one(sp.status) as RefundStatus) ? (one(sp.status) as RefundStatus) : null
+      view = <RefundsView rows={await refundList(s, status)} actor={fin} status={status} />
+    } else {
+      view = <ExportView now={new Date()} />
+    }
+    return (
+      <DeskPage desk="finance">
+        <div data-testid="finance-desk" data-tab={tab} className="grid min-w-0 gap-6">
+          {header}
+          <FinanceTabs tabs={tabs} current={tab} />
+          {view}
+        </div>
+      </DeskPage>
+    )
+  }
+
   const c = staffCtx(s)
   const q = one(sp.q).trim()
   const status = one(sp.status)
@@ -36,7 +92,8 @@ export async function FinanceDesk({ s, sp, adminLink }: Props) {
   // ADR 017: the four-eyes queue and manual payments, for whoever can record or approve.
   const reviewer = has(s, 'payments.manual.record') || has(s, 'payments.manual.approve')
   const [queue, actor] = reviewer ? await Promise.all([reviewQueue(s), staffActor(s)]) : [null, null]
-  const [inbox, sales, orderCount, list, mix] = await Promise.all([
+  const [finData, inbox, sales, orderCount, list, mix] = await Promise.all([
+    fin.canView ? loadFinanceData(s) : null,
     getFinanceInbox(s),
     view ? settledTrend(c) : null,
     view ? trend(c, 'orders') : null,
@@ -84,18 +141,10 @@ export async function FinanceDesk({ s, sp, adminLink }: Props) {
 
   return (
     <DeskPage desk="finance">
-      <div data-testid="finance-desk" data-zero={inbox ? inbox.zero : undefined} className="grid min-w-0 gap-6">
-        <PageHeader
-          title="مالی"
-          subtitle={`پرداخت‌ها، اقساط و سفارش‌ها. آمار ${fa(PERIOD_DAYS)} روز گذشته در برابر ${fa(PERIOD_DAYS)} روز قبل از آن.`}
-          actions={
-            adminLink ? (
-              <a href={adminLink.href} className={consoleBtn.secondary}>
-                {adminLink.label} <span aria-hidden>↗</span>
-              </a>
-            ) : null
-          }
-        />
+      <div data-testid="finance-desk" data-tab="overview" data-zero={inbox ? inbox.zero : undefined} className="grid min-w-0 gap-6">
+        {header}
+        <FinanceTabs tabs={tabs} current="overview" />
+        {finData ? <FinanceKpis data={finData} /> : null}
         <div data-testid={inbox ? 'inbox-counts' : undefined}>
           <KpiGrid>
             {inbox ? (
