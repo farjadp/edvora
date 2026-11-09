@@ -577,6 +577,13 @@ async function seedDemoGamification(payload: Payload, t: number) {
     if (found) await payload.update({ collection: 'leads', id: found.id, overrideAccess: true, context, data: data as never })
     else await payload.create({ collection: 'leads', overrideAccess: true, context, data: data as never })
   }
+  // E-015: one unassigned lead, so the advisor desk's «بی‌مشاور» pool is not empty (a re-seed puts it back in the pool).
+  {
+    const pool = { tenant: t, name: 'سرنخ نمونه بی‌مشاور', phone: '09129990106', course: course.id, status: 'new' as const, advisor: null, message: 'داده آزمایشی آکادمی نمونه.' }
+    const found = (await payload.find({ collection: 'leads', where: { and: [{ tenant: { equals: t } }, { phone: { equals: pool.phone } }] }, limit: 1, overrideAccess: true })).docs[0]
+    if (found) await payload.update({ collection: 'leads', id: found.id, overrideAccess: true, context: { [FOLLOW_UP_CONTEXT]: true }, data: { ...pool, followUps: [], lostReason: null } })
+    else await payload.create({ collection: 'leads', overrideAccess: true, data: pool })
+  }
 
   // ---- One instalment order for the finance inbox: #1 paid, #2 overdue with a failed gateway attempt, #3 later.
   const part = tomanToRial(4_000_000)

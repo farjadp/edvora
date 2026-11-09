@@ -605,6 +605,7 @@ export interface Role {
         | 'leads.view.own'
         | 'leads.view.all'
         | 'leads.create'
+        | 'leads.claim'
         | 'leads.assign'
         | 'leads.export'
         | 'orders.create_for_lead'
@@ -1544,6 +1545,7 @@ export interface Lead {
   status: 'new' | 'contacted' | 'follow_up' | 'enrolled' | 'lost';
   advisor?: (number | null) | User;
   nextFollowUpAt?: string | null;
+  lostReason?: ('price' | 'timing' | 'chose_other' | 'not_reachable' | 'not_a_fit' | 'other') | null;
   lastOutcome?: ('reached' | 'no_answer' | 'callback' | 'wrong_number' | 'not_interested') | null;
   lastOutcomeAt?: string | null;
   lastOutcomeBy?: (number | null) | User;
@@ -3384,6 +3386,7 @@ export interface LeadsSelect<T extends boolean = true> {
   status?: T;
   advisor?: T;
   nextFollowUpAt?: T;
+  lostReason?: T;
   lastOutcome?: T;
   lastOutcomeAt?: T;
   lastOutcomeBy?: T;
