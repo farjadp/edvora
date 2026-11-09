@@ -24,6 +24,8 @@ import {
 } from './crm'
 import { toLatinDigits } from './digits'
 import { formatJalali } from './jalali'
+import { nextFollowUpAt } from './leads'
+import { advisorDailyGoal } from './staffGoals'
 import { ROLE_TEMPLATES } from './permissions'
 
 const NOW = new Date('2026-11-09T09:00:00Z') // 18 Aban 1405, 12:30 Tehran
@@ -60,6 +62,30 @@ describe('Jalali calendar', () => {
     expect(at?.toISOString()).toBe('2026-11-10T07:00:00.000Z')
     expect(utcToTehranLocal(at!)).toEqual({ jy: 1405, jm: 8, jd: 19, hour: 10, minute: 30 })
     expect(utcToTehranLocal('2026-11-09T21:00:00Z')).toEqual({ jy: 1405, jm: 8, jd: 19, hour: 0, minute: 30 })
+  })
+
+  it('at 23:30 Tehran (20:00 UTC, still the same UTC day) "tomorrow" is the next Tehran day', () => {
+    const lateNight = new Date('2026-11-09T20:00:00Z') // 18 Aban 1405, 23:30 Tehran
+    expect(utcToTehranLocal(lateNight)).toEqual({ jy: 1405, jm: 8, jd: 18, hour: 23, minute: 30 })
+    // The picker's default: Tehran day of now + 24 h, at 10:30.
+    const tomorrow = { ...utcToTehranLocal(new Date(lateNight.getTime() + 24 * 60 * 60 * 1000)), hour: 10, minute: 30 }
+    expect(tomorrow).toMatchObject({ jy: 1405, jm: 8, jd: 19 })
+    const at = tehranLocalToUtc(tomorrow)!
+    expect(at.toISOString()).toBe('2026-11-10T07:00:00.000Z')
+    expect(formatJalali(at, 'd MMMM HH:mm')).toBe('۱۹ آبان ۱۰:۳۰')
+    expect(leadDue({ status: 'contacted', nextFollowUpAt: at }, lateNight)).toBe('later')
+  })
+
+  it('a new lead created at 23:30 Tehran is first due after midnight, so calling it tonight is not today\'s follow-up', () => {
+    const lateNight = new Date('2026-11-09T20:00:00Z') // 23:30 Tehran
+    const firstDue = nextFollowUpAt('new', lateNight)! // +2 h → 01:30 Tehran, the next day
+    expect(leadDue({ status: 'new', nextFollowUpAt: firstDue }, lateNight)).toBe('later')
+    const goal = advisorDailyGoal({
+      advisorId: 7,
+      now: lateNight,
+      leads: [{ id: 1, advisorId: 7, nextFollowUpAt: '2026-11-10T07:00:00Z', followUps: [{ at: lateNight.toISOString(), outcome: 'reached', by: 7, dueAt: firstDue.toISOString() }] }],
+    })
+    expect(goal).toMatchObject({ due: 0, done: 0 })
   })
 
   it('rejects impossible dates and times', () => {
