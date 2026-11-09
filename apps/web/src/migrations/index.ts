@@ -16,8 +16,10 @@ import * as migration_20261108_181500_e047_admin_integrations_key from './202611
 import * as migration_20261108_181600_e047_zarinpal_to_payment_methods from './20261108_181600_e047_zarinpal_to_payment_methods';
 import * as migration_20261108_181700_e047_drop_tenant_zarinpal from './20261108_181700_e047_drop_tenant_zarinpal';
 import * as migration_20261108_191757_e029_demo_sandboxes from './20261108_191757_e029_demo_sandboxes';
-import * as migration_20261109_135750_e015_crm_desk from './20261109_135750_e015_crm_desk';
-import * as migration_20261109_135800_e015_claim_grant from './20261109_135800_e015_claim_grant';
+import * as migration_20261109_140046_e016_sms_reminders from './20261109_140046_e016_sms_reminders';
+import * as migration_20261109_140100_e016_notifications_grant from './20261109_140100_e016_notifications_grant';
+import * as migration_20261109_142748_e015_crm_desk from './20261109_142748_e015_crm_desk';
+import * as migration_20261109_142800_e015_claim_grant from './20261109_142800_e015_claim_grant';
 
 export const migrations = [
   {
@@ -111,13 +113,23 @@ export const migrations = [
     name: '20261108_191757_e029_demo_sandboxes',
   },
   {
-    up: migration_20261109_135750_e015_crm_desk.up,
-    down: migration_20261109_135750_e015_crm_desk.down,
-    name: '20261109_135750_e015_crm_desk',
+    up: migration_20261109_140046_e016_sms_reminders.up,
+    down: migration_20261109_140046_e016_sms_reminders.down,
+    name: '20261109_140046_e016_sms_reminders',
   },
   {
-    up: migration_20261109_135800_e015_claim_grant.up,
-    down: migration_20261109_135800_e015_claim_grant.down,
-    name: '20261109_135800_e015_claim_grant',
+    up: migration_20261109_140100_e016_notifications_grant.up,
+    down: migration_20261109_140100_e016_notifications_grant.down,
+    name: '20261109_140100_e016_notifications_grant',
+  },
+  {
+    up: migration_20261109_142748_e015_crm_desk.up,
+    down: migration_20261109_142748_e015_crm_desk.down,
+    name: '20261109_142748_e015_crm_desk',
+  },
+  {
+    up: migration_20261109_142800_e015_claim_grant.up,
+    down: migration_20261109_142800_e015_claim_grant.down,
+    name: '20261109_142800_e015_claim_grant',
   },
 ];

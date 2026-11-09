@@ -35,7 +35,8 @@
     "./sandbox": "./src/sandbox.ts",
     "./pow": "./src/pow.ts",
     "./settings": "./src/settings.ts",
-    "./settings-secrets": "./src/settingsSecrets.ts"
+    "./settings-secrets": "./src/settingsSecrets.ts",
+    "./reminders": "./src/reminders.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

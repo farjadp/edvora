@@ -35,7 +35,7 @@ export const PERMISSION_GROUPS = {
   certificates: ['certificates.view', 'certificates.issue', 'certificates.revoke'],
   content: ['content.edit', 'content.publish', 'media.upload'],
   support: ['tickets.view.own', 'tickets.view.all', 'tickets.reply', 'tickets.assign'],
-  messaging: ['sms.send_single', 'sms.broadcast', 'templates.edit'],
+  messaging: ['sms.send_single', 'sms.broadcast', 'templates.edit', 'notifications.view', 'notifications.manage'],
   reports: ['reports.sales', 'reports.finance', 'reports.learning'],
   academy: ['settings.edit', 'audit.view', 'settings.integrations', 'payments.settings'],
   /** E-032 (ADR 011): WordPress import. Academy-grantable; `import.run` writes data, `import.view` reads reports. */
@@ -178,6 +178,8 @@ export const PERMISSION_DESCRIPTIONS: Record<AcademyPermission, { fa: string; en
   'sms.send_single': { fa: 'فرستادن پیامک به یک نفر', en: 'Send an SMS to one person' },
   'sms.broadcast': { fa: 'فرستادن پیامک گروهی', en: 'Send bulk SMS' },
   'templates.edit': { fa: 'ویرایش قالب پیامک و ایمیل', en: 'Edit SMS and email templates' },
+  'notifications.view': { fa: 'دیدن گزارش ارسال پیامک‌های یادآور', en: 'View the reminder SMS send log' },
+  'notifications.manage': { fa: 'تنظیم یادآورهای پیامکی (زمان‌ها، ساعت سکوت) و ارسال دوبارهٔ ناموفق‌ها', en: 'Configure SMS reminders and retry failed sends' },
   'reports.sales': { fa: 'دیدن گزارش‌های فروش و عملکرد مشاوران', en: 'View sales and advisor reports' },
   'reports.finance': { fa: 'دیدن گزارش‌های مالی', en: 'View finance reports' },
   'reports.learning': { fa: 'دیدن گزارش‌های آموزشی', en: 'View learning reports' },
@@ -207,6 +209,7 @@ export const READ_ONLY_PERMISSIONS: readonly AcademyPermission[] = [
   'reports.learning',
   'audit.view',
   'import.view',
+  'notifications.view',
 ]
 
 // ---------------------------------------------------------------- Role templates
@@ -289,14 +292,14 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     key: 'finance',
     name: { fa: 'مالی', en: 'Finance' },
     description: 'Payments, instalments, manual receipts, refunds, exports.',
-    permissions: [...g.finance, 'reports.finance', 'users.view', 'courses.view', 'enrollments.view'],
+    permissions: [...g.finance, 'reports.finance', 'users.view', 'courses.view', 'enrollments.view', 'notifications.view'],
     experience: { landing: 'finance' },
   },
   {
     key: 'support',
     name: { fa: 'پشتیبانی', en: 'Support' },
     description: 'Tickets and student lookup. No money actions.',
-    permissions: [...g.support, 'users.view', 'refunds.request', 'sms.send_single', 'courses.view', 'enrollments.view', 'certificates.view'],
+    permissions: [...g.support, 'users.view', 'refunds.request', 'sms.send_single', 'courses.view', 'enrollments.view', 'certificates.view', 'notifications.view'],
     experience: { landing: 'support' },
   },
   {

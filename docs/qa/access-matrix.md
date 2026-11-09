@@ -99,6 +99,18 @@ Expected comes from the template permissions; every cell matched unless marked.
 | archived-role | own ✅ | own ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ |
 | student / -other / -unpaid | own ✅ | — ✅ | — ✅ | — ✅ | own ✅ | own ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ |
 
+**E-016 `sms-log`** (reminder send log, `notifications.view`; written only by the worker — `create/update/delete`
+nobody; the full mobile `to` has field read access nobody, lists show `toMasked`):
+
+| user | sms-log read | create over REST | settings «یادآورهای پیامکی» (`notifications.manage`) |
+| --- | --- | --- | --- |
+| academy-admin | all ✅ | ✗ ✅ | ✓ ✅ |
+| finance | all ✅ | ✗ ✅ | ✗ |
+| support | all ✅ | ✗ ✅ | ✗ |
+| advisor / advisor-own / instructor / content-editor / expired / archived-role / student | — ✅ | ✗ ✅ | ✗ |
+
+`all` cells: `e2e/tests/sms-reminders.spec.ts` (after a run has written rows); `—` cells: `access-matrix.spec.ts`.
+
 Public collections (read = anyone by design): `cohorts`, `media`, `posts`, `pages`, `testimonials`, `courses`, `lessons`.
 
 | check | expected | actual | result |
@@ -209,7 +221,7 @@ turns the matrix into 97 tests (93 pass, 4 are `test.fail` pinning ACC-01…ACC-
 ## Lead pool — `leads.claim` (E-015)
 
 New catalog key `leads.claim`: see leads with no advisor (desk tab «بی‌مشاور») and take one for yourself. Granted by the
-`advisor`, `sales-manager` and `academy-admin` templates (migration `20261109_135800_e015_claim_grant` adds it to
+`advisor`, `sales-manager` and `academy-admin` templates (migration `20261109_142800_e015_claim_grant` adds it to
 existing template roles). The pool is read by server code only (never through `/api/leads`), so the API rows above are
 unchanged.
 
