@@ -9,7 +9,7 @@ export const PERMISSION_GROUPS = {
   users: ['users.view', 'users.create', 'users.edit', 'users.deactivate', 'users.view_sensitive', 'users.import', 'users.export', 'users.2fa.reset'],
   roles: ['roles.view', 'roles.manage', 'roles.assign'],
   catalog: ['courses.view', 'courses.edit', 'courses.publish', 'cohorts.manage', 'lessons.edit', 'pricing.edit'],
-  sales: ['leads.view.own', 'leads.view.all', 'leads.create', 'leads.assign', 'leads.export', 'orders.create_for_lead', 'discount.give'],
+  sales: ['leads.view.own', 'leads.view.all', 'leads.create', 'leads.claim', 'leads.assign', 'leads.export', 'orders.create_for_lead', 'discount.give'],
   finance: [
     // E-023 (ADR 021): open the finance desk's overdue / upcoming / refunds views and log contact notes.
     'finance.view',
@@ -145,6 +145,7 @@ export const PERMISSION_DESCRIPTIONS: Record<AcademyPermission, { fa: string; en
   'leads.view.own': { fa: 'دیدن و پیگیری مشتریان بالقوهٔ خودش', en: 'View and work own leads' },
   'leads.view.all': { fa: 'دیدن و پیگیری همهٔ مشتریان بالقوهٔ آکادمی', en: 'View and work all leads' },
   'leads.create': { fa: 'ثبت مشتری بالقوهٔ تازه', en: 'Create leads' },
+  'leads.claim': { fa: 'دیدن سرنخ‌های بی‌مشاور و برداشتن آن‌ها برای خود (نه با «فقط رکوردهای خودش»)', en: 'See unassigned leads and claim them (not with own-records-only)' },
   'leads.assign': { fa: 'سپردن مشتری بالقوه به مشاور دیگر', en: 'Reassign leads to another advisor' },
   'leads.export': { fa: 'خروجی گرفتن از مشتریان بالقوه', en: 'Export leads' },
   'orders.create_for_lead': { fa: 'ساختن سفارش و لینک پرداخت برای مشتری', en: 'Create orders and payment links for a lead' },
@@ -243,6 +244,8 @@ const g = PERMISSION_GROUPS
 const ADVISOR: readonly AcademyPermission[] = [
   'leads.view.own',
   'leads.create',
+  // E-015: take a lead from the unassigned pool (never with ownRecordsOnly).
+  'leads.claim',
   'orders.create_for_lead',
   'discount.give',
   'refunds.request',

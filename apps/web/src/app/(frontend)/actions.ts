@@ -1,6 +1,6 @@
 'use server'
 
-import { LEAD_OUTCOMES, canTransitionLead, generateOtp, hashOtp, LEAD_STATUSES, nextFollowUpAt as defaultFollowUpAt, normalizeIranMobile, safeEqual, toLatinDigits, type LeadStatus } from '@edvora/core'
+import { LEAD_OUTCOMES, generateOtp, hashOtp, LEAD_STATUSES, normalizeIranMobile, safeEqual, toLatinDigits } from '@edvora/core'
 import { randomBytes } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
@@ -10,8 +10,7 @@ import { CheckoutError, createOrder } from '../../lib/checkout'
 import { PaymentError, loadStudentOrder, startUsdtPayment, submitCardPayment, submitUsdtHash } from '../../lib/payments'
 import { saveSubmission } from '../../lib/assignmentSubmissions'
 import { idOf } from '../../lib/ids'
-import { FOLLOW_UP_CONTEXT } from '../../collections/Leads'
-import { canIn } from '../../access/permissions'
+import { writeCallLog } from '../../lib/leadWrites'
 import { onLessonMarked, onLessonWatched, safely, type WatchResult } from '../../lib/gamification'
 import { blockersFor, findEnrollment, loadCourseState } from '../../lib/learning'
 import { getPayloadClient } from '../../lib/payload'
@@ -459,38 +458,12 @@ export type FollowUpState = { ok: boolean; message: string }
 export async function recordFollowUpOutcome(input: z.input<typeof FollowUpInput>): Promise<FollowUpState> {
   const parsed = FollowUpInput.safeParse(input)
   if (!parsed.success) return { ok: false, message: 'اطلاعات پیگیری کامل نیست.' }
-  const data = parsed.data
   try {
     const s = await getStaffSession()
     if (s.state !== 'ok' || !s.req || !s.user) return { ok: false, message: 'دسترسی ندارید.' }
-    const payload = s.req.payload
-    const lead = await payload.findByID({ collection: 'leads', id: data.leadId, depth: 0, overrideAccess: true, disableErrors: true })
-    // Another academy's lead: same answer as "not found" (no existence leak).
-    if (!lead || idOf(lead.tenant) !== s.tenant.id) return { ok: false, message: 'این مورد پیدا نشد.' }
-    if (!(await canIn(s.req, s.tenant.id, 'leads.view', { ownerId: idOf(lead.advisor), courseId: idOf(lead.course) }))) return { ok: false, message: 'این مورد پیدا نشد.' }
-    const from = (lead.status ?? 'new') as LeadStatus
-    const to = data.status ?? from
-    if (!canTransitionLead(from, to)) return { ok: false, message: 'این تغییر وضعیت مجاز نیست.' }
-    const now = new Date()
-    const next = data.nextFollowUpAt === undefined ? (defaultFollowUpAt(to, now)?.toISOString() ?? null) : data.nextFollowUpAt
-    await payload.update({
-      collection: 'leads',
-      id: lead.id,
-      req: s.req,
-      overrideAccess: false,
-      context: { [FOLLOW_UP_CONTEXT]: true },
-      data: {
-        status: to,
-        nextFollowUpAt: to === 'enrolled' ? null : next,
-        lastOutcome: data.outcome,
-        lastOutcomeAt: now.toISOString(),
-        lastOutcomeBy: s.user.id,
-        followUps: [
-          ...(lead.followUps ?? []).map((f) => ({ ...f, by: idOf(f.by) })),
-          { at: now.toISOString(), outcome: data.outcome, by: s.user.id, dueAt: lead.nextFollowUpAt ?? null, note: data.note ?? null },
-        ],
-      },
-    })
+    // E-015: same write as the desk's «ثبت تماس» (lib/leadWrites): scope check, pipeline rule, follow-up log, audit.
+    const r = await writeCallLog({ ...s, user: s.user, req: s.req }, parsed.data)
+    if (!r.ok) return { ok: false, message: r.message }
     revalidatePath('/staff/leads')
     return { ok: true, message: 'نتیجهٔ پیگیری ثبت شد.' }
   } catch (err) {

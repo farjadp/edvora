@@ -9833,6 +9833,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "lost_reason": {
+          "name": "lost_reason",
+          "type": "enum_leads_lost_reason",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
         "last_outcome": {
           "name": "last_outcome",
           "type": "enum_leads_last_outcome",
@@ -20467,6 +20474,7 @@
         "leads.view.own",
         "leads.view.all",
         "leads.create",
+        "leads.claim",
         "leads.assign",
         "leads.export",
         "orders.create_for_lead",
@@ -20840,6 +20848,18 @@
         "follow_up",
         "enrolled",
         "lost"
+      ]
+    },
+    "public.enum_leads_lost_reason": {
+      "name": "enum_leads_lost_reason",
+      "schema": "public",
+      "values": [
+        "price",
+        "timing",
+        "chose_other",
+        "not_reachable",
+        "not_a_fit",
+        "other"
       ]
     },
     "public.enum_leads_last_outcome": {
@@ -21240,6 +21260,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "8f5f68b4-9b92-4242-a8ab-093a4c9b05b7",
+  "id": "7a1edd7b-980b-4fd1-83b8-b137726a893c",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

@@ -11,7 +11,9 @@ import { SupportDesk } from '../../../../../components/staff/desks/SupportDesk'
 import { TeachingDesk } from '../../../../../components/staff/desks/TeachingDesk'
 import { SecurityPromoCard } from '../../../../../components/staff/SecurityPromoCard'
 import { getAdvisorDesk, isDeskFilter } from '../../../../../lib/advisorDesk'
-import { count, deltaOf, fa, one, staffCtx, trend } from '../../../../../lib/consoleData'
+import { count, one, staffCtx } from '../../../../../lib/consoleData'
+import { courseOptions, crmAccess, getCrmKpis, isCrmView, listLeads, parseCrmFilters, sourceOptions } from '../../../../../lib/crmDesk'
+import { leadSearch, matchesLeadSearch } from '@edvora/core/crm'
 import { LEAD_STATUS } from '../../../../../lib/consoleLabels'
 import { HostLivePanel } from '../../../../../components/live/HostLivePanel'
 import { hostRows } from '../../../../../lib/liveAccess'
@@ -50,24 +52,38 @@ export default async function DeskPage({ params, searchParams }: Props) {
       body = <OverviewDesk s={s} />
       break
     case 'leads': {
+      // E-015 advisor CRM desk: today's follow-ups (default), my leads, the unassigned pool, the whole team.
+      const a = await crmAccess(s)
+      const view = isCrmView(sp.v) ? sp.v : 'today'
       const f = isDeskFilter(sp.f) ? sp.f : 'today'
       const q = one(sp.q).trim()
-      const data = await getAdvisorDesk(s, f)
-      if (q) data.rows = data.rows.filter((r) => r.name.includes(q) || r.phone.includes(q))
+      const filters = parseCrmFilters(sp)
       const c = staffCtx(s)
       const own = { advisor: { equals: s.user.id } }
-      const [lt, ...mix] = await Promise.all([
-        trend(c, 'leads', { where: own }),
+      const [data, kpis, list, courses, sources, ...mix] = await Promise.all([
+        getAdvisorDesk(s, f),
+        getCrmKpis(s, a),
+        view === 'today' ? Promise.resolve(null) : listLeads(s, a, view, filters),
+        view === 'today' ? Promise.resolve([]) : courseOptions(s),
+        view === 'today' ? Promise.resolve([]) : sourceOptions(s),
         ...Object.keys(LEAD_STATUS).map(async (status) => ({ status, n: (await count(c, 'leads', own, { status: { equals: status } })) ?? 0 })),
       ])
+      const search = leadSearch(q)
+      if (search) data.rows = data.rows.filter((r) => matchesLeadSearch(r, search))
       body = (
         <LeadsDesk
           name={greetingName(s.user) ?? 'همکار'}
+          view={view}
+          tabs={{ pool: a.pool.canSee, team: a.team }}
+          kpis={kpis}
           desk={data}
           filter={f}
           q={q}
+          list={list}
+          filters={filters}
+          courses={courses}
+          sources={sources}
           mix={mix as { status: string; n: number }[]}
-          newLeads={lt ? { value: fa(lt.current), delta: deltaOf(lt.current, lt.previous), spark: lt.spark } : null}
           adminLink={adminLink}
         />
       )
