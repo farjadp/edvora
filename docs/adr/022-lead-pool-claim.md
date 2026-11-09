@@ -26,7 +26,7 @@ advisor through `/api/leads` and to update, which nobody decided.
 
 ## Consequences
 - `ownRecordsOnly` now has a visible effect for advisors (access-matrix gap G4).
-- Existing IBA advisors gain the pool on deploy (migration). If the academy prefers manager-only distribution, an admin
-  removes `leads.claim` from the advisor role.
+- Existing IBA advisors gain the pool on deploy (migration) — confirmed by Farjad on 2026-11-09. If the academy later
+  prefers manager-only distribution, an admin removes `leads.claim` from the advisor role.
 - No schema change for timeline: status/owner history is read from the audit log (`leads.update` diffs); calls from
   `followUps`. `lostReason` is a new select on leads.
