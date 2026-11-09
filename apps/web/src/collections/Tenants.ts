@@ -9,6 +9,7 @@ import { richTextField, tenantSelf } from '../lib/richText'
 
 const platformOnly = ({ req }: { req: { user?: unknown } }) => isSuperAdmin(req.user as never)
 const templatesField = fieldAllow('templates.edit', (d) => d?.id)
+const remindersField = fieldAllow('notifications.manage', (d) => d?.id)
 
 /** An academy on Edvora. Everything else belongs to exactly one tenant. */
 export const Tenants: CollectionConfig = {
@@ -299,6 +300,15 @@ export const Tenants: CollectionConfig = {
                 { name: 'title', type: 'text' },
                 { name: 'signature', type: 'upload', relationTo: 'media' },
               ],
+            },
+            {
+              // E-016 (ADR 020): reminder rules (offsets, quiet hours). Validated by readReminderSettings in core;
+              // edited in the settings hub («یادآورهای پیامکی»), so hidden in the raw admin form.
+              name: 'reminderSettings',
+              type: 'json',
+              label: { fa: 'یادآورهای پیامکی', en: 'SMS reminders' },
+              access: { read: remindersField, update: remindersField },
+              admin: { hidden: true },
             },
             {
               name: 'messageTemplates',

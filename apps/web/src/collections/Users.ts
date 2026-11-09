@@ -221,6 +221,15 @@ export const Users: CollectionConfig = {
               validate: (v: unknown) => !v || (typeof v === 'string' && /^09\d{9}$/.test(v)) || 'شماره موبایل معتبر نیست',
             },
             {
+              // E-016 (ADR 020): reminder SMS opt-out (instalments, live classes, advisor digest). OTP and receipts
+              // are not reminders and are always sent. The person or staff with users.edit may switch it off.
+              name: 'smsReminders',
+              type: 'checkbox',
+              defaultValue: true,
+              label: { fa: 'یادآورهای پیامکی', en: 'SMS reminders' },
+              admin: { description: 'خاموش = هیچ پیامک یادآوری (قسط، کلاس زنده، پیگیری) برای این شخص فرستاده نمی‌شود. کد ورود همچنان می‌رسد.' },
+            },
+            {
               // E-032 (ADR 011): a real contact email, separate from the login `email` (a placeholder for OTP students).
               // Not unique, not used for auth, so an imported WordPress email can never collide with or take over a login.
               name: 'contactEmail',
