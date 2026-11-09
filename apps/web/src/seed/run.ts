@@ -244,6 +244,8 @@ async function seedDemo(payload: Payload) {
     stats: [{ value: '3', label: 'دوره نمونه' }],
     // E-028: on, with the PRD defaults (leaderboard stays off). IBA keeps the defaults untouched.
     gamification: { enabled: true },
+    // E-016: reminder SMS on with the default offsets. `demo` always sends through the mock (ADR 020); IBA stays off.
+    reminderSettings: { enabled: true },
   })
   const t = tenant.id
   const course = await upsert(payload, 'courses', { and: [{ tenant: { equals: t } }, { slug: { equals: 'demo-program' } }] }, {

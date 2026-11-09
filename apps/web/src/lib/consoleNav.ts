@@ -110,6 +110,8 @@ export const CONSOLE_GROUPS: Group[] = [
       { key: 'roles', label: 'نقش‌ها', icon: 'roles', slug: 'roles', read: any('roles.view', 'roles.assign', 'roles.manage') },
       { key: 'memberships', label: 'عضویت‌ها و دسترسی‌ها', icon: 'membership', slug: 'memberships', read: any('roles.view', 'roles.assign', 'users.view') },
       { key: 'audit-logs', label: 'گزارش ممیزی', icon: 'audit', slug: 'audit-logs', read: any('audit.view') },
+      // E-016 (ADR 020): reminder SMS send log, read-only. Not in the settings hub, so finance/support see only this.
+      { key: 'sms-log', label: 'گزارش پیامک‌های یادآور', icon: 'bell', slug: 'sms-log', read: any('notifications.view') },
       { key: 'import', label: 'انتقال از وردپرس', icon: 'download', slug: 'import-jobs', read: any('import.view'), page: '/staff/import' },
     ],
   },
