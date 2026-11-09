@@ -20,6 +20,8 @@ import * as migration_20261109_140046_e016_sms_reminders from './20261109_140046
 import * as migration_20261109_140100_e016_notifications_grant from './20261109_140100_e016_notifications_grant';
 import * as migration_20261109_142748_e015_crm_desk from './20261109_142748_e015_crm_desk';
 import * as migration_20261109_142800_e015_claim_grant from './20261109_142800_e015_claim_grant';
+import * as migration_20261109_194008_e023_finance_desk from './20261109_194008_e023_finance_desk';
+import * as migration_20261109_194100_e023_finance_view_roles from './20261109_194100_e023_finance_view_roles';
 
 export const migrations = [
   {
@@ -131,5 +133,15 @@ export const migrations = [
     up: migration_20261109_142800_e015_claim_grant.up,
     down: migration_20261109_142800_e015_claim_grant.down,
     name: '20261109_142800_e015_claim_grant',
+  },
+  {
+    up: migration_20261109_194008_e023_finance_desk.up,
+    down: migration_20261109_194008_e023_finance_desk.down,
+    name: '20261109_194008_e023_finance_desk'
+  },
+  {
+    up: migration_20261109_194100_e023_finance_view_roles.up,
+    down: migration_20261109_194100_e023_finance_view_roles.down,
+    name: '20261109_194100_e023_finance_view_roles',
   },
 ];

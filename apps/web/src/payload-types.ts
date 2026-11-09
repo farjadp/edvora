@@ -45,6 +45,8 @@ export interface Config {
     'payment-methods': PaymentMethod;
     payments: Payment;
     'payment-receipts': PaymentReceipt;
+    refunds: Refund;
+    'finance-contacts': FinanceContact;
     coupons: Coupon;
     testimonials: Testimonial;
     posts: Post;
@@ -99,6 +101,8 @@ export interface Config {
     'payment-methods': PaymentMethodsSelect<false> | PaymentMethodsSelect<true>;
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
     'payment-receipts': PaymentReceiptsSelect<false> | PaymentReceiptsSelect<true>;
+    refunds: RefundsSelect<false> | RefundsSelect<true>;
+    'finance-contacts': FinanceContactsSelect<false> | FinanceContactsSelect<true>;
     coupons: CouponsSelect<false> | CouponsSelect<true>;
     testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
@@ -627,6 +631,7 @@ export interface Role {
         | 'leads.export'
         | 'orders.create_for_lead'
         | 'discount.give'
+        | 'finance.view'
         | 'orders.view'
         | 'orders.edit'
         | 'payments.manual.record'
@@ -1756,6 +1761,53 @@ export interface PaymentReceipt {
   focalY?: number | null;
 }
 /**
+ * Read only. Refunds are requested and approved on the finance desk.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "refunds".
+ */
+export interface Refund {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  order: number | Order;
+  user: number | User;
+  course?: (number | null) | Course;
+  cohort?: (number | null) | Cohort;
+  amount: number;
+  full?: boolean | null;
+  status: 'requested' | 'approved' | 'refunded' | 'rejected' | 'cancelled';
+  reason: string;
+  requestedBy?: (number | null) | User;
+  requestedAt?: string | null;
+  approvedBy?: (number | null) | User;
+  approvedAt?: string | null;
+  refundedBy?: (number | null) | User;
+  refundedAt?: string | null;
+  reference?: string | null;
+  closedBy?: (number | null) | User;
+  closedAt?: string | null;
+  rejectionReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "finance-contacts".
+ */
+export interface FinanceContact {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  order: number | Order;
+  instalmentIndex: number;
+  user: number | User;
+  outcome: 'reached' | 'promised' | 'no_answer' | 'wrong_number' | 'message_left';
+  by: number | User;
+  at: string;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "coupons".
  */
@@ -2557,6 +2609,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payment-receipts';
         value: number | PaymentReceipt;
+      } | null)
+    | ({
+        relationTo: 'refunds';
+        value: number | Refund;
+      } | null)
+    | ({
+        relationTo: 'finance-contacts';
+        value: number | FinanceContact;
       } | null)
     | ({
         relationTo: 'coupons';
@@ -3640,6 +3700,49 @@ export interface PaymentReceiptsSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "refunds_select".
+ */
+export interface RefundsSelect<T extends boolean = true> {
+  tenant?: T;
+  order?: T;
+  user?: T;
+  course?: T;
+  cohort?: T;
+  amount?: T;
+  full?: T;
+  status?: T;
+  reason?: T;
+  requestedBy?: T;
+  requestedAt?: T;
+  approvedBy?: T;
+  approvedAt?: T;
+  refundedBy?: T;
+  refundedAt?: T;
+  reference?: T;
+  closedBy?: T;
+  closedAt?: T;
+  rejectionReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "finance-contacts_select".
+ */
+export interface FinanceContactsSelect<T extends boolean = true> {
+  tenant?: T;
+  order?: T;
+  instalmentIndex?: T;
+  user?: T;
+  outcome?: T;
+  by?: T;
+  at?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

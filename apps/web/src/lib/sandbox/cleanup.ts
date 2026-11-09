@@ -11,6 +11,9 @@ import { idOf } from '../ids'
  * refuses to run if one is missing.
  */
 const PURGE_ORDER: CollectionSlug[] = [
+  // E-023: refunds and contact notes point at orders and users.
+  'refunds',
+  'finance-contacts',
   // E-016: reminder send log (points at users and the tenant only).
   'sms-log',
   // E-047 (develop): the academy's own SMS / email / live provider rows.

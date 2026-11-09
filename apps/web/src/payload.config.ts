@@ -31,6 +31,7 @@ import { Memberships } from './collections/Memberships'
 import { Orders } from './collections/Orders'
 import { PaymentMethods } from './collections/PaymentMethods'
 import { PaymentReceipts, Payments } from './collections/Payments'
+import { FinanceContacts, Refunds } from './collections/Finance'
 import { Questions } from './collections/Questions'
 import { QuizAttempts } from './collections/QuizAttempts'
 import { Quizzes } from './collections/Quizzes'
@@ -106,6 +107,9 @@ export default buildConfig({
     PaymentMethods,
     Payments,
     PaymentReceipts,
+    // E-023: finance desk (ADR 021).
+    Refunds,
+    FinanceContacts,
     Coupons,
     Testimonials,
     Posts,
@@ -184,6 +188,9 @@ export default buildConfig({
         'payment-methods': {},
         payments: {},
         'payment-receipts': {},
+        // E-023 (ADR 021): refunds and finance contact notes.
+        refunds: {},
+        'finance-contacts': {},
         coupons: {},
         testimonials: {},
         posts: {},
