@@ -23,6 +23,7 @@
     "./jalali": "./src/jalali.ts",
     "./gamification": "./src/gamification/index.ts",
     "./staff-goals": "./src/staffGoals.ts",
+    "./crm": "./src/crm.ts",
     "./names": "./src/names.ts",
     "./richtext": "./src/richtext.ts",
     "./console": "./src/console.ts",
