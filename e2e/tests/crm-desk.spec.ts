@@ -38,9 +38,13 @@ async function staffUser(key: string, role: string, ownRecordsOnly = false): Pro
   return { id: created.doc.id, ...u }
 }
 
-/** A lead with no advisor (an empty advisor defaults to the creator, so it is cleared afterwards). */
+/**
+ * A lead with no advisor (an empty advisor defaults to the creator, so it is cleared afterwards). It is due now: left to
+ * the stage default (+2 h), a lead made after 22:00 Tehran is first due tomorrow, and calling it tonight is then — by
+ * the daily-goal rule — not one of today's follow-ups, so the queue would not mark it «ثبت شد».
+ */
 async function poolLead(name: string, tenant = ref.demo): Promise<number> {
-  const created = await ok<{ doc: Doc }>(await admin.post('/api/leads', { data: { tenant, name, phone: phone(), status: 'new', ...(tenant === ref.demo ? { course: ref.course } : {}) } }), 'lead')
+  const created = await ok<{ doc: Doc }>(await admin.post('/api/leads', { data: { tenant, name, phone: phone(), status: 'new', nextFollowUpAt: new Date().toISOString(), ...(tenant === ref.demo ? { course: ref.course } : {}) } }), 'lead')
   await ok(await admin.patch(`/api/leads/${created.doc.id}`, { data: { advisor: null } }), 'clear advisor')
   return created.doc.id
 }
