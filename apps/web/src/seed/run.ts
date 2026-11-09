@@ -581,8 +581,10 @@ async function seedDemoGamification(payload: Payload, t: number) {
   {
     const pool = { tenant: t, name: 'سرنخ نمونه بی‌مشاور', phone: '09129990106', course: course.id, status: 'new' as const, advisor: null, message: 'داده آزمایشی آکادمی نمونه.' }
     const found = (await payload.find({ collection: 'leads', where: { and: [{ tenant: { equals: t } }, { phone: { equals: pool.phone } }] }, limit: 1, overrideAccess: true })).docs[0]
-    if (found) await payload.update({ collection: 'leads', id: found.id, overrideAccess: true, context: { [FOLLOW_UP_CONTEXT]: true }, data: { ...pool, followUps: [], lostReason: null } })
-    else await payload.create({ collection: 'leads', overrideAccess: true, data: pool })
+    // Claimed or worked since the last seed: the pipeline forbids moving it back (e.g. lost → new), so recreate it.
+    const fresh = found && found.status === 'new' && found.advisor == null && !(found.followUps ?? []).length
+    if (found && !fresh) await payload.delete({ collection: 'leads', id: found.id, overrideAccess: true })
+    if (!fresh) await payload.create({ collection: 'leads', overrideAccess: true, data: pool })
   }
 
   // ---- One instalment order for the finance inbox: #1 paid, #2 overdue with a failed gateway attempt, #3 later.
