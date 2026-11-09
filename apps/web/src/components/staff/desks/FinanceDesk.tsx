@@ -149,9 +149,11 @@ export async function FinanceDesk({ s, sp, adminLink }: Props) {
           <KpiGrid>
             {inbox ? (
               <>
-                <KpiCard testId="inbox-to_verify" label="در انتظار بررسی" value={fa(inbox.toVerify)} icon="inbox" hint="پرداخت‌هایی که منتظر تأیید شما هستند" />
+                {/* E-023: with the finance KPIs above, «در انتظار بررسی» and «سررسید گذشته» would repeat (and the inbox
+                    files an overdue instalment with a failed attempt under «نیازمند توجه»), so only that one stays. */}
+                {finData ? null : <KpiCard testId="inbox-to_verify" label="در انتظار بررسی" value={fa(inbox.toVerify)} icon="inbox" hint="پرداخت‌هایی که منتظر تأیید شما هستند" />}
                 <KpiCard testId="inbox-needs_attention" label="نیازمند توجه" value={fa(inbox.needsAttention)} icon="alert" hint="تلاش پرداخت ناموفق" />
-                <KpiCard testId="inbox-overdue" label="سررسید گذشته" value={fa(inbox.overdue)} icon="clock" hint="قسط‌های عقب‌افتاده" />
+                {finData ? null : <KpiCard testId="inbox-overdue" label="سررسید گذشته" value={fa(inbox.overdue)} icon="clock" hint="قسط‌های عقب‌افتاده" />}
               </>
             ) : null}
             {sales ? (

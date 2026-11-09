@@ -67,7 +67,9 @@ export function ContactNoteForm({ orderId, index, outcomes, back }: { orderId: n
 /** Refund request on the order page. The amount is typed in toman; the server converts and checks the limit. */
 export function RefundRequestForm({ orderId, maxToman, maxLabel }: { orderId: number; maxToman: number; maxLabel: string }) {
   const [state, action, pending] = useActionState<FinanceDeskState, FormData>(refundRequestAction, null)
+  // Controlled: React resets uncontrolled fields after every submit, which would wipe them on a refusal.
   const [amount, setAmount] = useState('')
+  const [reason, setReason] = useState('')
   const id = useId()
   useGo(state)
   return (
@@ -95,7 +97,7 @@ export function RefundRequestForm({ orderId, maxToman, maxLabel }: { orderId: nu
         </div>
         <label htmlFor={`${id}-r`} className="grid gap-1 text-sm font-bold sm:col-span-2">
           دلیل بازپرداخت
-          <textarea id={`${id}-r`} name="reason" required minLength={5} maxLength={500} rows={2} className={area} />
+          <textarea id={`${id}-r`} name="reason" required minLength={5} maxLength={500} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} className={area} />
         </label>
       </div>
       <p className="text-xs leading-6 text-muted">

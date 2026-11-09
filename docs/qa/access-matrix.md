@@ -173,6 +173,26 @@ student as a bare id (`depth=2` does not populate) — see gaps.
 
 ⚠️ Forbidden fields (`roles`, `tenants`) are silently dropped with 200 instead of a 403. Safe, but a client cannot tell.
 
+## 4b. Finance desk (E-023, ADR 021) — added 2026-11-09
+
+Spec: `e2e/tests/access-matrix.spec.ts` (two `E-023` tests) and `e2e/tests/finance-desk.spec.ts` (flows).
+
+| action | user | expected | result |
+| --- | --- | --- | --- |
+| `GET /api/refunds`, `/api/finance-contacts` | academy-admin, finance | 200 | ✅ |
+| same | advisor, support, instructor, content-editor, student | nothing (403 or empty) | ✅ |
+| `POST /api/refunds`, `/api/finance-contacts` | academy-admin, finance | 403 (server code only) | ✅ |
+| `/staff/finance?tab=overdue` (needs `finance.view`) | academy-admin, finance | 200 with the tab | ✅ |
+| `/staff/payments/export?from&to` (needs `finance.export`) | academy-admin, finance | 200 `.xlsx`, audit row `finance.exported` | ✅ |
+| same | advisor, support, instructor, content-editor, student, expired | 404 | ✅ |
+| approve / mark refunded a refund one requested | finance (holds `refunds.approve`) | refused, button not offered (four-eyes) | ✅ |
+| approve / mark refunded someone else's refund | second finance person | allowed | ✅ |
+| refund more than paid − (requested + approved + refunded) | finance | refused with the limit | ✅ |
+
+`finance.view` is new in the catalog: templates `finance` and `academy-admin` hold it (seed and migration
+`e023_finance_view_roles`); `reporting` does not, because it also allows contact notes. With E-023,
+`refunds.request`, `refunds.approve` and `finance.export` are enforced, so G1 below drops from 20 to 17 keys.
+
 ## 5. Lifecycle (token taken before the change, checked on the next request)
 
 Probe = `GET /api/audit-logs` / `GET /api/leads` / `GET /staff/overview`.
