@@ -16,6 +16,8 @@ import * as migration_20261108_181500_e047_admin_integrations_key from './202611
 import * as migration_20261108_181600_e047_zarinpal_to_payment_methods from './20261108_181600_e047_zarinpal_to_payment_methods';
 import * as migration_20261108_181700_e047_drop_tenant_zarinpal from './20261108_181700_e047_drop_tenant_zarinpal';
 import * as migration_20261108_191757_e029_demo_sandboxes from './20261108_191757_e029_demo_sandboxes';
+import * as migration_20261109_140216_e023_finance_desk from './20261109_140216_e023_finance_desk';
+import * as migration_20261109_140300_e023_finance_view_roles from './20261109_140300_e023_finance_view_roles';
 
 export const migrations = [
   {
@@ -106,6 +108,16 @@ export const migrations = [
   {
     up: migration_20261108_191757_e029_demo_sandboxes.up,
     down: migration_20261108_191757_e029_demo_sandboxes.down,
-    name: '20261108_191757_e029_demo_sandboxes'
+    name: '20261108_191757_e029_demo_sandboxes',
+  },
+  {
+    up: migration_20261109_140216_e023_finance_desk.up,
+    down: migration_20261109_140216_e023_finance_desk.down,
+    name: '20261109_140216_e023_finance_desk',
+  },
+  {
+    up: migration_20261109_140300_e023_finance_view_roles.up,
+    down: migration_20261109_140300_e023_finance_view_roles.down,
+    name: '20261109_140300_e023_finance_view_roles',
   },
 ];
