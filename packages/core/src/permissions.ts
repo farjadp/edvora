@@ -11,6 +11,8 @@ export const PERMISSION_GROUPS = {
   catalog: ['courses.view', 'courses.edit', 'courses.publish', 'cohorts.manage', 'lessons.edit', 'pricing.edit'],
   sales: ['leads.view.own', 'leads.view.all', 'leads.create', 'leads.assign', 'leads.export', 'orders.create_for_lead', 'discount.give'],
   finance: [
+    // E-023 (ADR 021): open the finance desk's overdue / upcoming / refunds views and log contact notes.
+    'finance.view',
     'orders.view',
     'orders.edit',
     'payments.manual.record',
@@ -147,6 +149,7 @@ export const PERMISSION_DESCRIPTIONS: Record<AcademyPermission, { fa: string; en
   'leads.export': { fa: 'خروجی گرفتن از مشتریان بالقوه', en: 'Export leads' },
   'orders.create_for_lead': { fa: 'ساختن سفارش و لینک پرداخت برای مشتری', en: 'Create orders and payment links for a lead' },
   'discount.give': { fa: 'دادن تخفیف در سقف مجاز', en: 'Give discounts within the limit' },
+  'finance.view': { fa: 'دیدن میز مالی: اقساط معوق و پیش رو، بازپرداخت‌ها و ثبت یادداشت تماس', en: 'Use the finance desk: overdue and upcoming instalments, refunds, contact notes' },
   'orders.view': { fa: 'دیدن سفارش‌ها و اقساط', en: 'View orders and instalments' },
   'orders.edit': { fa: 'ویرایش سفارش‌ها و اقساط', en: 'Edit orders and instalments' },
   'payments.manual.record': { fa: 'ثبت پرداخت دستی (فیش، کارت‌به‌کارت)', en: 'Record a manual payment' },
