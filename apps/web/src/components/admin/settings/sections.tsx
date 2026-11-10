@@ -15,6 +15,7 @@ import {
   type UploadSlot,
 } from '@edvora/core/settings'
 import { toPersianDigits } from '@edvora/core/digits'
+import { readReminderSettings } from '@edvora/core/reminders'
 import type { ReactNode } from 'react'
 import type { IntegrationRow } from '../../../lib/settings'
 import { mediaUrl } from '../../../lib/settings'
@@ -192,6 +193,53 @@ export function NotificationsSection(d: SectionData) {
             })}
           </Fieldset>
         ))}
+      </SettingsForm>
+    )
+  })
+}
+
+const HOURS = Array.from({ length: 24 }, (_, h) => ({ value: String(h), fa: `${toPersianDigits(String(h).padStart(2, '0'))}:۰۰` }))
+const list = (a: readonly number[]) => toPersianDigits(a.join('، '))
+
+/** E-016 (ADR 020): when reminder SMS go out. Texts are in «قالب پیامک و ایمیل»; the global switch is env. */
+export function RemindersSection(d: SectionData) {
+  return need(d, (t, academy) => {
+    const s = readReminderSettings(t.reminderSettings)
+    return (
+      <SettingsForm section="reminders" academy={academy}>
+        <p className="ed-set__help">
+          یادآورها هر چند دقیقه یک بار بررسی می‌شوند و هر یادآور برای هر نفر فقط یک بار فرستاده می‌شود. متن پیامک‌ها را در{' '}
+          <a href={`/admin/settings/notifications?academy=${academy}`} className="ed-set__link">
+            قالب پیامک و ایمیل
+          </a>{' '}
+          بنویسید و آنچه فرستاده شده را در{' '}
+          <a href="/admin/collections/sms-log" className="ed-set__link">
+            گزارش پیامک‌های یادآور
+          </a>{' '}
+          ببینید. کسی که یادآور پیامکی را در پروفایلش خاموش کرده باشد پیامک نمی‌گیرد.
+        </p>
+        <Checkbox name="enabled" label="یادآورهای پیامکی این آکادمی روشن" checked={s.enabled} help="خاموش = هیچ یادآوری فرستاده نمی‌شود. ادورا هم یک کلید سراسری دارد که تا راه‌اندازی سرویس پیامک خاموش است." />
+        <Fieldset legend="ساعت سکوت" help="در این بازه (به وقت تهران) پیامکی فرستاده نمی‌شود؛ یادآورهای مانده بعد از پایانش می‌روند.">
+          <div className="ed-set__grid">
+            <Select name="quietStart" label="از ساعت" value={String(s.quietHours.start)} options={HOURS} />
+            <Select name="quietEnd" label="تا ساعت" value={String(s.quietHours.end)} options={HOURS} />
+          </div>
+        </Fieldset>
+        <Fieldset legend="اقساط" help="برای سفارش‌هایی که دست‌کم یک قسطشان پرداخت شده و قسط بعدی باز است. صفر یعنی خود روز سررسید.">
+          <Checkbox name="instalmentEnabled" label="یادآوری قسط روشن" checked={s.instalment.enabled} />
+          <div className="ed-set__grid">
+            <TextField name="daysBefore" label="چند روز پیش از سررسید" value={list(s.instalment.daysBefore)} dir="ltr" maxLength={40} help="با ویرگول جدا کنید، مثل ۳، ۰ — حداکثر چهار عدد." />
+            <TextField name="daysAfter" label="چند روز پس از سررسید (اگر پرداخت نشده)" value={list(s.instalment.daysAfter)} dir="ltr" maxLength={40} help="مثل ۱، ۷" />
+          </div>
+        </Fieldset>
+        <Fieldset legend="کلاس زنده" help="برای دانشجویان فعال همان دورهٔ برگزاری (یا همان دوره، اگر کلاس به دورهٔ برگزاری خاصی وصل نیست).">
+          <Checkbox name="liveEnabled" label="یادآوری کلاس زنده روشن" checked={s.live.enabled} />
+          <TextField name="hoursBefore" label="چند ساعت پیش از شروع" value={list(s.live.hoursBefore)} dir="ltr" maxLength={40} help="مثل ۲۴، ۱ — یادآوری که به ساعت سکوت بخورد، اگر کلاس هنوز شروع نشده باشد، بعد از ساعت سکوت فرستاده می‌شود." />
+        </Fieldset>
+        <Fieldset legend="پیگیری مشاوران" help="هر صبح یک پیامک به هر مشاور با تعداد مشتریانی که پیگیری‌شان امروز یا پیش از امروز است.">
+          <Checkbox name="followupEnabled" label="خلاصهٔ صبحگاهی مشاور روشن" checked={s.followup.enabled} />
+          <Select name="digestHour" label="از ساعت" value={String(s.followup.digestHour)} options={HOURS} />
+        </Fieldset>
       </SettingsForm>
     )
   })
@@ -447,6 +495,7 @@ export const SECTION_COMPONENTS: Record<string, (d: SectionData) => ReactNode> =
   homepage: HomepageSection,
   certificates: CertificatesSection,
   notifications: NotificationsSection,
+  reminders: RemindersSection,
   login: LoginSection,
   features: FeaturesSection,
   legal: LegalSection,

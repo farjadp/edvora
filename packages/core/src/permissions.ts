@@ -9,8 +9,10 @@ export const PERMISSION_GROUPS = {
   users: ['users.view', 'users.create', 'users.edit', 'users.deactivate', 'users.view_sensitive', 'users.import', 'users.export', 'users.2fa.reset'],
   roles: ['roles.view', 'roles.manage', 'roles.assign'],
   catalog: ['courses.view', 'courses.edit', 'courses.publish', 'cohorts.manage', 'lessons.edit', 'pricing.edit'],
-  sales: ['leads.view.own', 'leads.view.all', 'leads.create', 'leads.assign', 'leads.export', 'orders.create_for_lead', 'discount.give'],
+  sales: ['leads.view.own', 'leads.view.all', 'leads.create', 'leads.claim', 'leads.assign', 'leads.export', 'orders.create_for_lead', 'discount.give'],
   finance: [
+    // E-023 (ADR 021): open the finance desk's overdue / upcoming / refunds views and log contact notes.
+    'finance.view',
     'orders.view',
     'orders.edit',
     'payments.manual.record',
@@ -35,7 +37,7 @@ export const PERMISSION_GROUPS = {
   certificates: ['certificates.view', 'certificates.issue', 'certificates.revoke'],
   content: ['content.edit', 'content.publish', 'media.upload'],
   support: ['tickets.view.own', 'tickets.view.all', 'tickets.reply', 'tickets.assign'],
-  messaging: ['sms.send_single', 'sms.broadcast', 'templates.edit'],
+  messaging: ['sms.send_single', 'sms.broadcast', 'templates.edit', 'notifications.view', 'notifications.manage'],
   reports: ['reports.sales', 'reports.finance', 'reports.learning'],
   academy: ['settings.edit', 'audit.view', 'settings.integrations', 'payments.settings'],
   /** E-032 (ADR 011): WordPress import. Academy-grantable; `import.run` writes data, `import.view` reads reports. */
@@ -143,10 +145,12 @@ export const PERMISSION_DESCRIPTIONS: Record<AcademyPermission, { fa: string; en
   'leads.view.own': { fa: 'دیدن و پیگیری مشتریان بالقوهٔ خودش', en: 'View and work own leads' },
   'leads.view.all': { fa: 'دیدن و پیگیری همهٔ مشتریان بالقوهٔ آکادمی', en: 'View and work all leads' },
   'leads.create': { fa: 'ثبت مشتری بالقوهٔ تازه', en: 'Create leads' },
+  'leads.claim': { fa: 'دیدن سرنخ‌های بی‌مشاور و برداشتن آن‌ها برای خود (نه با «فقط رکوردهای خودش»)', en: 'See unassigned leads and claim them (not with own-records-only)' },
   'leads.assign': { fa: 'سپردن مشتری بالقوه به مشاور دیگر', en: 'Reassign leads to another advisor' },
   'leads.export': { fa: 'خروجی گرفتن از مشتریان بالقوه', en: 'Export leads' },
   'orders.create_for_lead': { fa: 'ساختن سفارش و لینک پرداخت برای مشتری', en: 'Create orders and payment links for a lead' },
   'discount.give': { fa: 'دادن تخفیف در سقف مجاز', en: 'Give discounts within the limit' },
+  'finance.view': { fa: 'دیدن میز مالی: اقساط معوق و پیش رو، بازپرداخت‌ها و ثبت یادداشت تماس', en: 'Use the finance desk: overdue and upcoming instalments, refunds, contact notes' },
   'orders.view': { fa: 'دیدن سفارش‌ها و اقساط', en: 'View orders and instalments' },
   'orders.edit': { fa: 'ویرایش سفارش‌ها و اقساط', en: 'Edit orders and instalments' },
   'payments.manual.record': { fa: 'ثبت پرداخت دستی (فیش، کارت‌به‌کارت)', en: 'Record a manual payment' },
@@ -177,6 +181,8 @@ export const PERMISSION_DESCRIPTIONS: Record<AcademyPermission, { fa: string; en
   'sms.send_single': { fa: 'فرستادن پیامک به یک نفر', en: 'Send an SMS to one person' },
   'sms.broadcast': { fa: 'فرستادن پیامک گروهی', en: 'Send bulk SMS' },
   'templates.edit': { fa: 'ویرایش قالب پیامک و ایمیل', en: 'Edit SMS and email templates' },
+  'notifications.view': { fa: 'دیدن گزارش ارسال پیامک‌های یادآور', en: 'View the reminder SMS send log' },
+  'notifications.manage': { fa: 'تنظیم یادآورهای پیامکی (زمان‌ها، ساعت سکوت) و ارسال دوبارهٔ ناموفق‌ها', en: 'Configure SMS reminders and retry failed sends' },
   'reports.sales': { fa: 'دیدن گزارش‌های فروش و عملکرد مشاوران', en: 'View sales and advisor reports' },
   'reports.finance': { fa: 'دیدن گزارش‌های مالی', en: 'View finance reports' },
   'reports.learning': { fa: 'دیدن گزارش‌های آموزشی', en: 'View learning reports' },
@@ -206,6 +212,7 @@ export const READ_ONLY_PERMISSIONS: readonly AcademyPermission[] = [
   'reports.learning',
   'audit.view',
   'import.view',
+  'notifications.view',
 ]
 
 // ---------------------------------------------------------------- Role templates
@@ -237,6 +244,8 @@ const g = PERMISSION_GROUPS
 const ADVISOR: readonly AcademyPermission[] = [
   'leads.view.own',
   'leads.create',
+  // E-015: take a lead from the unassigned pool (never with ownRecordsOnly).
+  'leads.claim',
   'orders.create_for_lead',
   'discount.give',
   'refunds.request',
@@ -286,14 +295,14 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     key: 'finance',
     name: { fa: 'مالی', en: 'Finance' },
     description: 'Payments, instalments, manual receipts, refunds, exports.',
-    permissions: [...g.finance, 'reports.finance', 'users.view', 'courses.view', 'enrollments.view'],
+    permissions: [...g.finance, 'reports.finance', 'users.view', 'courses.view', 'enrollments.view', 'notifications.view'],
     experience: { landing: 'finance' },
   },
   {
     key: 'support',
     name: { fa: 'پشتیبانی', en: 'Support' },
     description: 'Tickets and student lookup. No money actions.',
-    permissions: [...g.support, 'users.view', 'refunds.request', 'sms.send_single', 'courses.view', 'enrollments.view', 'certificates.view'],
+    permissions: [...g.support, 'users.view', 'refunds.request', 'sms.send_single', 'courses.view', 'enrollments.view', 'certificates.view', 'notifications.view'],
     experience: { landing: 'support' },
   },
   {

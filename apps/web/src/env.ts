@@ -35,6 +35,18 @@ const schema = z.object({
   KAVENEGAR_API_KEY: z.string().optional(),
   KAVENEGAR_SENDER: z.string().optional(),
   KAVENEGAR_OTP_TEMPLATE: z.string().default('verify'),
+  // E-016 (ADR 020) SMS reminders worker. Kill switch: anything but `true` = the worker sends nothing.
+  SMS_REMINDERS_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v?.trim() === 'true'),
+  /** Bearer secret for POST /api/cron/reminders (≥ 24 chars). Unset = the route answers 404. */
+  REMINDERS_CRON_SECRET: optionalText,
+  /** Test-only: lets the cron call pass `now` and `tenant` (e2e). Never true on a public deployment. */
+  REMINDERS_E2E_HOOKS: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
   // E-033 live classes (ADR 012). One BBB server per Edvora instance, shared by its academies.
   LIVE_CLASS_PROVIDER: z.preprocess(blank, z.enum(['mock', 'bigbluebutton']).default('mock')),
   LIVE_CLASS_MOCK_SECRET: optionalText,

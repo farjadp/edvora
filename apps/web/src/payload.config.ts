@@ -31,6 +31,7 @@ import { Memberships } from './collections/Memberships'
 import { Orders } from './collections/Orders'
 import { PaymentMethods } from './collections/PaymentMethods'
 import { PaymentReceipts, Payments } from './collections/Payments'
+import { FinanceContacts, Refunds } from './collections/Finance'
 import { Questions } from './collections/Questions'
 import { QuizAttempts } from './collections/QuizAttempts'
 import { Quizzes } from './collections/Quizzes'
@@ -38,6 +39,7 @@ import { Roles } from './collections/Roles'
 import { SubmissionFiles } from './collections/SubmissionFiles'
 import { Submissions } from './collections/Submissions'
 import { IntegrationSettings } from './collections/IntegrationSettings'
+import { SmsLog } from './collections/SmsLog'
 import { Tenants } from './collections/Tenants'
 import { PlatformSettings } from './globals/PlatformSettings'
 import { Users } from './collections/Users'
@@ -105,6 +107,9 @@ export default buildConfig({
     PaymentMethods,
     Payments,
     PaymentReceipts,
+    // E-023: finance desk (ADR 021).
+    Refunds,
+    FinanceContacts,
     Coupons,
     Testimonials,
     Posts,
@@ -124,6 +129,8 @@ export default buildConfig({
     ...AI_COLLECTIONS,
     // E-047: settings hub (ADR 019).
     IntegrationSettings,
+    // E-016: reminder SMS send log (ADR 020).
+    SmsLog,
   ],
   globals: [PlatformSettings],
   // E-032: first use of the Payload jobs queue (ADR 011 §Resumability). Each import task works ≤ 20 s, then re-queues
@@ -181,6 +188,9 @@ export default buildConfig({
         'payment-methods': {},
         payments: {},
         'payment-receipts': {},
+        // E-023 (ADR 021): refunds and finance contact notes.
+        refunds: {},
+        'finance-contacts': {},
         coupons: {},
         testimonials: {},
         posts: {},
@@ -218,6 +228,8 @@ export default buildConfig({
         'ai-actions': {},
         // E-047: an academy's own providers (sealed keys).
         'integration-settings': {},
+        // E-016: reminder SMS send log (idempotency + delivery record).
+        'sms-log': {},
       },
       // No hard delete: academies are never removed, so never cascade-delete their records. The one exception,
       // demo sandboxes (ADR 013), is purged explicitly by lib/sandbox/cleanup.ts, collection by collection.

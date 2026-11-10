@@ -30,6 +30,7 @@
 | تکلیف‌ها را نمره بدهم | [تکلیف و نمره‌دهی](instructor/03-assignments-and-grading.md) |
 | گواهی صادر کنم | [صدور گواهی](academy-admin/07-certificates.md) |
 | از دستیار هوشمند کمک بگیرم یا آن را تنظیم کنم | [دستیار هوشمند](academy-admin/09-ai-assistant.md) |
+| یادآور پیامکی قسط و کلاس را روشن کنم یا ببینم چه فرستاده شده | [یادآورهای پیامکی](academy-admin/10-sms-reminders.md) |
 | کلاس زنده برگزار کنم یا وارد آن شوم | [کلاس آنلاین زنده](instructor/04-live-classes.md)، [نمای دانشجو](student/02-panel-and-lessons.md#live) |
 | سایت وردپرسی را منتقل کنم | [انتقال از وردپرس](migration/wordpress.md) |
 | تأیید دومرحله‌ای را روشن یا بازنشانی کنم | [تأیید دومرحله‌ای](staff/02-two-factor.md)، [بازنشانی](academy-admin/03-people-and-roles.md#reset-2fa) |
@@ -72,6 +73,8 @@
 
 ۹. [دستیار هوشمند](academy-admin/09-ai-assistant.md)
 
+۱۰. [یادآورهای پیامکی](academy-admin/10-sms-reminders.md)
+
 **کارکنان**
 
 ۱. [ورود کارکنان و میزهای کار](staff/01-login-and-desks.md)
@@ -80,7 +83,7 @@
 
 ۳. [مشاور فروش: کار با سرنخ‌ها](staff/03-advisor-leads.md)
 
-۴. [مالی: سفارش‌ها و اقساط](staff/04-finance.md)
+۴. [مالی: اقساط، پرداخت‌ها، بازپرداخت و خروجی اکسل](staff/04-finance.md)
 
 ۵. [پشتیبانی](staff/05-support.md)
 

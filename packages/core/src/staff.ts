@@ -55,8 +55,8 @@ export const STAFF_DESKS: readonly DeskDef[] = [
     href: '/staff/finance',
     label: 'مالی',
     title: 'مالی',
-    access: { any: ['orders.view', 'payments.manual.approve', 'refunds.approve', 'finance.export', 'reports.finance'] },
-    landing: { any: ['orders.view', 'payments.manual.approve', 'refunds.approve', 'finance.export'] },
+    access: { any: ['finance.view', 'orders.view', 'payments.manual.approve', 'refunds.approve', 'finance.export', 'reports.finance'] },
+    landing: { any: ['finance.view', 'orders.view', 'payments.manual.approve', 'refunds.approve', 'finance.export'] },
     landingRank: 3,
   },
   {

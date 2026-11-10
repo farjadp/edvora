@@ -30,6 +30,7 @@ export const BUILT_IN_SECTIONS = [
   'homepage',
   'certificates',
   'notifications',
+  'reminders',
   'login',
   'features',
   'legal',
@@ -53,6 +54,7 @@ export const SECTION_PERMISSION: Record<BuiltInSection, string | null> = {
   features: 'settings.edit',
   legal: 'settings.edit',
   notifications: 'templates.edit',
+  reminders: 'notifications.manage',
   integrations: 'settings.integrations',
   'platform-providers': null,
   'platform-academies': null,
@@ -198,7 +200,10 @@ export const MESSAGE_EVENTS = [
   { key: 'otp', fa: 'کد ورود', vars: ['code', 'academy'] },
   { key: 'lead.received', fa: 'دریافت درخواست مشاوره', vars: ['name', 'course', 'academy'] },
   { key: 'payment.received', fa: 'پرداخت موفق', vars: ['name', 'amount', 'course', 'academy'] },
-  { key: 'instalment.due', fa: 'یادآوری قسط', vars: ['name', 'amount', 'dueDate', 'course', 'academy'] },
+  { key: 'instalment.due', fa: 'یادآوری قسط', vars: ['name', 'amount', 'dueDate', 'course', 'link', 'academy'] },
+  // E-016 (ADR 020): reminders worker.
+  { key: 'instalment.overdue', fa: 'قسط عقب‌افتاده', vars: ['name', 'amount', 'dueDate', 'course', 'link', 'academy'] },
+  { key: 'followup.digest', fa: 'خلاصهٔ پیگیری‌های امروز (برای مشاور)', vars: ['name', 'count', 'link', 'academy'] },
   { key: 'enrolment.confirmed', fa: 'تأیید ثبت‌نام', vars: ['name', 'course', 'academy'] },
   { key: 'live.reminder', fa: 'یادآوری کلاس زنده', vars: ['name', 'course', 'startsAt', 'link', 'academy'] },
   { key: 'certificate.issued', fa: 'صدور گواهی', vars: ['name', 'course', 'code', 'link', 'academy'] },
@@ -215,6 +220,7 @@ export const VARIABLE_LABELS: Record<string, string> = {
   dueDate: 'تاریخ سررسید',
   startsAt: 'زمان شروع',
   link: 'پیوند',
+  count: 'تعداد',
 }
 
 const VAR = /\{\{\s*([a-zA-Z]+)\s*\}\}/g

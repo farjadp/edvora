@@ -61,6 +61,8 @@ export const CONSOLE_GROUPS: Group[] = [
       { key: 'coupons', label: 'کدهای تخفیف', icon: 'coupon', slug: 'coupons', read: any('coupons.manage') },
       // E-045 (ADR 017). Payments: desk for the daily queue; the Payload list is read-only history.
       { key: 'payments', label: 'پرداخت‌ها', icon: 'card', slug: 'payments', read: any('orders.view') },
+      // E-023 (ADR 021): refunds are handled on the finance desk; the Payload list is read-only history.
+      { key: 'refunds', label: 'بازپرداخت‌ها', icon: 'refresh', slug: 'refunds', read: any('finance.view', 'orders.view') },
       { key: 'payment-methods', label: 'روش‌های پرداخت', icon: 'settings', slug: 'payment-methods', read: any('payments.settings') },
     ],
   },
@@ -110,6 +112,8 @@ export const CONSOLE_GROUPS: Group[] = [
       { key: 'roles', label: 'نقش‌ها', icon: 'roles', slug: 'roles', read: any('roles.view', 'roles.assign', 'roles.manage') },
       { key: 'memberships', label: 'عضویت‌ها و دسترسی‌ها', icon: 'membership', slug: 'memberships', read: any('roles.view', 'roles.assign', 'users.view') },
       { key: 'audit-logs', label: 'گزارش ممیزی', icon: 'audit', slug: 'audit-logs', read: any('audit.view') },
+      // E-016 (ADR 020): reminder SMS send log, read-only. Not in the settings hub, so finance/support see only this.
+      { key: 'sms-log', label: 'گزارش پیامک‌های یادآور', icon: 'bell', slug: 'sms-log', read: any('notifications.view') },
       { key: 'import', label: 'انتقال از وردپرس', icon: 'download', slug: 'import-jobs', read: any('import.view'), page: '/staff/import' },
     ],
   },

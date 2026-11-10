@@ -45,6 +45,8 @@ export interface Config {
     'payment-methods': PaymentMethod;
     payments: Payment;
     'payment-receipts': PaymentReceipt;
+    refunds: Refund;
+    'finance-contacts': FinanceContact;
     coupons: Coupon;
     testimonials: Testimonial;
     posts: Post;
@@ -65,6 +67,7 @@ export interface Config {
     'ai-memories': AiMemory;
     'ai-actions': AiAction;
     'integration-settings': IntegrationSetting;
+    'sms-log': SmsLog;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -98,6 +101,8 @@ export interface Config {
     'payment-methods': PaymentMethodsSelect<false> | PaymentMethodsSelect<true>;
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
     'payment-receipts': PaymentReceiptsSelect<false> | PaymentReceiptsSelect<true>;
+    refunds: RefundsSelect<false> | RefundsSelect<true>;
+    'finance-contacts': FinanceContactsSelect<false> | FinanceContactsSelect<true>;
     coupons: CouponsSelect<false> | CouponsSelect<true>;
     testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
@@ -118,6 +123,7 @@ export interface Config {
     'ai-memories': AiMemoriesSelect<false> | AiMemoriesSelect<true>;
     'ai-actions': AiActionsSelect<false> | AiActionsSelect<true>;
     'integration-settings': IntegrationSettingsSelect<false> | IntegrationSettingsSelect<true>;
+    'sms-log': SmsLogSelect<false> | SmsLogSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -352,6 +358,15 @@ export interface Tenant {
     title?: string | null;
     signature?: (number | null) | Media;
   };
+  reminderSettings?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   messageTemplates?:
     | {
         event:
@@ -359,6 +374,8 @@ export interface Tenant {
           | 'lead.received'
           | 'payment.received'
           | 'instalment.due'
+          | 'instalment.overdue'
+          | 'followup.digest'
           | 'enrolment.confirmed'
           | 'live.reminder'
           | 'certificate.issued';
@@ -487,6 +504,10 @@ export interface User {
   lastNameLatin?: string | null;
   phone?: string | null;
   /**
+   * خاموش = هیچ پیامک یادآوری (قسط، کلاس زنده، پیگیری) برای این شخص فرستاده نمی‌شود. کد ورود همچنان می‌رسد.
+   */
+  smsReminders?: boolean | null;
+  /**
    * For receipts and contact only. Not used to sign in.
    */
   contactEmail?: string | null;
@@ -605,10 +626,12 @@ export interface Role {
         | 'leads.view.own'
         | 'leads.view.all'
         | 'leads.create'
+        | 'leads.claim'
         | 'leads.assign'
         | 'leads.export'
         | 'orders.create_for_lead'
         | 'discount.give'
+        | 'finance.view'
         | 'orders.view'
         | 'orders.edit'
         | 'payments.manual.record'
@@ -639,6 +662,8 @@ export interface Role {
         | 'sms.send_single'
         | 'sms.broadcast'
         | 'templates.edit'
+        | 'notifications.view'
+        | 'notifications.manage'
         | 'reports.sales'
         | 'reports.finance'
         | 'reports.learning'
@@ -1544,6 +1569,7 @@ export interface Lead {
   status: 'new' | 'contacted' | 'follow_up' | 'enrolled' | 'lost';
   advisor?: (number | null) | User;
   nextFollowUpAt?: string | null;
+  lostReason?: ('price' | 'timing' | 'chose_other' | 'not_reachable' | 'not_a_fit' | 'other') | null;
   lastOutcome?: ('reached' | 'no_answer' | 'callback' | 'wrong_number' | 'not_interested') | null;
   lastOutcomeAt?: string | null;
   lastOutcomeBy?: (number | null) | User;
@@ -1733,6 +1759,53 @@ export interface PaymentReceipt {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * Read only. Refunds are requested and approved on the finance desk.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "refunds".
+ */
+export interface Refund {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  order: number | Order;
+  user: number | User;
+  course?: (number | null) | Course;
+  cohort?: (number | null) | Cohort;
+  amount: number;
+  full?: boolean | null;
+  status: 'requested' | 'approved' | 'refunded' | 'rejected' | 'cancelled';
+  reason: string;
+  requestedBy?: (number | null) | User;
+  requestedAt?: string | null;
+  approvedBy?: (number | null) | User;
+  approvedAt?: string | null;
+  refundedBy?: (number | null) | User;
+  refundedAt?: string | null;
+  reference?: string | null;
+  closedBy?: (number | null) | User;
+  closedAt?: string | null;
+  rejectionReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "finance-contacts".
+ */
+export interface FinanceContact {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  order: number | Order;
+  instalmentIndex: number;
+  user: number | User;
+  outcome: 'reached' | 'promised' | 'no_answer' | 'wrong_number' | 'message_left';
+  by: number | User;
+  at: string;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2284,6 +2357,35 @@ export interface IntegrationSetting {
   createdAt: string;
 }
 /**
+ * هر یادآور برای هر گیرنده یک بار. ناموفق‌ها خودکار با فاصلهٔ فزاینده دوباره فرستاده می‌شوند.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sms-log".
+ */
+export interface SmsLog {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  key: string;
+  rule: 'instalment.due' | 'instalment.overdue' | 'followup.digest' | 'live.reminder';
+  stage?: string | null;
+  status: 'sending' | 'sent' | 'failed' | 'dead' | 'skipped' | 'unknown';
+  recipient?: (number | null) | User;
+  toMasked?: string | null;
+  to?: string | null;
+  text?: string | null;
+  refCollection?: string | null;
+  refId?: number | null;
+  attempts?: number | null;
+  nextAttemptAt?: string | null;
+  expiresAt?: string | null;
+  sentAt?: string | null;
+  provider?: string | null;
+  providerMessageId?: string | null;
+  error?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -2509,6 +2611,14 @@ export interface PayloadLockedDocument {
         value: number | PaymentReceipt;
       } | null)
     | ({
+        relationTo: 'refunds';
+        value: number | Refund;
+      } | null)
+    | ({
+        relationTo: 'finance-contacts';
+        value: number | FinanceContact;
+      } | null)
+    | ({
         relationTo: 'coupons';
         value: number | Coupon;
       } | null)
@@ -2587,6 +2697,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'integration-settings';
         value: number | IntegrationSetting;
+      } | null)
+    | ({
+        relationTo: 'sms-log';
+        value: number | SmsLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -2778,6 +2892,7 @@ export interface TenantsSelect<T extends boolean = true> {
         title?: T;
         signature?: T;
       };
+  reminderSettings?: T;
   messageTemplates?:
     | T
     | {
@@ -2802,6 +2917,7 @@ export interface UsersSelect<T extends boolean = true> {
   firstNameLatin?: T;
   lastNameLatin?: T;
   phone?: T;
+  smsReminders?: T;
   contactEmail?: T;
   nationalCode?: T;
   birthDate?: T;
@@ -3384,6 +3500,7 @@ export interface LeadsSelect<T extends boolean = true> {
   status?: T;
   advisor?: T;
   nextFollowUpAt?: T;
+  lostReason?: T;
   lastOutcome?: T;
   lastOutcomeAt?: T;
   lastOutcomeBy?: T;
@@ -3583,6 +3700,49 @@ export interface PaymentReceiptsSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "refunds_select".
+ */
+export interface RefundsSelect<T extends boolean = true> {
+  tenant?: T;
+  order?: T;
+  user?: T;
+  course?: T;
+  cohort?: T;
+  amount?: T;
+  full?: T;
+  status?: T;
+  reason?: T;
+  requestedBy?: T;
+  requestedAt?: T;
+  approvedBy?: T;
+  approvedAt?: T;
+  refundedBy?: T;
+  refundedAt?: T;
+  reference?: T;
+  closedBy?: T;
+  closedAt?: T;
+  rejectionReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "finance-contacts_select".
+ */
+export interface FinanceContactsSelect<T extends boolean = true> {
+  tenant?: T;
+  order?: T;
+  instalmentIndex?: T;
+  user?: T;
+  outcome?: T;
+  by?: T;
+  at?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3999,6 +4159,32 @@ export interface IntegrationSettingsSelect<T extends boolean = true> {
         at?: T;
         message?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sms-log_select".
+ */
+export interface SmsLogSelect<T extends boolean = true> {
+  tenant?: T;
+  key?: T;
+  rule?: T;
+  stage?: T;
+  status?: T;
+  recipient?: T;
+  toMasked?: T;
+  to?: T;
+  text?: T;
+  refCollection?: T;
+  refId?: T;
+  attempts?: T;
+  nextAttemptAt?: T;
+  expiresAt?: T;
+  sentAt?: T;
+  provider?: T;
+  providerMessageId?: T;
+  error?: T;
   updatedAt?: T;
   createdAt?: T;
 }

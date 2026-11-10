@@ -11,6 +11,7 @@
     "./previewGate": "./src/previewGate.ts",
     "./money": "./src/money.ts",
     "./payments": "./src/payments.ts",
+    "./finance": "./src/finance.ts",
     "./staff": "./src/staff.ts",
     "./role-settings": "./src/roleSettings.ts",
     "./permissions": "./src/permissions.ts",
@@ -23,6 +24,7 @@
     "./jalali": "./src/jalali.ts",
     "./gamification": "./src/gamification/index.ts",
     "./staff-goals": "./src/staffGoals.ts",
+    "./crm": "./src/crm.ts",
     "./names": "./src/names.ts",
     "./richtext": "./src/richtext.ts",
     "./console": "./src/console.ts",
@@ -34,7 +36,8 @@
     "./sandbox": "./src/sandbox.ts",
     "./pow": "./src/pow.ts",
     "./settings": "./src/settings.ts",
-    "./settings-secrets": "./src/settingsSecrets.ts"
+    "./settings-secrets": "./src/settingsSecrets.ts",
+    "./reminders": "./src/reminders.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

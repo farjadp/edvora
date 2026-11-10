@@ -244,6 +244,8 @@ async function seedDemo(payload: Payload) {
     stats: [{ value: '3', label: 'دوره نمونه' }],
     // E-028: on, with the PRD defaults (leaderboard stays off). IBA keeps the defaults untouched.
     gamification: { enabled: true },
+    // E-016: reminder SMS on with the default offsets. `demo` always sends through the mock (ADR 020); IBA stays off.
+    reminderSettings: { enabled: true },
   })
   const t = tenant.id
   const course = await upsert(payload, 'courses', { and: [{ tenant: { equals: t } }, { slug: { equals: 'demo-program' } }] }, {
@@ -576,6 +578,15 @@ async function seedDemoGamification(payload: Payload, t: number) {
     const context = { [FOLLOW_UP_CONTEXT]: true }
     if (found) await payload.update({ collection: 'leads', id: found.id, overrideAccess: true, context, data: data as never })
     else await payload.create({ collection: 'leads', overrideAccess: true, context, data: data as never })
+  }
+  // E-015: one unassigned lead, so the advisor desk's «بی‌مشاور» pool is not empty (a re-seed puts it back in the pool).
+  {
+    const pool = { tenant: t, name: 'سرنخ نمونه بی‌مشاور', phone: '09129990106', course: course.id, status: 'new' as const, advisor: null, message: 'داده آزمایشی آکادمی نمونه.' }
+    const found = (await payload.find({ collection: 'leads', where: { and: [{ tenant: { equals: t } }, { phone: { equals: pool.phone } }] }, limit: 1, overrideAccess: true })).docs[0]
+    // Claimed or worked since the last seed: the pipeline forbids moving it back (e.g. lost → new), so recreate it.
+    const fresh = found && found.status === 'new' && found.advisor == null && !(found.followUps ?? []).length
+    if (found && !fresh) await payload.delete({ collection: 'leads', id: found.id, overrideAccess: true })
+    if (!fresh) await payload.create({ collection: 'leads', overrideAccess: true, data: pool })
   }
 
   // ---- One instalment order for the finance inbox: #1 paid, #2 overdue with a failed gateway attempt, #3 later.

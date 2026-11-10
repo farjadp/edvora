@@ -99,6 +99,18 @@ Expected comes from the template permissions; every cell matched unless marked.
 | archived-role | own ✅ | own ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ |
 | student / -other / -unpaid | own ✅ | — ✅ | — ✅ | — ✅ | own ✅ | own ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ | — ✅ |
 
+**E-016 `sms-log`** (reminder send log, `notifications.view`; written only by the worker — `create/update/delete`
+nobody; the full mobile `to` has field read access nobody, lists show `toMasked`):
+
+| user | sms-log read | create over REST | settings «یادآورهای پیامکی» (`notifications.manage`) |
+| --- | --- | --- | --- |
+| academy-admin | all ✅ | ✗ ✅ | ✓ ✅ |
+| finance | all ✅ | ✗ ✅ | ✗ |
+| support | all ✅ | ✗ ✅ | ✗ |
+| advisor / advisor-own / instructor / content-editor / expired / archived-role / student | — ✅ | ✗ ✅ | ✗ |
+
+`all` cells: `e2e/tests/sms-reminders.spec.ts` (after a run has written rows); `—` cells: `access-matrix.spec.ts`.
+
 Public collections (read = anyone by design): `cohorts`, `media`, `posts`, `pages`, `testimonials`, `courses`, `lessons`.
 
 | check | expected | actual | result |
@@ -173,6 +185,26 @@ student as a bare id (`depth=2` does not populate) — see gaps.
 
 ⚠️ Forbidden fields (`roles`, `tenants`) are silently dropped with 200 instead of a 403. Safe, but a client cannot tell.
 
+## 4b. Finance desk (E-023, ADR 021) — added 2026-11-09
+
+Spec: `e2e/tests/access-matrix.spec.ts` (two `E-023` tests) and `e2e/tests/finance-desk.spec.ts` (flows).
+
+| action | user | expected | result |
+| --- | --- | --- | --- |
+| `GET /api/refunds`, `/api/finance-contacts` | academy-admin, finance | 200 | ✅ |
+| same | advisor, support, instructor, content-editor, student | nothing (403 or empty) | ✅ |
+| `POST /api/refunds`, `/api/finance-contacts` | academy-admin, finance | 403 (server code only) | ✅ |
+| `/staff/finance?tab=overdue` (needs `finance.view`) | academy-admin, finance | 200 with the tab | ✅ |
+| `/staff/payments/export?from&to` (needs `finance.export`) | academy-admin, finance | 200 `.xlsx`, audit row `finance.exported` | ✅ |
+| same | advisor, support, instructor, content-editor, student, expired | 404 | ✅ |
+| approve / mark refunded a refund one requested | finance (holds `refunds.approve`) | refused, button not offered (four-eyes) | ✅ |
+| approve / mark refunded someone else's refund | second finance person | allowed | ✅ |
+| refund more than paid − (requested + approved + refunded) | finance | refused with the limit | ✅ |
+
+`finance.view` is new in the catalog: templates `finance` and `academy-admin` hold it (seed and migration
+`e023_finance_view_roles`); `reporting` does not, because it also allows contact notes. With E-023,
+`refunds.request`, `refunds.approve` and `finance.export` are enforced, so G1 below drops from 20 to 17 keys.
+
 ## 5. Lifecycle (token taken before the change, checked on the next request)
 
 Probe = `GET /api/audit-logs` / `GET /api/leads` / `GET /staff/overview`.
@@ -206,6 +238,22 @@ Probe = `GET /api/audit-logs` / `GET /api/leads` / `GET /staff/overview`.
 A row that covers several users (e.g. the three students) counts once. The spec `e2e/tests/access-matrix.spec.ts`
 turns the matrix into 97 tests (93 pass, 4 are `test.fail` pinning ACC-01…ACC-04).
 
+## Lead pool — `leads.claim` (E-015)
+
+New catalog key `leads.claim`: see leads with no advisor (desk tab «بی‌مشاور») and take one for yourself. Granted by the
+`advisor`, `sales-manager` and `academy-admin` templates (migration `20261109_142800_e015_claim_grant` adds it to
+existing template roles). The pool is read by server code only (never through `/api/leads`), so the API rows above are
+unchanged.
+
+| user | pool tab | claim | open a pool lead `/staff/leads/<id>` | team tab | assign | checked by |
+| --- | --- | --- | --- | --- | --- | --- |
+| advisor | yes | yes | 200 | no | no | `crm-desk.spec.ts` 1, matrix UI E-015 |
+| advisor-own (`ownRecordsOnly`) | no | no | 404 | no | no | `crm-desk.spec.ts` 2, matrix UI E-015 |
+| sales-manager | yes | yes | 200 | yes | yes | `crm-desk.spec.ts` 3 |
+| academy-admin | yes | yes | 200 | yes | yes | matrix UI E-015 |
+| course-scoped advisor | only leads of its courses; a pool lead without a course is outside | | | | | core `crm.test.ts` |
+| any demo staff → iba lead | — | — | 404 | — | — | `crm-desk.spec.ts` 5 |
+
 ## Gaps — role settings and profiles (facts, then suggestions; decisions are Farjad's via head-of-product)
 
 ### Role settings
@@ -215,7 +263,7 @@ turns the matrix into 97 tests (93 pass, 4 are `test.fail` pinning ACC-01…ACC-
 | G1 | **20 of the 63 catalog keys are enforced nowhere** in `apps/web`: `users.import`, `users.export`, `leads.export`, `discount.give`, `payments.manual.record`, `payments.manual.approve`, `refunds.request`, `refunds.approve`, `finance.export`, `qa.answer`, `tickets.*` (4), `sms.send_single`, `sms.broadcast`, `templates.edit`, `reports.*` (3). An admin can tick them in the role editor and nothing changes. (`grep -rlF "'<key>'" apps/web/src`, 2026-11-08) | Mark them «به‌زودی» / hide in the role editor until their module exists (E-039). |
 | G2 | **Four-eyes cannot be set up**: `payments.manual.record/approve` are unused and the `finance` template holds both; `orders.edit` lets anyone holding it set `status: paid` directly (ACC-03). ADR 006 calls four-eyes a decision. | Split template: «ثبت پرداخت» vs «تأیید پرداخت»; block status/total edits outside the payment action. |
 | G3 | **Advisor can create orders but never see them** (`orders.create_for_lead`, no `orders.view`; orders have no `.own` scope). Advisor `GET /api/orders` = 0 rows, even the order they just made. | Add `orders.view.own` (orders created for my leads) to the catalog and the advisor template. |
-| G4 | **`ownRecordsOnly` changes nothing for the advisor template** (it only holds `leads.view.own`); only leads and tickets have `.own/.all` variants. advisor vs advisor-own answered identically on every probe. | Explain on the membership form which permissions it narrows, or drop it until more `.all` keys exist. |
+| G4 | **`ownRecordsOnly` changes nothing for the advisor template** (it only holds `leads.view.own`); only leads and tickets have `.own/.all` variants. advisor vs advisor-own answered identically on every probe. **E-015 (2026-11-09): it now does — it hides the unassigned lead pool (`leads.claim`); see «Lead pool» below.** | Explain on the membership form which permissions it narrows, or drop it until more `.all` keys exist. |
 | G5 | **Instructor can't see who their students are**: no `users.view`, so `enrollments`/`submissions` show the student as an id. The teaching desk is still a placeholder. | Scoped `users.view` (students of my cohorts) for instructors. |
 | G6 | **Unscoped instructor = every course** (lessons of `access-scope-course` editable). The template description says "set the scope" but the form allows saving without one. | Warn (or require scope) when an instructor role is saved with empty scope. |
 | G7 | **Archived role cannot be picked, but existing memberships keep it silently** (membership create with an archived role fails «فیلد زیر نامعتبر است: نقش‌ها»; the seeded `archived-role` user just loses access with no hint on the membership). | Show «نقش بایگانی‌شده — بدون دسترسی» on the membership and in the staff list. |

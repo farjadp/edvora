@@ -172,6 +172,9 @@ const READ: Record<string, Partial<Record<Key, Read>>> = {
   enrollments: { 'academy-admin': 'all', advisor: 'all', instructor: 'all', 'instructor-scoped': 'all', finance: 'all', support: 'all', 'content-editor': 'none', expired: 'none', 'archived-role': 'none', student: 'own' },
   'import-connections': { 'academy-admin': 'all', advisor: 'none', finance: 'none', student: 'none' },
   'otp-codes': { 'academy-admin': 'none', advisor: 'none', student: 'none' },
+  // E-016: reminder send log, notifications.view only. The "all" cells (admin, finance, support) are in
+  // sms-reminders.spec.ts, after a run has written rows.
+  'sms-log': { advisor: 'none', instructor: 'none', 'content-editor': 'none', expired: 'none', 'archived-role': 'none', student: 'none' },
 }
 const ownerOf = (collection: string, d: Doc) => (collection === 'users' ? d.id : (d.user as number | undefined) ?? (d.advisor as number | undefined))
 
@@ -414,6 +417,33 @@ test('ACC-05: academy staff do not see the Edvora platform admin', async () => {
   expect((await docs(admin, '/api/users?where[roles][contains]=super-admin&limit=1&depth=0')).length, 'platform admin sees platform admins').toBeGreaterThan(0)
 })
 
+// ------------------------------------------------------------------ 6b. finance desk (E-023, ADR 021)
+test('E-023: refunds and finance contact notes are read-only over REST; only finance roles read them', async () => {
+  for (const c of ['refunds', 'finance-contacts'] as const) {
+    for (const k of ['academy-admin', 'finance'] as const) expect((await api[k].get(`/api/${c}?limit=1&depth=0`)).status(), `${k} reads ${c}`).toBe(200)
+    for (const k of ['advisor', 'support', 'instructor', 'content-editor', 'student'] as const) {
+      const res = await api[k].get(`/api/${c}?limit=50&depth=0`)
+      expect(res.ok() ? ((await res.json()) as { docs: Doc[] }).docs : [], `${k} reads ${c}`).toEqual([])
+    }
+    for (const k of ['academy-admin', 'finance'] as const) {
+      expect([401, 403], `${k} creates ${c}`).toContain((await api[k].post(`/api/${c}`, { data: { tenant: ref.demo, order: ref.orders.student, user: cast.student.id, amount: 10, reason: 'x', instalmentIndex: 0, outcome: 'reached', by: cast[k].id, at: new Date().toISOString() } })).status())
+    }
+  }
+})
+
+test('E-023: finance desk tabs and the Excel export follow finance.view / finance.export', async () => {
+  const range = 'from=2026-01-01&to=2026-01-31'
+  for (const k of ['academy-admin', 'finance'] as const) {
+    expect((await api[k].get('/staff/finance?tab=overdue')).status(), `${k} overdue tab`).toBe(200)
+    const x = await api[k].get(`/staff/payments/export?${range}`)
+    expect(x.status(), `${k} export`).toBe(200)
+    expect(x.headers()['content-type']).toContain('spreadsheetml')
+  }
+  for (const k of ['advisor', 'support', 'instructor', 'content-editor', 'student', 'expired'] as const) {
+    expect((await api[k].get(`/staff/payments/export?${range}`)).status(), `${k} export`).toBe(404)
+  }
+})
+
 // ------------------------------------------------------------------ 7. UI
 test('UI: advisor lands on the leads desk; expired staff gets the 403 page', async ({ page }) => {
   await staffLogin(page, DEMO, cast.advisor, '/staff')
@@ -423,6 +453,23 @@ test('UI: advisor lands on the leads desk; expired staff gets the 403 page', asy
   await page.waitForURL((u) => !u.pathname.includes('/staff/login'))
   const res = await page.request.get(`${DEMO}/staff/overview`, { maxRedirects: 0 })
   expect(res.status()).toBe(403)
+})
+
+test('UI E-015: lead pool — advisor has the «بی‌مشاور» tab, advisor with ownRecordsOnly does not', async ({ page }) => {
+  await staffLogin(page, DEMO, cast.advisor, '/staff/leads')
+  await page.waitForURL(/\/staff\/leads/)
+  await expect(page.getByTestId('crm-tab-pool')).toBeVisible()
+  await expect(page.getByTestId('crm-tab-team')).toHaveCount(0)
+  await page.context().clearCookies()
+  await staffLogin(page, DEMO, cast['advisor-own'], '/staff/leads?v=pool')
+  await page.waitForURL(/\/staff\/leads/)
+  await expect(page.getByTestId('crm-tab-pool')).toHaveCount(0)
+  await expect(page.getByTestId('crm-list')).toContainText('این نما برای شما باز نیست.')
+  await page.context().clearCookies()
+  await staffLogin(page, DEMO, cast['academy-admin'], '/staff/leads?v=team')
+  await page.waitForURL(/\/staff\/leads/)
+  await expect(page.getByTestId('crm-tab-team')).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByTestId('crm-tab-pool')).toBeVisible()
 })
 
 test('UI: a new student signs in by SMS, sees the dashboard, and is sent away from a course they did not buy', async ({ page }) => {
